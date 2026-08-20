@@ -1,0 +1,22 @@
+{
+  "name": "java-react-interview-questions",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "data": "node scripts/build-questions.mjs",
+    "dev": "npm run data && cd frontend && vite --host 127.0.0.1 --port 5173",
+    "build": "npm run data && cd frontend && vite build",
+    "preview": "cd frontend && vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.1.0"
+  }
+}

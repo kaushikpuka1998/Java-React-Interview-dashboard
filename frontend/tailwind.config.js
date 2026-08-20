@@ -1,0 +1,76 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "../index.html",
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
+      },
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': theme('colors.slate.700'),
+            '--tw-prose-headings': theme('colors.slate.900'),
+            '--tw-prose-lead': theme('colors.slate.600'),
+            '--tw-prose-links': theme('colors.blue.600'),
+            '--tw-prose-bold': theme('colors.slate.900'),
+            '--tw-prose-counters': theme('colors.slate.400'),
+            '--tw-prose-bullets': theme('colors.slate.300'),
+            '--tw-prose-hr': theme('colors.slate.200'),
+            '--tw-prose-quotes': theme('colors.slate.900'),
+            '--tw-prose-quote-borders': theme('colors.slate.300'),
+            '--tw-prose-captions': theme('colors.slate.500'),
+            '--tw-prose-code': theme('colors.slate.900'),
+            '--tw-prose-pre-code': theme('colors.slate.100'),
+            '--tw-prose-pre-bg': theme('colors.slate.900'),
+            '--tw-prose-th-borders': theme('colors.slate.300'),
+            '--tw-prose-td-borders': theme('colors.slate.200'),
+            maxWidth: 'none',
+          },
+        },
+        invert: {
+          css: {
+            '--tw-prose-body': theme('colors.slate.300'),
+            '--tw-prose-headings': theme('colors.slate.100'),
+            '--tw-prose-lead': theme('colors.slate.400'),
+            '--tw-prose-links': theme('colors.blue.400'),
+            '--tw-prose-bold': theme('colors.slate.100'),
+            '--tw-prose-counters': theme('colors.slate.500'),
+            '--tw-prose-bullets': theme('colors.slate.600'),
+            '--tw-prose-hr': theme('colors.slate.700'),
+            '--tw-prose-quotes': theme('colors.slate.100'),
+            '--tw-prose-quote-borders': theme('colors.slate.600'),
+            '--tw-prose-captions': theme('colors.slate.500'),
+            '--tw-prose-code': theme('colors.slate.100'),
+            '--tw-prose-pre-code': theme('colors.slate.100'),
+            '--tw-prose-pre-bg': theme('colors.slate.800'),
+            '--tw-prose-th-borders': theme('colors.slate.600'),
+            '--tw-prose-td-borders': theme('colors.slate.700'),
+          },
+        },
+      }),
+    },
+  },
+  plugins: [],
+}
