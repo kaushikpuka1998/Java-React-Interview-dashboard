@@ -19,47 +19,98 @@ function Markdown({ text }) {
       {parts.map((part, index) => {
         if (index % 3 === 2) {
           return (
-            <pre key={index} className="bg-slate-900/50 dark:bg-slate-800/50 rounded-lg p-4 overflow-x-auto border border-slate-200/50 dark:border-slate-700/50">
-              <code className="text-slate-100 dark:text-slate-100 text-sm leading-relaxed font-mono">{part.trim()}</code>
+            <pre key={index} className="bg-slate-900 rounded-lg p-4 overflow-x-auto border border-slate-700/50">
+              <code className="text-slate-100 text-sm leading-relaxed font-mono">{highlightCode(part.trim())}</code>
             </pre>
           )
         }
         if (index % 3 === 1) return null
 
-        return part.split('\n').map((line, lineIndex) => {
+        const lines = part.split('\n')
+        const out = []
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+          const line = lines[lineIndex]
           const key = `${index}-${lineIndex}`
-          if (!line.trim()) return <br key={key} />
-          if (line.startsWith('### ')) return <h3 key={key} className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2">{line.slice(4)}</h3>
-          if (line.startsWith('## ')) return <h2 key={key} className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-3">{line.slice(3)}</h2>
-          if (line.startsWith('# ')) return <h1 key={key} className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-4">{line.slice(2)}</h1>
-          if (line.startsWith('> ')) return <blockquote key={key} className="border-l-4 border-blue-500 pl-4 italic text-slate-600 dark:text-slate-300 my-3">{line.slice(2)}</blockquote>
-          if (line.startsWith('- ') || line.startsWith('* ')) return <li key={key} className="ml-6 list-disc text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.slice(2))}</li>
-          if (line.match(/^\d+\.\s/)) return <li key={key} className="ml-6 list-decimal text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.replace(/^\d+\.\s/, ''))}</li>
-          if (line.includes('|') && line.includes('---')) return null // Table separator handled in table rendering
-          if (line.includes('|')) {
-            // Simple table row rendering
-            const cells = line.split('|').map(c => c.trim()).filter(Boolean)
-            if (cells.length > 1) {
-              return (
-                <div key={key} className="overflow-x-auto my-3">
-                  <table className="min-w-full text-sm border-collapse">
-                    <tbody>
-                      <tr className="border-b border-slate-200 dark:border-slate-700">
+
+          // Group consecutive pipe lines into one table (skip the |---| separator)
+          const isRow = (l) => l && l.includes('|') && l.split('|').map(c => c.trim()).filter(Boolean).length > 1
+          const isSep = (l) => l && /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes('-')
+          if (isRow(line)) {
+            const rows = []
+            let j = lineIndex
+            while (j < lines.length && (isRow(lines[j]) || isSep(lines[j]))) {
+              if (!isSep(lines[j])) rows.push(lines[j].split('|').map(c => c.trim()).filter((c, i, a) => !(c === '' && (i === 0 || i === a.length - 1))))
+              j++
+            }
+            const [head, ...body] = rows
+            out.push(
+              <div key={key} className="overflow-x-auto my-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-slate-800">
+                      {head.map((cell, ci) => (
+                        <th key={ci} className="px-4 py-2.5 text-left font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700">{formatInline(cell)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {body.map((cells, ri) => (
+                      <tr key={ri} className="even:bg-slate-50 dark:even:bg-slate-800/40">
                         {cells.map((cell, ci) => (
-                          <td key={ci} className="px-3 py-2 border-r border-slate-200 dark:border-slate-700">{formatInline(cell)}</td>
+                          <td key={ci} className="px-4 py-2.5 align-top text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">{formatInline(cell)}</td>
                         ))}
                       </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )
-            }
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+            lineIndex = j - 1
+            continue
           }
-          return <p key={key} className="text-slate-700 dark:text-slate-300 leading-relaxed my-2">{formatInline(line)}</p>
-        })
+
+          if (line.trim() === '```') continue // orphan/empty code fence from source data
+          if (!line.trim()) { out.push(<br key={key} />); continue }
+          if (line.startsWith('### ')) { out.push(<h3 key={key} className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2">{line.slice(4)}</h3>); continue }
+          if (line.startsWith('## ')) { out.push(<h2 key={key} className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-3">{line.slice(3)}</h2>); continue }
+          if (line.startsWith('# ')) { out.push(<h1 key={key} className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-4">{line.slice(2)}</h1>); continue }
+          if (line.startsWith('> ')) { out.push(<blockquote key={key} className="border-l-4 border-blue-500 pl-4 italic text-slate-600 dark:text-slate-300 my-3">{line.slice(2)}</blockquote>); continue }
+          if (line.startsWith('- ') || line.startsWith('* ')) { out.push(<li key={key} className="ml-6 list-disc text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.slice(2))}</li>); continue }
+          if (line.match(/^\d+\.\s/)) { out.push(<li key={key} className="ml-6 list-decimal text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.replace(/^\d+\.\s/, ''))}</li>); continue }
+          out.push(<p key={key} className="text-slate-700 dark:text-slate-300 leading-relaxed my-2">{formatInline(line)}</p>)
+        }
+        return out
       })}
     </div>
   )
+}
+
+// ponytail: regex tokenizer, covers Java/JS/TS well enough; swap for Shiki if more langs needed
+const KEYWORDS = new Set('abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while var let function async await yield typeof instanceof of in delete null true false undefined NaN'.split(' '))
+
+function highlightCode(code) {
+  // token regex: comments | strings | numbers | annotations | identifiers | other
+  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(@\w+)|(\b\d[\d.xXa-fA-F_]*\b)|(\b[A-Za-z_$][\w$]*\b)/g
+  const out = []
+  let last = 0, m, k = 0
+  while ((m = re.exec(code))) {
+    if (m.index > last) out.push(code.slice(last, m.index))
+    const key = k++
+    if (m[1]) out.push(<span key={key} className="text-slate-500 italic">{m[1]}</span>)
+    else if (m[2]) out.push(<span key={key} className="text-emerald-400">{m[2]}</span>)
+    else if (m[3]) out.push(<span key={key} className="text-amber-400">{m[3]}</span>)
+    else if (m[4]) out.push(<span key={key} className="text-orange-400">{m[4]}</span>)
+    else if (m[5]) {
+      const w = m[5]
+      if (KEYWORDS.has(w)) out.push(<span key={key} className="text-purple-400 font-medium">{w}</span>)
+      else if (/^[A-Z]/.test(w)) out.push(<span key={key} className="text-cyan-300">{w}</span>)
+      else if (code[re.lastIndex] === '(') out.push(<span key={key} className="text-blue-400">{w}</span>)
+      else out.push(w)
+    }
+    last = re.lastIndex
+  }
+  if (last < code.length) out.push(code.slice(last))
+  return out
 }
 
 function formatInline(line) {
@@ -95,6 +146,8 @@ function QuestionLink({ question, isActive, onClick }) {
       <div className="flex items-center gap-1.5 mt-1.5">
         <span className={`badge px-2 py-0.5 text-xs rounded-full ${
           question.tech === 'java' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
+          question.tech === 'node' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+          question.tech === 'sql' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
           'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
         }`}>
           {question.tech.toUpperCase()}
@@ -144,19 +197,45 @@ function SearchInput({ value, onChange, placeholder }) {
  */
 function TechFilter({ value, onChange }) {
   const options = [
-    { value: 'all', label: 'All', icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> },
-    { value: 'java', label: 'Java', icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18l7.45 3.72L12 13.56 4.55 9.84 12 4.18zM12 17.5l-7.5-3.75v-5.1l7.5 3.75 7.5-3.75v5.1L12 17.5z"/></svg> },
-    { value: 'react', label: 'React', icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18l7.45 3.72L12 13.56 4.55 9.84 12 4.18zM12 17.5l-7.5-3.75v-5.1l7.5 3.75 7.5-3.75v5.1L12 17.5z"/></svg> },
+    {
+      value: 'all', label: 'All',
+      active: 'bg-blue-500 text-white shadow-sm shadow-blue-500/30',
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+    },
+    {
+      value: 'java', label: 'Java',
+      active: 'bg-orange-500 text-white shadow-sm shadow-orange-500/30',
+      // coffee cup (Java)
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h1a3 3 0 010 6h-1.17A5 5 0 0113 18H8a5 5 0 01-5-5V7a1 1 0 011-1h13a1 1 0 011 1v1zm0 2v2h1a1 1 0 000-2h-1zM6 3a1 1 0 012 0v1a1 1 0 01-2 0V3zm4 0a1 1 0 012 0v1a1 1 0 01-2 0V3zM4 20h14v2H4v-2z"/></svg>,
+    },
+    {
+      value: 'react', label: 'React',
+      active: 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/30',
+      // atom (React)
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4.2" strokeWidth={1.5}/><ellipse cx="12" cy="12" rx="10" ry="4.2" strokeWidth={1.5} transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" strokeWidth={1.5} transform="rotate(120 12 12)"/></svg>,
+    },
+    {
+      value: 'node', label: 'Node',
+      active: 'bg-green-500 text-white shadow-sm shadow-green-500/30',
+      // hexagon (Node)
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2zm0 4.2L7.5 8.8v6.4L12 17.8l4.5-2.6V8.8L12 6.2z"/></svg>,
+    },
+    {
+      value: 'sql', label: 'SQL',
+      active: 'bg-purple-500 text-white shadow-sm shadow-purple-500/30',
+      // database cylinder (SQL)
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-4.42 0-8 1.34-8 3v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5c0-1.66-3.58-3-8-3zm6 17c0 .3-2.13 1.5-6 1.5S6 19.3 6 19v-2.23c1.5.77 3.72 1.23 6 1.23s4.5-.46 6-1.23V19zm0-4.5c0 .3-2.13 1.5-6 1.5s-6-1.2-6-1.5v-2.23c1.5.77 3.72 1.23 6 1.23s4.5-.46 6-1.23v2.23zM12 8.5C8.13 8.5 6 7.3 6 7s2.13-1.5 6-1.5S18 6.7 18 7s-2.13 1.5-6 1.5z"/></svg>,
+    },
   ]
 
   return (
-    <div className="segmented flex gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg" role="group" aria-label="Filter by technology">
+    <div className="segmented flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg" role="group" aria-label="Filter by technology">
       {options.map(opt => (
         <button
           key={opt.value}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
+          className={`flex flex-1 min-w-[68px] items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
             value === opt.value
-              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+              ? opt.active
               : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
           }`}
           onClick={() => onChange(opt.value)}
@@ -193,7 +272,7 @@ function CategorySelect({ value, onChange, options, disabled }) {
  * Difficulty filter dropdown
  */
 function DifficultySelect({ value, onChange }) {
-  const difficulties = ['Basic', 'Intermediate', 'Advanced']
+  const difficulties = ['Basic', 'Intermediate', 'Advanced', 'Experienced']
 
   return (
     <select
@@ -229,7 +308,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
   )
 
   return (
-    <aside className={`sidebar w-80 lg:w-96 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden lg:flex ${className}`}>
+    <aside className={`sidebar w-80 lg:w-96 h-full flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden lg:flex ${className}`}>
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -238,7 +317,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">Interview Reader</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{questions.length} Java + React questions</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{questions.length} Java, React, Node & SQL questions</p>
             </div>
           </div>
           <button
@@ -326,13 +405,17 @@ function ReaderPane({ question, questions, onNavigate }) {
   const next = questions[selectedIndex + 1]
 
   return (
-    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-900">
-      <article className="paper h-full overflow-y-auto p-6 lg:p-8 pb-24 max-w-3xl mx-auto w-full">
+    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 flex flex-col">
+      <article className="paper flex-1 overflow-y-auto p-6 lg:p-8 max-w-3xl mx-auto w-full">
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="badges flex flex-wrap gap-2 mb-4">
             <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
               question.tech === 'java'
                 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                : question.tech === 'node'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                : question.tech === 'sql'
+                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                 : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
             }`}>
               {question.tech.toUpperCase()}
@@ -356,8 +439,10 @@ function ReaderPane({ question, questions, onNavigate }) {
         <div className="answer-content">
           <Markdown text={question.answer} />
         </div>
+      </article>
 
-        <footer className="pager mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <footer className="pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-3xl mx-auto w-full px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             disabled={!prev}
             onClick={() => onNavigate(prev.id)}
@@ -383,8 +468,8 @@ function ReaderPane({ question, questions, onNavigate }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-        </footer>
-      </article>
+        </div>
+      </footer>
     </main>
   )
 }
@@ -460,7 +545,7 @@ function App() {
     })
   }, [query, tech, category, difficulty])
 
-  const selected = questionsData.find(q => q.id === selectedId) || filtered[0] || questionsData[0]
+  const selected = filtered.find(q => q.id === selectedId) || filtered[0] || questionsData[0]
 
   const toggleDarkMode = useCallback(() => {
     setIsDark(prev => {
@@ -493,7 +578,7 @@ function App() {
   }, [])
 
   return (
-    <div className="app-shell min-h-screen bg-slate-50 dark:bg-slate-900 flex">
+    <div className="app-shell h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 flex">
       <Sidebar
         questions={questionsData}
         filtered={filtered}

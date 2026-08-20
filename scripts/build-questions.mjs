@@ -18,6 +18,8 @@ const TOPICS = {
     ['05-jvm-memory-gc.md', 'JVM Architecture & GC'],
     ['06-spring-framework.md', 'Spring Framework & Microservices'],
     ['07-jpa-hibernate-db.md', 'JPA, Hibernate & Security'],
+    ['08-streams-lambda.md', 'Java Streams & Lambdas'],
+    ['09-java8-functional.md', 'Java 8 Functional Programming'],
   ],
   react: [
     ['01-react-basics-jsx.md', 'React Basics & JSX'],
@@ -27,6 +29,25 @@ const TOPICS = {
     ['05-state-management-ecosystem.md', 'State Management & Ecosystem'],
     ['06-routing-forms-testing.md', 'Routing, Forms & Testing'],
     ['07-advanced-patterns-nextjs.md', 'Advanced Patterns & Next.js'],
+  ],
+  node: [
+    ['01-node-fundamentals.md', 'Node.js Fundamentals'],
+    ['02-modules-npm.md', 'Modules & npm'],
+    ['03-event-loop-async.md', 'Event Loop & Async'],
+    ['04-streams-buffers-events.md', 'Streams, Buffers & Events'],
+    ['05-filesystem-process-os.md', 'File System, Process & OS'],
+    ['06-http-networking.md', 'HTTP & Networking'],
+    ['07-express-rest-apis.md', 'Express & REST APIs'],
+    ['08-databases-orm.md', 'Databases & ORMs'],
+    ['09-security-authentication.md', 'Security & Authentication'],
+    ['10-performance-testing-deploy.md', 'Performance, Testing & Deployment'],
+  ],
+  sql: [
+    ['01-basics-select.md', 'SQL Basics & SELECT'],
+    ['02-joins.md', 'Joins'],
+    ['03-aggregation-grouping.md', 'Aggregation & Grouping'],
+    ['04-subqueries-cte-windows.md', 'Subqueries, CTEs & Window Functions'],
+    ['05-advanced-scenarios.md', 'Advanced Query Scenarios'],
   ],
 }
 
@@ -104,7 +125,7 @@ function parseFile(relPath, tech) {
     } else if (section === 'code') {
       // Detect language on first fence line
       if (cur.code === '' && line.startsWith('```')) {
-        codeLang = line.slice(3).trim() || (tech === 'java' ? 'java' : 'jsx')
+        codeLang = line.slice(3).trim() || (tech === 'java' ? 'java' : tech === 'node' ? 'js' : tech === 'sql' ? 'sql' : 'jsx')
       } else {
         cur.code += line + '\n'
       }
@@ -118,7 +139,7 @@ function parseFile(relPath, tech) {
     if (q.code) {
       q.code = q.code.trim()
       // Ensure code has a language fence
-      q.codeLang = q.codeLang || (tech === 'java' ? 'java' : 'jsx')
+      q.codeLang = q.codeLang || (tech === 'java' ? 'java' : tech === 'node' ? 'js' : tech === 'sql' ? 'sql' : 'jsx')
     }
   }
   return questions
@@ -134,7 +155,7 @@ for (const [tech, topics] of Object.entries(TOPICS)) {
 // Assign unique IDs: tech + number, and keep original number for display
 let uniqueId = 1
 for (const q of all) {
-  q.id = `${q.tech}-${q.number}`
+  q.id = `${q.tech}-${uniqueId}` // globally unique: files restart Q-numbering, so tech-number collides
   q.displayNumber = q.number
   q.sortKey = uniqueId++
 }
