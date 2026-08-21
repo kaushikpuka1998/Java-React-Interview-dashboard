@@ -10,6 +10,19 @@ const outDir = path.join(root, 'frontend', 'src', 'data')
 fs.mkdirSync(outDir, { recursive: true })
 
 const TOPICS = {
+  hld: [
+    ['01-fundamentals.md', 'HLD Fundamentals'],
+    ['02-easy-design-problems.md', 'Easy Design Problems'],
+    ['03-core-distributed-systems.md', 'Core Distributed Systems'],
+    ['04-database-storage.md', 'Database & Storage'],
+    ['05-kafka-event-driven.md', 'Kafka & Event-Driven'],
+    ['06-major-product-systems.md', 'Major Product Systems'],
+    ['07-fintech-payments.md', 'Fintech & Payments'],
+    ['08-advanced-distributed-systems.md', 'Advanced Distributed Systems'],
+    ['09-realtime-high-scale.md', 'Realtime & High Scale'],
+    ['10-expert-complex-systems.md', 'Expert & Complex Systems'],
+    ['11-followup-questions.md', 'Interview Follow-Up Questions'],
+  ],
   java: [
     ['01-core-java-oops.md', 'Core Java & OOP'],
     ['02-collections-framework.md', 'Collections & Generics'],
@@ -42,6 +55,31 @@ const TOPICS = {
     ['09-security-authentication.md', 'Security & Authentication'],
     ['10-performance-testing-deploy.md', 'Performance, Testing & Deployment'],
   ],
+  microservices: [
+    ['01-communication-data-patterns.md', 'Communication & Data Patterns'],
+    ['02-infra-observability-realworld.md', 'Infrastructure, Observability & Real-World'],
+    ['03-per-stack-microservices.md', 'Per-Stack (Java/Node/SQL/React)'],
+    ['04-realtime-communication.md', 'Real-Time Communication (Polling/WebSocket/WebRTC)'],
+  ],
+  kafka: [
+    ['01-kafka-deep-dive.md', 'Apache Kafka Deep Dive'],
+    ['02-producers.md', 'Kafka Producers'],
+    ['03-consumers-offsets.md', 'Kafka Consumers & Offsets'],
+    ['04-consumer-groups-rebalancing.md', 'Consumer Groups & Rebalancing'],
+    ['05-replication-reliability.md', 'Replication & Reliability'],
+    ['06-delivery-semantics-transactions.md', 'Delivery Semantics & Transactions'],
+    ['07-internals-storage.md', 'Kafka Internals & Storage'],
+    ['08-performance-tuning.md', 'Performance & Tuning'],
+    ['09-connect-streams-schema.md', 'Kafka Connect, Streams & Schema'],
+    ['10-production-system-design-security.md', 'Production, System Design & Security'],
+  ],
+  'design-patterns': [
+    ['01-creational-patterns.md', 'Creational Patterns'],
+    ['02-structural-patterns.md', 'Structural Patterns'],
+    ['03-behavioral-patterns.md', 'Behavioral Patterns'],
+    ['04-solid-enterprise-patterns.md', 'SOLID & Enterprise Patterns'],
+    ['05-distributed-architecture-patterns.md', 'Distributed & Architecture Patterns'],
+  ],
   sql: [
     ['01-basics-select.md', 'SQL Basics & SELECT'],
     ['02-joins.md', 'Joins'],
@@ -62,7 +100,7 @@ function parseFile(relPath, tech) {
   const questions = []
   let cur = null
   let section = null
-  let codeLang = null
+  let inFence = false   // true while inside a ``` code fence
 
   const pushCur = () => {
     if (cur && cur.answer) {
@@ -70,7 +108,7 @@ function parseFile(relPath, tech) {
       questions.push(cur)
     }
     cur = null
-    codeLang = null
+    inFence = false
   }
 
   for (const line of lines) {
@@ -91,6 +129,17 @@ function parseFile(relPath, tech) {
       continue
     }
     if (!cur) continue
+
+    // Inside a code fence, capture verbatim — don't interpret #, ---, etc.
+    if (section === 'code' && line.trim().startsWith('```')) {
+      inFence = !inFence
+      cur.code += line + '\n'
+      continue
+    }
+    if (inFence) {
+      cur.code += line + '\n'
+      continue
+    }
 
     if (/^\*\*Difficulty:\*\*/i.test(line)) {
       const m = line.match(/`(\w+)`/)
@@ -123,12 +172,8 @@ function parseFile(relPath, tech) {
     if (section === 'answer') {
       cur.answer += line + '\n'
     } else if (section === 'code') {
-      // Detect language on first fence line
-      if (cur.code === '' && line.startsWith('```')) {
-        codeLang = line.slice(3).trim() || (tech === 'java' ? 'java' : tech === 'node' ? 'js' : tech === 'sql' ? 'sql' : 'jsx')
-      } else {
-        cur.code += line + '\n'
-      }
+      // Verbatim markdown (fences captured above); supports multiple blocks
+      cur.code = (cur.code || '') + line + '\n'
     }
   }
   pushCur()
@@ -136,11 +181,7 @@ function parseFile(relPath, tech) {
   // Finalize
   for (const q of questions) {
     q.answer = q.answer.trim()
-    if (q.code) {
-      q.code = q.code.trim()
-      // Ensure code has a language fence
-      q.codeLang = q.codeLang || (tech === 'java' ? 'java' : tech === 'node' ? 'js' : tech === 'sql' ? 'sql' : 'jsx')
-    }
+    if (q.code) q.code = q.code.trim()
   }
   return questions
 }
@@ -164,12 +205,10 @@ for (const q of all) {
 all.sort((a, b) => a.sortKey - b.sortKey)
 const merged = all
 
-// Build final markdown answer with properly fenced code blocks
+// Append the verbatim code section (already fenced markdown) to the answer
 for (const q of merged) {
   if (q.code) {
-    const fence = q.codeLang ? '\n```' + q.codeLang + '\n' : '\n```\n'
-    const codeBlock = fence + q.code + '\n```\n'
-    q.answer = (q.answer ? q.answer + '\n\n' : '') + codeBlock
+    q.answer = (q.answer ? q.answer + '\n\n' : '') + q.code
   }
   delete q.code
   delete q.codeLang

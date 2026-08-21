@@ -164,12 +164,16 @@ function QuestionLink({ question, isActive, onClick }) {
       </div>
       <div className="flex items-center gap-1.5 mt-1.5">
         <span className={`badge px-2 py-0.5 text-xs rounded-full ${
+          question.tech === 'hld' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' :
           question.tech === 'java' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
           question.tech === 'node' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
           question.tech === 'sql' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+          question.tech === 'microservices' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' :
+          question.tech === 'design-patterns' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
+          question.tech === 'kafka' ? 'bg-slate-200 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200' :
           'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
         }`}>
-          {question.tech.toUpperCase()}
+          {question.tech === 'design-patterns' ? 'DESIGN PATTERN' : question.tech === 'hld' ? 'HLD' : question.tech.toUpperCase()}
         </span>
         <span className="badge px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
           {question.difficulty}
@@ -222,6 +226,12 @@ function TechFilter({ value, onChange }) {
       icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
     },
     {
+      value: 'hld', label: 'HLD',
+      active: 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30',
+      // architecture diagram (HLD)
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+    },
+    {
       value: 'java', label: 'Java',
       active: 'bg-orange-500 text-white shadow-sm shadow-orange-500/30',
       // coffee cup (Java)
@@ -245,23 +255,41 @@ function TechFilter({ value, onChange }) {
       // database cylinder (SQL)
       icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-4.42 0-8 1.34-8 3v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5c0-1.66-3.58-3-8-3zm6 17c0 .3-2.13 1.5-6 1.5S6 19.3 6 19v-2.23c1.5.77 3.72 1.23 6 1.23s4.5-.46 6-1.23V19zm0-4.5c0 .3-2.13 1.5-6 1.5s-6-1.2-6-1.5v-2.23c1.5.77 3.72 1.23 6 1.23s4.5-.46 6-1.23v2.23zM12 8.5C8.13 8.5 6 7.3 6 7s2.13-1.5 6-1.5S18 6.7 18 7s-2.13 1.5-6 1.5z"/></svg>,
     },
+    {
+      value: 'microservices', label: 'Microservices',
+      active: 'bg-rose-500 text-white shadow-sm shadow-rose-500/30',
+      // connected nodes (microservices)
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a3 3 0 00-1 5.83V10H7a3 3 0 00-3 3v1.17a3 3 0 101.99.01V13a1 1 0 011-1h10a1 1 0 011 1v1.18A3 3 0 1020 14.17V13a3 3 0 00-3-3h-4V7.83A3 3 0 0012 2z"/></svg>,
+    },
+    {
+      value: 'kafka', label: 'Kafka',
+      active: 'bg-slate-700 text-white shadow-sm shadow-slate-700/30',
+      // stacked logs (Kafka)
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C7 2 3 3.3 3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5c0-1.7-4-3-9-3zm7 17c0 .5-2.7 1.5-7 1.5S5 19.5 5 19v-2.2c1.7.8 4.3 1.2 7 1.2s5.3-.4 7-1.2V19zm0-5c0 .5-2.7 1.5-7 1.5S5 14.5 5 14v-2.2c1.7.8 4.3 1.2 7 1.2s5.3-.4 7-1.2V14zM12 9C7.7 9 5 8 5 7.5v-.3C6.7 8 9.3 8.4 12 8.4s5.3-.4 7-1.2v.3C19 8 16.3 9 12 9z"/></svg>,
+    },
+    {
+      value: 'design-patterns', label: 'Design Pattern',
+      active: 'bg-amber-500 text-white shadow-sm shadow-amber-500/30',
+      // puzzle piece (design patterns)
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 11H19V7a2 2 0 00-2-2h-4V3.5a2.5 2.5 0 00-5 0V5H4a2 2 0 00-2 2v3.8h1.5a2.2 2.2 0 010 4.4H2V19a2 2 0 002 2h3.8v-1.5a2.2 2.2 0 014.4 0V21H17a2 2 0 002-2v-4h1.5a2.5 2.5 0 000-5z"/></svg>,
+    },
   ]
 
   return (
-    <div className="segmented flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg" role="group" aria-label="Filter by technology">
+    <div className="segmented grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg" role="group" aria-label="Filter by technology">
       {options.map(opt => (
         <button
           key={opt.value}
-          className={`flex flex-1 min-w-[68px] items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
+          className={`w-full min-w-0 text-center px-2 py-1.5 rounded-md text-xs font-medium whitespace-nowrap truncate transition-all duration-150 ${
             value === opt.value
               ? opt.active
               : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
           }`}
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
+          title={opt.label}
         >
-          <span className="flex-shrink-0" aria-hidden="true">{opt.icon}</span>
-          <span>{opt.label}</span>
+          {opt.label}
         </button>
       ))}
     </div>
@@ -479,7 +507,7 @@ function ReaderPane({ question, questions, onNavigate }) {
             <span className="hidden sm:inline">Previous</span>
           </button>
           <div className="text-xs text-slate-500 dark:text-slate-400 flex-1 text-center px-2">
-            Q{question.displayNumber} / {questions.length}
+            {selectedIndex + 1} / {questions.length}
           </div>
           <button
             disabled={!next}
@@ -497,15 +525,23 @@ function ReaderPane({ question, questions, onNavigate }) {
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="badges flex flex-wrap gap-2 mb-4">
             <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
-              question.tech === 'java'
+              question.tech === 'hld'
+                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+                : question.tech === 'java'
                 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
                 : question.tech === 'node'
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                 : question.tech === 'sql'
                 ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                : question.tech === 'microservices'
+                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                : question.tech === 'design-patterns'
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                : question.tech === 'kafka'
+                ? 'bg-slate-200 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200'
                 : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
             }`}>
-              {question.tech.toUpperCase()}
+              {question.tech === 'design-patterns' ? 'DESIGN PATTERN' : question.tech === 'hld' ? 'HLD' : question.tech.toUpperCase()}
             </span>
             <span className="badge px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {question.category}
@@ -543,7 +579,7 @@ function ReaderPane({ question, questions, onNavigate }) {
           </button>
 
           <div className="text-sm text-slate-500 dark:text-slate-400">
-            Question {question.displayNumber} of {questions.length}
+            Question {selectedIndex + 1} of {questions.length}
           </div>
 
           <button
