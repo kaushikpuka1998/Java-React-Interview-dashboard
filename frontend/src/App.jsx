@@ -325,6 +325,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
   )
+  const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
 
   return (
     <aside className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'} ${className}`}>
@@ -358,25 +359,63 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
         </div>
       </div>
 
-      <div className="p-4 space-y-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+      {/* Search always visible */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <SearchInput value={query} onChange={setQuery} placeholder="Search questions..." />
-
-        <TechFilter value={tech} onChange={setTech} />
-
-        <CategorySelect
-          value={category}
-          onChange={setCategory}
-          options={categories}
-          disabled={tech === 'all' && categories.length > 50}
-        />
-
-        <DifficultySelect
-          value={difficulty}
-          onChange={setDifficulty}
-        />
-
-        <QuestionCount count={filtered.length} total={questions.length} />
       </div>
+
+      {/* Collapsible filters on mobile */}
+      {isMobile ? (
+        <div className="border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            aria-expanded={filtersOpen}
+            aria-controls="mobile-filters"
+          >
+            <span className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters
+            </span>
+            <svg className={`w-4 h-4 text-slate-500 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div id="mobile-filters" className={`${filtersOpen ? 'block' : 'hidden'}`}>
+            <div className="p-4 space-y-4">
+              <TechFilter value={tech} onChange={setTech} />
+              <CategorySelect
+                value={category}
+                onChange={setCategory}
+                options={categories}
+                disabled={tech === 'all' && categories.length > 50}
+              />
+              <DifficultySelect
+                value={difficulty}
+                onChange={setDifficulty}
+              />
+              <QuestionCount count={filtered.length} total={questions.length} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 space-y-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+          <TechFilter value={tech} onChange={setTech} />
+          <CategorySelect
+            value={category}
+            onChange={setCategory}
+            options={categories}
+            disabled={tech === 'all' && categories.length > 50}
+          />
+          <DifficultySelect
+            value={difficulty}
+            onChange={setDifficulty}
+          />
+          <QuestionCount count={filtered.length} total={questions.length} />
+        </div>
+      )}
 
       <nav className="question-list flex-1 overflow-y-auto p-3 space-y-1" aria-label="Question list">
         {filtered.length === 0 ? (
