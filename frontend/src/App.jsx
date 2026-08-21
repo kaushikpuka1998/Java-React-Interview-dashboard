@@ -557,19 +557,21 @@ function MobileMenuButton({ isOpen, onToggle }) {
 }
 
 /**
- * Mobile sidebar overlay
+ * Mobile sidebar overlay - fixed positioned, content pushed by spacer in App
  */
 function MobileSidebar({ isOpen, onClose, ...sidebarProps }) {
   if (!isOpen) return null
 
   return (
     <>
+      {/* Backdrop - closes on click */}
       <div
         className="fixed inset-0 bg-black/50 z-40 lg:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-white dark:bg-slate-950 shadow-xl lg:hidden transform transition-transform duration-200 ease-out">
+      {/* Fixed sidebar - overlays but content pushed by spacer in App */}
+      <aside className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-white dark:bg-slate-950 shadow-xl lg:hidden transform transition-transform duration-300 ease-out translate-x-0">
         <Sidebar {...sidebarProps} isMobile={true} />
       </aside>
     </>
@@ -653,6 +655,9 @@ function App() {
         onToggleDark={toggleDarkMode}
         isDark={isDark}
       />
+
+      {/* Mobile sidebar spacer - pushes content when menu open */}
+      {mobileMenuOpen && <div className="lg:hidden w-80 max-w-[85vw]" aria-hidden="true" />}
 
       <MobileSidebar
         isOpen={mobileMenuOpen}
