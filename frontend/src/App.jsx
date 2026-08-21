@@ -712,7 +712,7 @@ function App() {
 
       <ReaderPane
         question={selected}
-        questions={questionsData}
+        questions={filtered}
         onNavigate={handleNavigate}
       />
     </div>
