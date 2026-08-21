@@ -446,8 +446,8 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
 function ReaderPane({ question, questions, onNavigate }) {
   if (!question) {
     return (
-      <main className="reader flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="text-center p-8">
+      <main className="reader flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950 min-w-0">
+        <div className="text-center p-4 sm:p-8 w-full max-w-3xl mx-auto">
           <svg className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -463,8 +463,8 @@ function ReaderPane({ question, questions, onNavigate }) {
   const next = questions[selectedIndex + 1]
 
   return (
-    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <article className="paper flex-1 overflow-y-auto p-6 lg:p-8 max-w-3xl mx-auto w-full">
+    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col min-w-0">
+      <article className="paper flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto w-full min-w-0">
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="badges flex flex-wrap gap-2 mb-4">
             <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
@@ -489,7 +489,7 @@ function ReaderPane({ question, questions, onNavigate }) {
               {question.difficulty}
             </span>
           </div>
-          <h2 className="question-title text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+          <h2 className="question-title text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
             Q{question.displayNumber}. {question.question}
           </h2>
         </header>
