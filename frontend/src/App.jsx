@@ -465,6 +465,35 @@ function ReaderPane({ question, questions, onNavigate }) {
   return (
     <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col min-w-0">
       <article className="paper flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto w-full min-w-0">
+        {/* Mobile top navigation - Previous/Next at top on mobile */}
+        <div className="lg:hidden mb-4 flex items-center justify-between px-2">
+          <button
+            disabled={!prev}
+            onClick={() => onNavigate(prev.id)}
+            className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            aria-label="Previous question"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="hidden sm:inline">Previous</span>
+          </button>
+          <div className="text-xs text-slate-500 dark:text-slate-400 flex-1 text-center px-2">
+            Q{question.displayNumber} / {questions.length}
+          </div>
+          <button
+            disabled={!next}
+            onClick={() => onNavigate(next.id)}
+            className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            aria-label="Next question"
+          >
+            <span className="hidden sm:inline">Next</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="badges flex flex-wrap gap-2 mb-4">
             <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
@@ -499,7 +528,8 @@ function ReaderPane({ question, questions, onNavigate }) {
         </div>
       </article>
 
-      <footer className="pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+      {/* Desktop bottom navigation */}
+      <footer className="hidden lg:block pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto w-full px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             disabled={!prev}
