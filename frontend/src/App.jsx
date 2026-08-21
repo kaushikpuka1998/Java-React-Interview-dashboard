@@ -32,6 +32,25 @@ function Markdown({ text }) {
           const line = lines[lineIndex]
           const key = `${index}-${lineIndex}`
 
+          // Images: ![alt](src "optional title")
+          const imgMatch = line.match(/!\[([^\]]*)\]\(([^)"\s]+)(?:\s+"([^"]*)")?\)/)
+          if (imgMatch) {
+            const [, alt, src, title] = imgMatch
+            out.push(
+              <div key={key} className="my-4">
+                <img
+                  src={src}
+                  alt={alt}
+                  title={title}
+                  className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700"
+                  loading="lazy"
+                />
+                {alt && <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1">{alt}</p>}
+              </div>
+            )
+            continue
+          }
+
           // Group consecutive pipe lines into one table (skip the |---| separator)
           const isRow = (l) => l && l.includes('|') && l.split('|').map(c => c.trim()).filter(Boolean).length > 1
           const isSep = (l) => l && /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes('-')
@@ -74,7 +93,7 @@ function Markdown({ text }) {
           if (line.startsWith('### ')) { out.push(<h3 key={key} className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2">{line.slice(4)}</h3>); continue }
           if (line.startsWith('## ')) { out.push(<h2 key={key} className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-3">{line.slice(3)}</h2>); continue }
           if (line.startsWith('# ')) { out.push(<h1 key={key} className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-4">{line.slice(2)}</h1>); continue }
-          if (line.startsWith('> ')) { out.push(<blockquote key={key} className="border-l-4 border-blue-500 pl-4 italic text-slate-600 dark:text-slate-300 my-3">{line.slice(2)}</blockquote>); continue }
+          if (line.startsWith('> ')) { out.push(<blockquote key={key} className="border-l-4 border-blue-500 pl-4 italic text-slate-700 dark:text-slate-300 my-3">{line.slice(2)}</blockquote>); continue }
           if (line.startsWith('- ') || line.startsWith('* ')) { out.push(<li key={key} className="ml-6 list-disc text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.slice(2))}</li>); continue }
           if (line.match(/^\d+\.\s/)) { out.push(<li key={key} className="ml-6 list-decimal text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.replace(/^\d+\.\s/, ''))}</li>); continue }
           out.push(<p key={key} className="text-slate-700 dark:text-slate-300 leading-relaxed my-2">{formatInline(line)}</p>)
@@ -133,12 +152,12 @@ function QuestionLink({ question, isActive, onClick }) {
       className={`question-link w-full text-left px-3 py-2.5 rounded-lg transition-all duration-150 ${
         isActive
           ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-4 border-blue-500'
-          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
       }`}
       onClick={onClick}
     >
       <div className="flex items-start gap-2">
-        <span className="qnum flex-shrink-0 text-xs font-mono font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+        <span className="qnum flex-shrink-0 text-xs font-mono font-medium text-slate-500 dark:text-slate-400 mt-0.5">
           Q{question.displayNumber}
         </span>
         <span className="text-sm leading-relaxed truncate">{question.question}</span>
@@ -152,7 +171,7 @@ function QuestionLink({ question, isActive, onClick }) {
         }`}>
           {question.tech.toUpperCase()}
         </span>
-        <span className="badge px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+        <span className="badge px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
           {question.difficulty}
         </span>
       </div>
@@ -171,7 +190,7 @@ function SearchInput({ value, onChange, placeholder }) {
       </svg>
       <input
         type="text"
-        className="search w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        className="search w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -180,7 +199,7 @@ function SearchInput({ value, onChange, placeholder }) {
       {value && (
         <button
           onClick={() => onChange('')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
           aria-label="Clear search"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +255,7 @@ function TechFilter({ value, onChange }) {
           className={`flex flex-1 min-w-[68px] items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
             value === opt.value
               ? opt.active
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+              : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
           }`}
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
@@ -301,14 +320,14 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '' }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false }) {
   const categories = useMemo(() =>
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
   )
 
   return (
-    <aside className={`sidebar w-80 lg:w-96 h-full flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden lg:flex ${className}`}>
+    <aside className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'} ${className}`}>
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -322,7 +341,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
           </div>
           <button
             onClick={onToggleDark}
-            className="flex-shrink-0 p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="flex-shrink-0 p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             aria-label="Toggle dark mode"
             aria-pressed={isDark}
           >
@@ -388,7 +407,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
 function ReaderPane({ question, questions, onNavigate }) {
   if (!question) {
     return (
-      <main className="reader flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <main className="reader flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="text-center p-8">
           <svg className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -405,7 +424,7 @@ function ReaderPane({ question, questions, onNavigate }) {
   const next = questions[selectedIndex + 1]
 
   return (
-    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 flex flex-col">
+    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
       <article className="paper flex-1 overflow-y-auto p-6 lg:p-8 max-w-3xl mx-auto w-full">
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="badges flex flex-wrap gap-2 mb-4">
@@ -420,7 +439,7 @@ function ReaderPane({ question, questions, onNavigate }) {
             }`}>
               {question.tech.toUpperCase()}
             </span>
-            <span className="badge px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <span className="badge px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {question.category}
             </span>
             <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
@@ -441,7 +460,7 @@ function ReaderPane({ question, questions, onNavigate }) {
         </div>
       </article>
 
-      <footer className="pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+      <footer className="pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto w-full px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             disabled={!prev}
@@ -480,7 +499,7 @@ function ReaderPane({ question, questions, onNavigate }) {
 function MobileMenuButton({ isOpen, onToggle }) {
   return (
     <button
-      className="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+      className="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors touch-target"
       onClick={onToggle}
       aria-label={isOpen ? 'Close menu' : 'Open menu'}
       aria-expanded={isOpen}
@@ -511,8 +530,8 @@ function MobileSidebar({ isOpen, onClose, ...sidebarProps }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-white dark:bg-slate-900 shadow-xl lg:hidden transform transition-transform duration-200 ease-out">
-        <Sidebar {...sidebarProps} />
+      <aside className="fixed inset-y-0 left-0 z-50 w-80 max-w-[85vw] bg-white dark:bg-slate-950 shadow-xl lg:hidden transform transition-transform duration-200 ease-out">
+        <Sidebar {...sidebarProps} isMobile={true} />
       </aside>
     </>
   )
@@ -578,7 +597,7 @@ function App() {
   }, [])
 
   return (
-    <div className="app-shell h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 flex">
+    <div className="app-shell h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar
         questions={questionsData}
         filtered={filtered}

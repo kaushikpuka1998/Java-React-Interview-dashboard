@@ -12,12 +12,12 @@
   }
 
   body {
-    @apply antialiased text-slate-900 dark:text-slate-100;
+    @apply antialiased text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   * {
-    @apply border-slate-200 dark:border-slate-800;
+    @apply border-slate-300 dark:border-slate-800;
   }
 
   ::selection {
@@ -47,7 +47,7 @@
   }
 
   .paper {
-    @apply bg-white dark:bg-slate-900 shadow-sm;
+    @apply bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-sm;
   }
 
   .badge {
@@ -57,7 +57,7 @@
 
 @layer utilities {
   .prose {
-    @apply text-slate-700 dark:text-slate-300;
+    @apply text-slate-900 dark:text-slate-300;
   }
 
   .prose h1, .prose h2, .prose h3 {
@@ -65,11 +65,19 @@
   }
 
   .prose code {
-    @apply font-mono text-sm;
+    @apply font-mono text-sm bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-900 dark:text-slate-100;
+  }
+
+  .prose pre code {
+    @apply text-slate-100 dark:text-slate-100 bg-transparent p-0;
   }
 
   .prose pre {
-    @apply bg-slate-900/50 dark:bg-slate-800/50 rounded-lg p-4 overflow-x-auto border border-slate-200/50 dark:border-slate-700/50;
+    @apply bg-slate-900 dark:bg-slate-950 rounded-lg p-4 overflow-x-auto border border-slate-700 dark:border-slate-700;
+  }
+
+  .prose pre code {
+    @apply text-slate-100 dark:text-slate-100 bg-transparent p-0;
   }
 
   .prose pre code {
@@ -85,7 +93,7 @@
   }
 
   .prose blockquote {
-    @apply border-l-4 border-blue-500 pl-4 italic text-slate-600 dark:text-slate-300 my-3;
+    @apply border-l-4 border-blue-500 pl-4 italic text-slate-700 dark:text-slate-300 my-3;
   }
 
   .prose table {
@@ -93,11 +101,11 @@
   }
 
   .prose th, .prose td {
-    @apply px-3 py-2 border border-slate-200 dark:border-slate-700;
+    @apply px-3 py-2 border border-slate-300 dark:border-slate-700;
   }
 
   .prose th {
-    @apply bg-slate-100 dark:bg-slate-800 font-semibold;
+    @apply bg-slate-200 dark:bg-slate-800 font-semibold;
   }
 
   /* Scrollbar styling */
@@ -110,11 +118,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+    @apply bg-slate-400 dark:bg-slate-600 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400 dark:bg-slate-500;
+    @apply bg-slate-500 dark:bg-slate-500;
   }
 
   /* Animation for mobile sidebar */
@@ -136,6 +144,70 @@
     }
     .paper {
       @apply shadow-none border-0 p-0 max-w-none;
+    }
+  }
+
+  /* Responsive utilities */
+  .container-responsive {
+    @apply w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .sidebar-responsive {
+    @apply w-full lg:w-80 xl:w-96;
+  }
+
+  .reader-responsive {
+    @apply flex-1 min-w-0;
+  }
+
+  /* Touch-friendly targets */
+  @media (pointer: coarse) {
+    .touch-target {
+      @apply min-h-[44px] min-w-[44px];
+    }
+    button, select, input {
+      @apply min-h-[44px];
+    }
+  }
+
+  /* High DPI / Retina optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .prose pre {
+      @apply border-opacity-50;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      @apply transition-none;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Landscape mobile */
+  @media (max-width: 639px) and (orientation: landscape) {
+    .sidebar {
+      @apply w-[70vw] max-w-[320px];
+    }
+  }
+
+  /* Tablet portrait (iPad) */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .sidebar {
+      @apply w-72;
+    }
+    .paper {
+      @apply p-6;
+    }
+  }
+
+  /* Desktop large */
+  @media (min-width: 1536px) {
+    .paper {
+      @apply max-w-4xl p-10;
     }
   }
 }
