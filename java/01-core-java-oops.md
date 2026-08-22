@@ -36,22 +36,155 @@ class Dog extends Animal {
 **Category:** Core Java & OOP
 
 #### Answer
-| Feature | Abstract Class | Interface |
-|---------|---------------|-----------|
-| Inheritance | Single class only | Multiple interfaces |
-| Constructors | Allowed | Not allowed |
-| Fields | Instance variables | `public static final` only |
-| Methods | Abstract + concrete | Abstract (pre-Java8), default/static (Java8+) |
+Both abstract classes and interfaces are used to achieve abstraction in Java, but they differ in design purpose, implementation capability, and usage.
 
-#### Code Example
+## Abstract Class
+
+An abstract class is a class that can have both abstract methods (without implementation) and concrete methods (with implementation). It is used when classes share a common relationship and some common behavior.
+
 ```java
-abstract class Vehicle { abstract void drive(); void stop() {} }
-interface Flyable { void fly(); default void land() {} }
-class Drone extends Vehicle implements Flyable {
-    void drive() {}
-    public void fly() {}
+abstract class Vehicle {
+    String brand;
+
+    Vehicle(String brand) {
+        this.brand = brand;
+    }
+
+    abstract void start();
+
+    void stop() {
+        System.out.println("Vehicle stopped");
+    }
+}
+
+class Car extends Vehicle {
+    Car(String brand) {
+        super(brand);
+    }
+
+    @Override
+    void start() {
+        System.out.println("Car starts with key");
+    }
 }
 ```
+
+Here:
+- `Vehicle` provides common behavior (`stop()`)
+- Child classes must implement `start()`
+- Constructor initializes common data
+
+## Interface
+
+An interface defines a contract that classes must follow. It is mainly used to achieve 100% abstraction and support multiple inheritance of type.
+
+```java
+interface Payment {
+    void pay();
+
+    default void refund() {
+        System.out.println("Refund processed");
+    }
+}
+
+class CreditCardPayment implements Payment {
+    public void pay() {
+        System.out.println("Paid using credit card");
+    }
+}
+```
+
+Here:
+- Interface defines a contract
+- Different classes can provide different implementations
+
+## Key Differences
+
+| Feature | Abstract Class | Interface |
+|---------|---------------|-----------|
+| Keyword | `abstract class` | `interface` |
+| Methods | Abstract + concrete | Abstract, default, static |
+| Variables | Instance variables | `public static final` only |
+| Constructor | Yes | No |
+| Access Modifiers | Any | `public` (except private methods) |
+| Multiple Inheritance | Single | Multiple |
+| State | Can maintain state | Cannot maintain state |
+
+## When to Use Abstract Class?
+
+Use an abstract class when:
+- Classes have a strong **IS-A** relationship
+- You want to share common code
+- You need common fields/state
+
+**Example:**
+```
+Animal
+├── Dog
+└── Cat
+```
+All animals have: name, age, eat() → `abstract class Animal` makes sense.
+
+## When to Use Interface?
+
+Use an interface when you want to define a **capability**.
+
+**Example:**
+```
+Flyable
+├── Bird
+└── Airplane
+```
+Both can fly, but they are unrelated objects.
+
+```java
+interface Flyable {
+    void fly();
+}
+```
+
+## Java 8+ Interface Features
+
+**Before Java 8:** Only abstract methods were allowed.
+
+**After Java 8:**
+- **Default Method** – Provide implementation in interface
+- **Static Method** – Utility methods on interface
+
+```java
+interface A {
+    default void display() {
+        System.out.println("Default implementation");
+    }
+    static void show() {
+        System.out.println("Static method");
+    }
+}
+```
+
+## Real-World Example (Spring Boot)
+
+**Interface** – Multiple implementations of same contract:
+```java
+public interface NotificationService {
+    void sendNotification(String message);
+}
+// Implementations: EmailNotificationService, SMSNotificationService, PushNotificationService
+```
+
+**Abstract Class** – Shared base logic for related classes:
+```java
+abstract class BaseController {
+    protected void validateRequest() {
+        System.out.println("Validation done");
+    }
+    abstract void process();
+}
+```
+
+## Short Interview Answer
+
+> "An abstract class is used when we have a common base class where we want to share state and implementation among related classes. An interface defines a contract that multiple unrelated classes can implement. Abstract classes support constructors and instance variables; interfaces support multiple inheritance. Since Java 8, interfaces can also have default and static methods."
 ---
 
 ### Q3. What is the String pool in Java?
