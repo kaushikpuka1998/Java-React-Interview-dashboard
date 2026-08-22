@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import questionsData from './data/questions.json'
 
 /**
@@ -146,7 +146,7 @@ function formatInline(line) {
 /**
  * Question item in sidebar - polished, professional design
  */
-function QuestionLink({ question, isActive, onClick }) {
+function QuestionLink({ question, isActive, onClick, selectedId }) {
   // Tech badge colors - consistent with TechFilter
   const techStyles = {
     hld: 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400',
@@ -175,6 +175,7 @@ function QuestionLink({ question, isActive, onClick }) {
 
   return (
     <button
+      data-selected={isActive}
       className={`question-link relative w-full text-left pl-2 pr-3 py-2.5 rounded-xl transition-all duration-200 ease-out group
         border border-transparent
         ${
@@ -193,7 +194,7 @@ function QuestionLink({ question, isActive, onClick }) {
       {/* Subtle hover lift effect */}
       <div className="relative flex items-start gap-2 transition-transform duration-200 group-hover:translate-x-0.5">
         {/* Badge stack on the left - tech type above, difficulty below */}
-        <div className="flex flex-col gap-1 flex-shrink-0 items-start">
+        <div className="flex flex-col gap-1 flex-shrink-0 items-start w-20">
           <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded tracking-wide ${techStyles[question.tech] || techStyles.default}`} style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
             {techLabel}
           </span>
@@ -202,16 +203,16 @@ function QuestionLink({ question, isActive, onClick }) {
           </span>
         </div>
 
-        {/* Question number + text */}
+        {/* Question number - fixed width for alignment */}
+        <span className="qnum flex-shrink-0 w-12 text-right text-[11px] font-mono font-semibold text-slate-400 dark:text-slate-500 leading-none mt-0.5 pr-2">
+          Q{question.displayNumber}.
+        </span>
+
+        {/* Question text */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-1.5">
-            <span className="qnum flex-shrink-0 text-[11px] font-mono font-semibold text-slate-400 dark:text-slate-500 leading-none mt-0.5">
-              Q{question.displayNumber}.
-            </span>
-            <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-150" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {question.question}
-            </p>
-          </div>
+          <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-150" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {question.question}
+          </p>
         </div>
       </div>
 
@@ -411,7 +412,7 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360 }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef }) {
   const categories = useMemo(() =>
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
@@ -515,7 +516,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
         </div>
       )}
 
-      <nav className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
+      <nav ref={questionListRef} className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
         {filtered.length === 0 ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
             <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -530,6 +531,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
               question={q}
               isActive={selectedId === q.id}
               onClick={() => onSelect(q.id)}
+              selectedId={selectedId}
             />
           ))
         )}
@@ -758,6 +760,21 @@ function App() {
     })
   }, [])
 
+  const questionListRef = useRef(null)
+
+  const scrollToSelected = useCallback(() => {
+    if (questionListRef.current) {
+      const active = questionListRef.current.querySelector('[data-selected="true"]')
+      if (active) {
+        active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    scrollToSelected()
+  }, [selectedId, scrollToSelected])
+
   const handleSelect = useCallback((id) => {
     setSelectedId(id)
     setMobileMenuOpen(false)
@@ -822,6 +839,7 @@ function App() {
         onToggleDark={toggleDarkMode}
         isDark={isDark}
         sidebarWidth={sidebarWidth}
+        questionListRef={questionListRef}
       />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
