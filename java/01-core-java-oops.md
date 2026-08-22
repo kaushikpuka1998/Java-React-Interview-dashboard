@@ -1,6 +1,5 @@
 # Core Java & OOP Interview Questions (Q1 – Q75)
 
----
 
 ### Q1. What are the four fundamental OOP principles?
 **Difficulty:** `Basic`
@@ -29,7 +28,6 @@ class Dog extends Animal {
     @Override void sound() { System.out.println("Dog barks"); } // polymorphism
 }
 ```
----
 
 ### Q2. Abstract class vs interface in Java?
 **Difficulty:** `Intermediate`
@@ -185,7 +183,6 @@ abstract class BaseController {
 ## Short Interview Answer
 
 > "An abstract class is used when we have a common base class where we want to share state and implementation among related classes. An interface defines a contract that multiple unrelated classes can implement. Abstract classes support constructors and instance variables; interfaces support multiple inheritance. Since Java 8, interfaces can also have default and static methods."
----
 
 ### Q3. What is the String pool in Java?
 **Difficulty:** `Basic`
@@ -202,7 +199,6 @@ String c = new String("hello");
 System.out.println(a == b); // true (same pool object)
 System.out.println(a == c); // false (different objects)
 ```
----
 
 ### Q4. Explain method overloading vs overriding.
 **Difficulty:** `Basic`
@@ -220,7 +216,6 @@ class Calc {
 class Animal { void sound() { System.out.println("..."); } }
 class Cat extends Animal { @Override void sound() { System.out.println("Meow"); } } // override
 ```
----
 
 ### Q5. What is the difference between `==` and `.equals()`?
 **Difficulty:** `Basic`
@@ -236,7 +231,6 @@ String s2 = new String("x");
 System.out.println(s1 == s2);      // false
 System.out.println(s1.equals(s2)); // true
 ```
----
 
 ### Q6. How does Java achieve platform independence?
 **Difficulty:** `Basic`
@@ -249,7 +243,6 @@ Java source code compiles to bytecode (.class), which runs on the JVM. The JVM i
 ```
 .java (source) -> javac -> .class (bytecode) -> JVM -> native machine code
 ```
----
 
 ### Q7. What are access modifiers and their scopes?
 **Difficulty:** `Basic`
@@ -270,7 +263,6 @@ public class A {
     int w; // default
 }
 ```
----
 
 ### Q8. Explain constructor chaining.
 **Difficulty:** `Intermediate`
@@ -498,7 +490,6 @@ final double PI = 3.14159;
 final class Immutable {}
 // class Sub extends Immutable {} // compile error
 ```
----
 
 ### Q10. What is `this` and `super`?
 **Difficulty:** `Basic`
@@ -519,7 +510,6 @@ class Child extends Parent {
     }
 }
 ```
----
 
 ### Q11. What is immutability and how to create an immutable class?
 **Difficulty:** `Intermediate`
@@ -682,7 +672,6 @@ System.out.println(s2); // Output: HELLO
 ## Short Interview Answer
 
 > "An immutable object is an object whose state cannot be changed after creation. To create an immutable class, we make the class final, keep fields private and final, initialize them through a constructor, avoid setters, and use defensive copying for mutable fields. Immutable objects are useful because they are thread-safe, secure, and can be safely shared between multiple threads."
----
 
 ### Q12. Difference between checked and unchecked exceptions?
 **Difficulty:** `Intermediate`
@@ -700,7 +689,6 @@ void div(int a, int b) {
     int r = a / b; // ArithmeticException - unchecked, no need to declare
 }
 ```
----
 
 ### Q13. What is the `try-with-resources` statement?
 **Difficulty:** `Intermediate`
@@ -882,7 +870,6 @@ public void readFile() throws IOException {
     }
 }
 ```
----
 
 ### Q14. Explain the `Exception` hierarchy in Java.
 **Difficulty:** `Basic`
@@ -1160,7 +1147,7 @@ class InvalidUserException extends RuntimeException {
 }
 ```
 
-### Interview Answer (Short Version)
+#### Interview Answer (Short Version)
 
 > "In Java, all exceptions and errors are derived from the Throwable class. Throwable has two major subclasses: Error and Exception. Errors represent serious JVM-level problems like OutOfMemoryError and StackOverflowError, which applications usually cannot recover from. Exceptions represent recoverable problems and are divided into checked exceptions and unchecked exceptions. Checked exceptions are verified at compile time, while unchecked exceptions occur at runtime and extend RuntimeException."
 
@@ -1178,7 +1165,6 @@ Because many runtime errors are programming mistakes that should be fixed rather
 **Q3. Can we catch Error?**
 
 Yes, but it is generally not recommended except for specific cases like logging or cleanup.
----
 
 ### Q15. What is method hiding vs method overriding?
 **Difficulty:** `Intermediate`
@@ -1194,7 +1180,6 @@ class B extends A { static void m() { System.out.println("B"); } }
 A a = new B();
 a.m(); // prints "A" (static binding on reference type A)
 ```
----
 
 ### Q16. What is a singleton class and how to implement it?
 **Difficulty:** `Intermediate`
@@ -1220,7 +1205,6 @@ public class Singleton {
     }
 }
 ```
----
 
 ### Q17. What is the difference between `StringBuilder` and `StringBuffer`?
 **Difficulty:** `Basic`
@@ -1235,7 +1219,6 @@ StringBuilder sb = new StringBuilder();
 sb.append("Hello").append(" ").append("World");
 String result = sb.toString();
 ```
----
 
 ### Q18. How does autoboxing and unboxing work?
 **Difficulty:** `Intermediate`
@@ -1251,7 +1234,6 @@ int j = i;             // unboxing (Integer -> int)
 List<Integer> list = new ArrayList<>();
 list.add(5);           // autoboxing
 ```
----
 
 ### Q19. What is the difference between `HashMap` and `Hashtable`?
 **Difficulty:** `Intermediate`
@@ -1266,7 +1248,6 @@ Map<String, Integer> map = new HashMap<>();
 map.put(null, 1); // OK
 // Hashtable: map.put(null, 1); // throws NullPointerException
 ```
----
 
 ### Q20. What is a marker interface?
 **Difficulty:** `Basic`
@@ -1281,7 +1262,6 @@ public class Person implements Serializable {
     private String name;
 } // marks Person as serializable
 ```
----
 
 ### Q21. Explain the `Object` class methods.
 **Difficulty:** `Intermediate`
@@ -1301,7 +1281,6 @@ public boolean equals(Object o) {
 @Override
 public int hashCode() { return Objects.hash(name); }
 ```
----
 
 ### Q22. What is the difference between `equals()` and `hashCode()` contract?
 **Difficulty:** `Intermediate`
@@ -1316,7 +1295,6 @@ If two objects are equal via `equals()`, they must have the same `hashCode()`. T
 @Override public boolean equals(Object o) { /* ... */ }
 @Override public int hashCode() { return Objects.hash(id); }
 ```
----
 
 ### Q23. What is method reference in Java?
 **Difficulty:** `Intermediate`
@@ -1330,7 +1308,6 @@ Method references (`::`) are shorthand for lambda expressions that call a single
 List<String> names = Arrays.asList("a", "b");
 names.forEach(System.out::println); // method reference
 ```
----
 
 ### Q24. What is the `instanceof` operator?
 **Difficulty:** `Basic`
@@ -1346,7 +1323,6 @@ if (o instanceof String s) {
     System.out.println(s.length()); // pattern matching (Java 16+)
 }
 ```
----
 
 ### Q25. Explain the difference between `throw` and `throws`.
 **Difficulty:** `Basic`
@@ -1361,7 +1337,6 @@ void validate(int age) throws IllegalArgumentException {
     if (age < 0) throw new IllegalArgumentException("negative age");
 }
 ```
----
 
 ### Q26. What is the difference between `final`, `finally`, and `finalize`?
 **Difficulty:** `Intermediate`
@@ -1377,7 +1352,6 @@ void validate(int age) throws IllegalArgumentException {
 try { /* code */ }
 finally { System.out.println("always runs"); }
 ```
----
 
 ### Q27. What is a static block and when is it used?
 **Difficulty:** `Basic`
@@ -1396,7 +1370,6 @@ class Config {
     }
 }
 ```
----
 
 ### Q28. Can a constructor be `private`? Why?
 **Difficulty:** `Intermediate`
@@ -1412,7 +1385,6 @@ public class Utility {
     public static int add(int a, int b) { return a + b; }
 }
 ```
----
 
 ### Q29. What is the difference between `int` and `Integer`?
 **Difficulty:** `Basic`
@@ -1427,7 +1399,6 @@ int a = 5;
 Integer b = Integer.valueOf(5);
 int c = Integer.parseInt("10");
 ```
----
 
 ### Q30. What is a `record` in Java (Java 16+)?
 **Difficulty:** `Intermediate`
@@ -1442,7 +1413,6 @@ public record User(String name, int age) {}
 User u = new User("Alice", 30);
 System.out.println(u.name()); // accessor, not getter
 ```
----
 
 ### Q31. What is shadowing in Java?
 **Difficulty:** `Intermediate`
@@ -1458,7 +1428,6 @@ class Example {
     void setX(int x) { this.x = x; } // parameter shadows field
 }
 ```
----
 
 ### Q32. Explain covariance and contravariance in Java.
 **Difficulty:** `Advanced`
@@ -1472,14 +1441,243 @@ Covariance: a method can return a subtype of the declared return type (e.g., `Ob
 class A { Object get() { return null; } }
 class B extends A { @Override String get() { return ""; } } // covariant return
 ```
----
 
-### Q33. What is the difference between deep copy and shallow copy?
+### Q33. What is the Difference Between Deep Copy and Shallow Copy in Java?
 **Difficulty:** `Intermediate`
 **Category:** Core Java & OOP
 
 #### Answer
-**Shallow copy** duplicates the object but shared referenced objects (both point to same nested objects). **Deep copy** recursively duplicates all nested objects, creating fully independent copies.
+
+What is the Difference Between Deep Copy and Shallow Copy in Java?
+
+Copying an object means creating a new object with the same data as an existing object.
+
+The difference between shallow copy and deep copy is how they handle reference-type fields (objects inside objects).
+
+### 1. Shallow Copy
+
+A shallow copy creates a new object, but the nested objects/references inside it are shared with the original object.
+
+Only the top-level object is copied.
+
+**Example:**
+```java
+class Address {
+    String city;
+
+    Address(String city) {
+        this.city = city;
+    }
+}
+
+class Employee implements Cloneable {
+    String name;
+    Address address;
+
+    Employee(String name, Address address) {
+        this.name = name;
+        this.address = address;
+    }
+
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+}
+```
+
+**Usage:**
+```java
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Address address = new Address("Bangalore");
+        Employee emp1 = new Employee("Kaushik", address);
+        Employee emp2 = (Employee) emp1.clone();
+
+        emp2.address.city = "Pune";
+        System.out.println(emp1.address.city);
+    }
+}
+```
+
+**Output:**
+```
+Pune
+```
+
+**Why?**
+Because both objects share the same `Address` object.
+
+**Memory:**
+```
+emp1
+ |
+ |---- Address("Pune")
+              ^
+              |
+emp2 ----------|
+```
+
+Changing `emp2.address` affects `emp1.address`.
+
+
+### 2. Deep Copy
+
+A deep copy creates a completely independent copy of the object, including all nested objects.
+
+Changes in the copied object do not affect the original object.
+
+**Example:**
+```java
+class Employee {
+    String name;
+    Address address;
+
+    Employee(String name, Address address) {
+        this.name = name;
+        this.address = new Address(address.city);
+    }
+}
+```
+
+**Usage:**
+```java
+Address address = new Address("Bangalore");
+Employee emp1 = new Employee("Kaushik", address);
+Employee emp2 = new Employee(emp1.name, emp1.address);
+
+emp2.address.city = "Pune";
+System.out.println(emp1.address.city);
+```
+
+**Output:**
+```
+Bangalore
+```
+
+**Memory:**
+```
+emp1
+ |
+ |---- Address("Bangalore")
+
+emp2
+ |
+ |---- Address("Pune")
+```
+
+They have separate objects.
+
+
+#### Shallow Copy vs Deep Copy
+
+| Feature | Shallow Copy | Deep Copy |
+|---------|-------------|-----------|
+| Object copied | Yes | Yes |
+| Nested objects copied | No | Yes |
+| References shared | Yes | No |
+| Memory usage | Less | More |
+| Performance | Faster | Slower |
+| Changes affect original | Yes | No |
+| Implementation | `clone()` (default) | Manual copying / serialization |
+
+
+#### Example with Collections
+
+**Shallow Copy**
+```java
+List<String> list1 = new ArrayList<>();
+list1.add("Java");
+List<String> list2 = list1;
+list2.add("Spring");
+System.out.println(list1);
+```
+
+**Output:**
+```
+[Java, Spring]
+```
+
+Both references point to the same list.
+
+**Using `new ArrayList<>`**
+```java
+List<String> list1 = new ArrayList<>();
+list1.add("Java");
+List<String> list2 = new ArrayList<>(list1);
+list2.add("Spring");
+System.out.println(list1);
+```
+
+**Output:**
+```
+[Java]
+```
+
+This creates a separate list.
+
+
+#### Deep Copy with Serialization
+
+Another approach:
+- `ObjectOutputStream`
+- `ObjectInputStream`
+
+**Example:**
+```java
+Employee copy = (Employee) objectInputStream.readObject();
+```
+
+Serialization creates completely separate objects.
+
+
+#### Java `clone()` and Copying
+
+Java provides `Object.clone()` which creates a shallow copy by default.
+
+**Example:**
+```java
+Employee emp2 = (Employee) emp1.clone();
+```
+
+**For deep copy, we need to override `clone()`:**
+```java
+@Override
+protected Object clone() {
+    Employee emp = new Employee();
+    emp.name = this.name;
+    emp.address = new Address(this.address.city);
+    return emp;
+}
+```
+
+
+#### Real-Time Example
+
+**Shallow Copy Use Case:**
+- Caching or read-only objects where shared references are acceptable.
+
+**Deep Copy Use Case:**
+- Creating independent configurations
+- Copying user profiles
+- Transaction snapshots
+- Undo/redo functionality
+
+
+#### Interview Answer (Short Version)
+
+> "A shallow copy creates a new object but copies references of nested objects, so both objects share the same internal objects. A deep copy creates a completely independent object by copying all nested objects as well. In Java, `Object.clone()` provides a shallow copy by default, while deep copying requires manual copying, copy constructors, or serialization."
+
+
+#### Common Follow-up Questions
+
+**Q1. Does `clone()` create a deep copy?**
+→ No, Java's default `clone()` creates a shallow copy.
+
+**Q2. Which is faster: shallow copy or deep copy?**
+→ Shallow copy, because it only copies references.
+
+**Q3. Why is deep copy more expensive?**
+→ Because it creates new objects for all referenced objects.
 
 #### Code Example
 ```java
@@ -1492,7 +1690,6 @@ class Address implements Cloneable {
     }
 }
 ```
----
 
 ### Q34. What is the `transient` keyword?
 **Difficulty:** `Basic`
@@ -1508,7 +1705,6 @@ class User implements Serializable {
     transient String password; // not serialized
 }
 ```
----
 
 ### Q35. What is the difference between `Comparable` and `Comparator`?
 **Difficulty:** `Intermediate`
@@ -1525,7 +1721,6 @@ class Person implements Comparable<Person> {
 }
 Comparator<Person> byName = (p1, p2) -> p1.name.compareTo(p2.name);
 ```
----
 
 ### Q36. What is the purpose of the `volatile` keyword?
 **Difficulty:** `Advanced`
@@ -1541,7 +1736,6 @@ class Flag {
     void stop() { running = false; }
 }
 ```
----
 
 ### Q37. What is the difference between `Stack` and `Heap` memory?
 **Difficulty:** `Intermediate`
@@ -1557,7 +1751,6 @@ void method() {
     Object o = new Object(); // reference on stack, object on heap
 }
 ```
----
 
 ### Q38. What are enums and when to use them?
 **Difficulty:** `Basic`
@@ -1572,7 +1765,6 @@ enum Day { MONDAY, TUESDAY, WEDNESDAY }
 Day today = Day.MONDAY;
 switch (today) { case MONDAY: break; }
 ```
----
 
 ### Q39. What is reflection in Java?
 **Difficulty:** `Advanced`
@@ -1586,7 +1778,6 @@ Reflection allows inspecting/modifying runtime behavior of classes (fields, meth
 Class<?> clazz = Class.forName("java.lang.String");
 Method[] methods = clazz.getDeclaredMethods();
 ```
----
 
 ### Q40. What is the difference between `public static void main(String[] args)` components?
 **Difficulty:** `Basic`
@@ -1601,7 +1792,6 @@ public static void main(String[] args) {
     for (String arg : args) System.out.println(arg);
 }
 ```
----
 
 ### Q41. What is a nested class vs inner class?
 **Difficulty:** `Intermediate`
@@ -1617,7 +1807,6 @@ class Outer {
     class Inner {}            // has outer ref
 }
 ```
----
 
 ### Q42. What is the difference between `null` and empty string?
 **Difficulty:** `Basic`
@@ -1632,7 +1821,6 @@ String a = null;    // no object
 String b = "";      // valid object, length 0
 // a.length(); // NullPointerException
 ```
----
 
 ### Q43. What is the diamond problem and how does Java avoid it?
 **Difficulty:** `Advanced`
@@ -1649,7 +1837,6 @@ class C implements A, B {
     public void foo() { A.super.foo(); } // must resolve explicitly
 }
 ```
----
 
 ### Q44. What is a lambda expression?
 **Difficulty:** `Intermediate`
@@ -1663,7 +1850,6 @@ A lambda is a concise way to express an anonymous function (a block of code pass
 List<Integer> nums = Arrays.asList(1, 2, 3);
 nums.forEach(n -> System.out.println(n * 2));
 ```
----
 
 ### Q45. What is a functional interface?
 **Difficulty:** `Intermediate`
@@ -1678,7 +1864,6 @@ An interface with exactly one abstract method (SAM). Can have default/static met
 interface Greeting { void say(String name); }
 Greeting g = name -> System.out.println("Hi " + name);
 ```
----
 
 ### Q46. What is the difference between `sleep()` and `wait()`?
 **Difficulty:** `Intermediate`
@@ -1692,7 +1877,6 @@ Greeting g = name -> System.out.println("Hi " + name);
 Thread.sleep(1000); // keeps lock
 synchronized (obj) { obj.wait(); } // releases lock
 ```
----
 
 ### Q47. What is the difference between `ArrayList` and `LinkedList`?
 **Difficulty:** `Intermediate`
@@ -1706,7 +1890,6 @@ synchronized (obj) { obj.wait(); } // releases lock
 List<String> arr = new ArrayList<>();  // random access heavy
 List<String> link = new LinkedList<>(); // frequent insert/delete
 ```
----
 
 ### Q48. What is the `super` keyword used for in constructors?
 **Difficulty:** `Basic`
@@ -1720,7 +1903,6 @@ List<String> link = new LinkedList<>(); // frequent insert/delete
 class Animal { Animal(String n) {} }
 class Dog extends Animal { Dog() { super("Dog"); } }
 ```
----
 
 ### Q49. What is the difference between compile-time and runtime polymorphism?
 **Difficulty:** `Intermediate`
@@ -1734,7 +1916,6 @@ class Dog extends Animal { Dog() { super("Dog"); } }
 // Overloading - compile time
 // Overriding - runtime (JVM picks actual object's method)
 ```
----
 
 ### Q50. What is the purpose of `@Override` annotation?
 **Difficulty:** `Basic`
@@ -1748,7 +1929,6 @@ class Dog extends Animal { Dog() { super("Dog"); } }
 @Override
 public String toString() { return "MyClass"; }
 ```
----
 
 ### Q51. What is a deadlock and how to avoid it?
 **Difficulty:** `Advanced`
@@ -1762,7 +1942,6 @@ A deadlock is when two or more threads block forever, each waiting for a lock he
 // Deadlock: Thread1 locks A then B, Thread2 locks B then A
 // Solution: always acquire locks in same order (A then B)
 ```
----
 
 ### Q52. What is the difference between `Error` and `Exception`?
 **Difficulty:** `Basic`
@@ -1777,7 +1956,6 @@ try {
     recursiveCall(); // StackOverflowError - can't really handle
 } catch (Exception e) { }
 ```
----
 
 ### Q53. What is the `assert` keyword?
 **Difficulty:** `Intermediate`
@@ -1790,7 +1968,6 @@ try {
 ```java
 assert x > 0 : "x must be positive"; // custom message
 ```
----
 
 ### Q54. What is the difference between `var` (Java 10+) and explicit type?
 **Difficulty:** `Intermediate`
@@ -1804,7 +1981,6 @@ assert x > 0 : "x must be positive"; // custom message
 var list = new ArrayList<String>(); // inferred as ArrayList<String>
 var name = "Java";                   // inferred as String
 ```
----
 
 ### Q55. What is a strong reference vs weak reference?
 **Difficulty:** `Advanced`
@@ -1818,7 +1994,6 @@ var name = "Java";                   // inferred as String
 WeakReference<ExpensiveObj> ref = new WeakReference<>(new ExpensiveObj());
 // GC may reclaim the object even though ref exists
 ```
----
 
 ### Q56. What is the `strictfp` keyword?
 **Difficulty:** `Advanced`
@@ -1831,7 +2006,6 @@ WeakReference<ExpensiveObj> ref = new WeakReference<>(new ExpensiveObj());
 ```java
 public strictfp class MathUtils { }
 ```
----
 
 ### Q57. What is the difference between `import` and `static import`?
 **Difficulty:** `Basic`
@@ -1846,7 +2020,6 @@ import static java.lang.Math.PI;
 import static java.lang.Math.sqrt;
 double r = sqrt(PI);
 ```
----
 
 ### Q58. What is a sealed class (Java 17)?
 **Difficulty:** `Advanced`
@@ -1861,7 +2034,6 @@ public sealed class Shape permits Circle, Square {}
 final class Circle extends Shape {}
 final class Square extends Shape {}
 ```
----
 
 ### Q59. What is the difference between `ExecutionException` and `InterruptedException`?
 **Difficulty:** `Intermediate`
@@ -1876,7 +2048,6 @@ try { future.get(); }
 catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 catch (ExecutionException e) { Throwable cause = e.getCause(); }
 ```
----
 
 ### Q60. What is the difference between a mutable and immutable object?
 **Difficulty:** `Basic`
@@ -1890,7 +2061,6 @@ Mutable objects can change state after creation (`StringBuilder`, arrays). Immut
 String s = "a";
 s = s + "b"; // new object created, original unchanged
 ```
----
 
 ### Q61. What is the purpose of `Math.random()` vs `Random` class?
 **Difficulty:** `Basic`
@@ -1905,7 +2075,6 @@ double d = Math.random();
 Random r = new Random(42); // seeded
 int n = r.nextInt(100);
 ```
----
 
 ### Q62. What is a static factory method?
 **Difficulty:** `Intermediate`
@@ -1919,7 +2088,6 @@ A static method that returns an instance of the class (e.g., `LocalDate.now()`, 
 public static User createAdmin() { return new User("admin", Role.ADMIN); }
 List<String> list = List.of("a", "b"); // static factory
 ```
----
 
 ### Q63. What is the difference between `String`, `StringBuffer`, and `StringBuilder` thread-safety?
 **Difficulty:** `Intermediate`
@@ -1934,7 +2102,6 @@ String s = "immutable";
 StringBuilder sb = new StringBuilder(); // fast
 StringBuffer sbf = new StringBuffer();   // synchronized
 ```
----
 
 ### Q64. What is the concept of "fail-fast" in Java?
 **Difficulty:** `Advanced`
@@ -1949,7 +2116,6 @@ for (String s : list) {
     list.add("x"); // ConcurrentModificationException
 }
 ```
----
 
 ### Q65. What is the difference between `clone()` and copy constructor?
 **Difficulty:** `Advanced`
@@ -1964,7 +2130,6 @@ class Person {
     Person(Person other) { this.name = other.name; } // copy constructor
 }
 ```
----
 
 ### Q66. What is the difference between a class and an object?
 **Difficulty:** `Basic`
@@ -1978,7 +2143,6 @@ A **class** is a blueprint/template defining structure and behavior. An **object
 class Car {}          // blueprint
 Car myCar = new Car(); // object/instance
 ```
----
 
 ### Q67. What is the `default` method in interfaces?
 **Difficulty:** `Intermediate`
@@ -1993,7 +2157,6 @@ interface Vehicle {
     default void start() { System.out.println("Starting..."); }
 }
 ```
----
 
 ### Q68. What is the difference between `Class.forName()` and `ClassLoader.loadClass()`?
 **Difficulty:** `Advanced`
@@ -2007,7 +2170,6 @@ interface Vehicle {
 Class<?> c1 = Class.forName("com.mysql.Driver"); // initializes
 Class<?> c2 = getClass().getClassLoader().loadClass("com.mysql.Driver");
 ```
----
 
 ### Q69. What is the purpose of the `native` keyword?
 **Difficulty:** `Advanced`
@@ -2020,7 +2182,6 @@ Class<?> c2 = getClass().getClassLoader().loadClass("com.mysql.Driver");
 ```java
 public native int hashCode(); // implemented in C
 ```
----
 
 ### Q70. What is the difference between `abstract` method and `default` method?
 **Difficulty:** `Intermediate`
@@ -2036,7 +2197,6 @@ interface I {
     default void optional() {} // default
 }
 ```
----
 
 ### Q71. What is the concept of "composition over inheritance"?
 **Difficulty:** `Intermediate`
@@ -2050,7 +2210,6 @@ Favoring composition (has-a relationship) over inheritance (is-a) promotes flexi
 class Engine {}
 class Car { private Engine engine; } // composition (has-a)
 ```
----
 
 ### Q72. What is the difference between a pass-by-value and pass-by-reference?
 **Difficulty:** `Intermediate`
@@ -2064,7 +2223,6 @@ Java is **always pass-by-value**. For objects, the value is the reference (memor
 void modify(List<String> l) { l.add("x"); } // visible
 void reassign(List<String> l) { l = new ArrayList<>(); } // not visible to caller
 ```
----
 
 ### Q73. What is the `switch` expression (Java 14+)?
 **Difficulty:** `Intermediate`
@@ -2081,7 +2239,6 @@ int days = switch (month) {
     default -> 30;
 };
 ```
----
 
 ### Q74. What is the difference between `getClass()` and `instanceof`?
 **Difficulty:** `Intermediate`
@@ -2096,7 +2253,6 @@ Object o = new ArrayList<>();
 System.out.println(o instanceof List);    // true
 System.out.println(o.getClass() == List.class); // false (it's ArrayList)
 ```
----
 
 ### Q75. What is a memory leak in Java and how to prevent it?
 **Difficulty:** `Advanced`
@@ -2111,4 +2267,3 @@ Even with GC, leaks occur when objects are unintentionally retained (static coll
 static Map<String, Object> cache = new HashMap<>();
 // Fix: use WeakHashMap or bounded cache with eviction
 ```
----
