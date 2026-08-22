@@ -889,16 +889,295 @@ public void readFile() throws IOException {
 **Category:** Core Java & OOP
 
 #### Answer
-`Throwable` is the root. It has two subclasses: `Error` (serious JVM problems like `OutOfMemoryError`, typically unrecoverable) and `Exception` (recoverable conditions). `Exception` splits into checked and unchecked (`RuntimeException`).
+Java provides a well-defined exception hierarchy to handle errors and exceptional situations during program execution.
 
-#### Code Example
+The root class of all errors and exceptions in Java is:
+
+**java.lang.Throwable**
+
+The hierarchy looks like this:
+
+```
+                    Object
+                       |
+                   Throwable
+                       |
+          +------------+------------+
+          |                         |
+       Error                    Exception
+          |                         |
+          |                 +-------+--------+
+          |                 |                |
+     OutOfMemoryError   RuntimeException   Other Exceptions
+     StackOverflowError       |                |
+     ...                     |                |
+                         NullPointerException IOException
+                         ArithmeticException  SQLException
+                         ArrayIndexOutOfBoundsException
+                         ClassCastException
+```
+
+### 1. Throwable
+
+`Throwable` is the parent class for all exceptions and errors.
+
+It provides methods like:
+
+- `getMessage()`
+- `printStackTrace()`
+- `getCause()`
+
+**Example:**
+
+```java
+try {
+    
+} catch(Throwable t) {
+    
+    t.printStackTrace();
+}
+```
+
+### 2. Error
+
+`Error` represents serious problems that applications usually cannot recover from.
+
+These are generally caused by JVM or system-level issues.
+
+**Examples:**
+
+- `OutOfMemoryError`
+- `StackOverflowError`
+
+**OutOfMemoryError Example:**
+
+```java
+List<byte[]> list = new ArrayList<>();
+
+while(true) {
+    list.add(new byte[1024 * 1024]);
+}
+```
+
+When JVM runs out of memory:
+
+```
+java.lang.OutOfMemoryError
+```
+
+**StackOverflowError Example:**
+
+```java
+public void test() {
+    test();
+}
+```
+
+Infinite recursion causes:
+
+```
+java.lang.StackOverflowError
+```
+
+### 3. Exception
+
+`Exception` represents conditions that applications can handle.
+
+**Examples:**
+
+- File not found
+- Database connection failure
+- Invalid input
+
+Exception has two main categories:
+
+```
+Exception
+   |
+   +----------------+
+   |                |
+Checked          Unchecked
+Exceptions      Exceptions
+```
+
+### 4. Checked Exceptions
+
+Checked exceptions are checked at compile time.
+
+The compiler forces the developer to handle them using:
+
+- try-catch
+- throws
+
+**Examples:**
+
+- `IOException`
+- `SQLException`
+- `ClassNotFoundException`
+
+**Example:**
+
+```java
+import java.io.*;
+
+class Main {
+
+    public static void main(String[] args) {
+
+        try {
+
+            FileReader file = new FileReader("test.txt");
+
+        } catch(IOException e) {
+
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+If not handled:
+
+**Compilation error**
+
+### 5. Unchecked Exceptions
+
+Unchecked exceptions occur during runtime.
+
+They are subclasses of:
+
+**RuntimeException**
+
+**Examples:**
+
+- `NullPointerException`
+- `ArithmeticException`
+- `ArrayIndexOutOfBoundsException`
+- `ClassCastException`
+
+**NullPointerException Example:**
+
+```java
+String name = null;
+
+System.out.println(name.length());
+```
+
+Output:
+
+```
+NullPointerException
+```
+
+**ArithmeticException Example:**
+
+```java
+int x = 10 / 0;
+```
+
+Output:
+
+```
+ArithmeticException
+```
+
+**ArrayIndexOutOfBoundsException Example:**
+
+```java
+int arr[] = {1,2,3};
+
+System.out.println(arr[5]);
+```
+
+Output:
+
+```
+ArrayIndexOutOfBoundsException
+```
+
+### Checked vs Unchecked Exception
+
+| Feature | Checked Exception | Unchecked Exception |
+|---------|-------------------|---------------------|
+| Checked when | Compile time | Runtime |
+| Parent class | Exception | RuntimeException |
+| Handling required | Yes | No |
+| Examples | IOException, SQLException | NullPointerException, ArithmeticException |
+
+### Common Exception Hierarchy Example
+
 ```
 Throwable
-├── Error (OutOfMemoryError)
+│
+├── Error
+│   ├── OutOfMemoryError
+│   └── StackOverflowError
+│
 └── Exception
-    ├── IOException (checked)
-    └── RuntimeException (unchecked)
+    │
+    ├── IOException
+    ├── SQLException
+    ├── ClassNotFoundException
+    │
+    └── RuntimeException
+        ├── NullPointerException
+        ├── ArithmeticException
+        ├── IllegalArgumentException
+        └── IndexOutOfBoundsException
 ```
+
+### Custom Exception Example
+
+We can create our own exceptions by extending Exception or RuntimeException.
+
+**Checked Custom Exception**
+
+```java
+class InvalidAgeException extends Exception {
+
+    InvalidAgeException(String message) {
+        super(message);
+    }
+}
+```
+
+**Usage:**
+
+```java
+if(age < 18) {
+    throw new InvalidAgeException("Age not valid");
+}
+```
+
+**Runtime Custom Exception**
+
+```java
+class InvalidUserException extends RuntimeException {
+
+    InvalidUserException(String message) {
+        super(message);
+    }
+}
+```
+
+### Interview Answer (Short Version)
+
+> "In Java, all exceptions and errors are derived from the Throwable class. Throwable has two major subclasses: Error and Exception. Errors represent serious JVM-level problems like OutOfMemoryError and StackOverflowError, which applications usually cannot recover from. Exceptions represent recoverable problems and are divided into checked exceptions and unchecked exceptions. Checked exceptions are verified at compile time, while unchecked exceptions occur at runtime and extend RuntimeException."
+
+### Common Follow-up Interview Questions
+
+**Q1. Difference between Error and Exception?**
+
+- Error → JVM/system problem, generally not handled.
+- Exception → Application-level problem, can be handled.
+
+**Q2. Why is RuntimeException unchecked?**
+
+Because many runtime errors are programming mistakes that should be fixed rather than forced to handle.
+
+**Q3. Can we catch Error?**
+
+Yes, but it is generally not recommended except for specific cases like logging or cleanup.
 ---
 
 ### Q15. What is method hiding vs method overriding?
