@@ -3476,3 +3476,5 @@
 /.idea/Java-React-Interview Questions.iml
 /.idea/modules.xml
 /.idea/vcs.xml
+.claude/
+.DS_Store
