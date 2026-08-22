@@ -1,9 +1,21 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 
 const PAGE = 50
+const STORAGE_KEY_VISITED = 'ir_visited_questions'
+const STORAGE_KEY_READ = 'ir_read_questions'
 // ponytail: 2.5MB JSON served as a static asset (public/), fetched after first paint.
 // Skips the JSON→JS parse of a bundled import and lets the host gzip it (~2.5MB → ~400KB on the wire).
 const loadQuestions = () => fetch(`${import.meta.env.BASE_URL}questions.json`).then(r => r.json())
+
+// Visited/Read tracking utilities
+function loadVisited() {
+  try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_VISITED) || '[]')) } catch { return new Set() }
+}
+function loadRead() {
+  try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_READ) || '[]')) } catch { return new Set() }
+}
+function saveVisited(set) { localStorage.setItem(STORAGE_KEY_VISITED, JSON.stringify([...set])) }
+function saveRead(set) { localStorage.setItem(STORAGE_KEY_READ, JSON.stringify([...set])) }
 
 /**
  * Markdown renderer with support for:
@@ -150,7 +162,7 @@ function formatInline(line) {
 /**
  * Question item in sidebar - polished, professional design
  */
-function QuestionLink({ question, isActive, onClick, selectedId }) {
+function QuestionLink({ question, isActive, onClick, selectedId, visited, read }) {
   // Tech badge colors - consistent with TechFilter
   const techStyles = {
     hld: 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400',
@@ -214,9 +226,28 @@ function QuestionLink({ question, isActive, onClick, selectedId }) {
 
         {/* Question text */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-150" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-150 pr-10" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {question.question}
           </p>
+        </div>
+
+        {/* Visited/Read indicators - fixed right side */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {read.has(question.id) && (
+            <span className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded" title="Read" aria-label="Read">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </span>
+          )}
+          {visited.has(question.id) && !read.has(question.id) && (
+            <span className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded" title="Visited" aria-label="Visited">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+              </svg>
+            </span>
+          )}
         </div>
       </div>
 
@@ -416,7 +447,7 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read }) {
   const categories = useMemo(() =>
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
@@ -553,6 +584,8 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
                 isActive={selectedId === q.id}
                 onClick={() => onSelect(q.id)}
                 selectedId={selectedId}
+                visited={visited}
+                read={read}
               />
             ))}
             {hasMore && (
@@ -570,7 +603,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
 /**
  * Reader pane component
  */
-function ReaderPane({ question, questions, onNavigate }) {
+function ReaderPane({ question, questions, onNavigate, visited, read, onMarkRead }) {
   if (!question) {
     return (
       <main className="reader flex-1 flex items-center justify-center bg-white dark:bg-slate-800 min-w-0">
@@ -657,6 +690,50 @@ function ReaderPane({ question, questions, onNavigate }) {
           <h2 className="question-title text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
             Q{question.displayNumber}. {question.question}
           </h2>
+
+          {/* Read status and Mark as Read button */}
+          <div className="mt-4 flex items-center justify-between gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-3 text-sm">
+              {read.has(question.id) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Marked as read
+                </span>
+              )}
+              {visited.has(question.id) && !read.has(question.id) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                  </svg>
+                  Visited
+                </span>
+              )}
+            </div>
+            <div className="flex-shrink-0 ml-auto">
+              {!read.has(question.id) && (
+                <button
+                  onClick={() => onMarkRead(question.id)}
+                  className="btn-read p-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  aria-label="Mark as read"
+                  title="Mark as read"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              )}
+              {read.has(question.id) && (
+                <span className="p-2 text-emerald-600 dark:text-emerald-400" aria-label="Read" title="Marked as read">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              )}
+            </div>
+          </div>
         </header>
 
         <div className="answer-content">
@@ -764,6 +841,8 @@ function App() {
     return false
   })
   const [sidebarWidth, setSidebarWidth] = useState(360)
+  const [visited, setVisited] = useState(() => loadVisited())
+  const [read, setRead] = useState(() => loadRead())
 
   // Lazy-load the 2.5MB question JSON after first paint
   useEffect(() => {
@@ -824,6 +903,16 @@ function App() {
 
   const handleSelect = useCallback((id) => {
     setSelectedId(id)
+    // Mark as visited
+    setVisited(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev)
+        next.add(id)
+        saveVisited(next)
+        return next
+      }
+      return prev
+    })
     setMobileMenuOpen(false)
     if (window.innerWidth < 1024) {
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -832,10 +921,39 @@ function App() {
 
   const handleNavigate = useCallback((id) => {
     setSelectedId(id)
+    // Mark as visited
+    setVisited(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev)
+        next.add(id)
+        saveVisited(next)
+        return next
+      }
+      return prev
+    })
     setMobileMenuOpen(false)
     if (window.innerWidth < 1024) {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+  }, [])
+
+  const handleMarkRead = useCallback((id) => {
+    setRead(prev => {
+      const next = new Set(prev)
+      next.add(id)
+      saveRead(next)
+      return next
+    })
+    // Also mark as visited if not already
+    setVisited(prev => {
+      if (!prev.has(id)) {
+        const next = new Set(prev)
+        next.add(id)
+        saveVisited(next)
+        return next
+      }
+      return prev
+    })
   }, [])
 
   const handleTechChange = useCallback((value) => {
@@ -890,6 +1008,8 @@ function App() {
         isDark={isDark}
         sidebarWidth={sidebarWidth}
         questionListRef={questionListRef}
+        visited={visited}
+        read={read}
       />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
@@ -915,6 +1035,8 @@ function App() {
         onSelect={handleSelect}
         onToggleDark={toggleDarkMode}
         isDark={isDark}
+        visited={visited}
+        read={read}
       />
 
       <MobileMenuButton isOpen={mobileMenuOpen} onToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
@@ -940,6 +1062,9 @@ function App() {
         question={selected}
         questions={filtered}
         onNavigate={handleNavigate}
+        visited={visited}
+        read={read}
+        onMarkRead={handleMarkRead}
       />
     </div>
   )

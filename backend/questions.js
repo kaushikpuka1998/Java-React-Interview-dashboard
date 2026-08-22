@@ -28,7 +28,124 @@ Interfaces (Java 8+):
 - Multiple implementation allowed
 - No instance variables (only public static final constants)
 
-Use abstract classes when you share code among related classes. Use interfaces for unrelated classes or when you need multiple inheritance.`
+Use abstract classes when you share code among related classes. Use interfaces for unrelated classes or when you need multiple inheritance.
+
+---
+
+**Quick Comparison Table**
+
+| Feature | Abstract Class | Interface |
+|---------|---------------|-----------|
+| Keyword | abstract class | interface |
+| Methods | Abstract + concrete | Abstract, default, static |
+| Variables | Instance variables | public static final only |
+| Constructor | Yes | No |
+| Access Modifiers | Any | public (except private methods) |
+| Multiple Inheritance | Single | Multiple |
+| State | Can maintain state | Cannot maintain state |
+
+---
+
+**Abstract Class Example**
+\`\`\`java
+abstract class Vehicle {
+    String brand;
+
+    Vehicle(String brand) {
+        this.brand = brand;
+    }
+
+    abstract void start();
+
+    void stop() {
+        System.out.println("Vehicle stopped");
+    }
+}
+
+class Car extends Vehicle {
+    Car(String brand) {
+        super(brand);
+    }
+
+    @Override
+    void start() {
+        System.out.println("Car starts with key");
+    }
+}
+\`\`\`
+
+**Interface Example**
+\`\`\`java
+interface Payment {
+    void pay();
+
+    default void refund() {
+        System.out.println("Refund processed");
+    }
+}
+
+class CreditCardPayment implements Payment {
+    public void pay() {
+        System.out.println("Paid using credit card");
+    }
+}
+\`\`\`
+
+---
+
+**When to Use Each**
+
+**Abstract Class** – Strong IS-A relationship, shared code/state:
+\`\`\`text
+Animal
+├── Dog
+└── Cat
+\`\`\`
+All animals share: name, age, eat()
+
+**Interface** – Define a capability for unrelated classes:
+\`\`\`text
+Flyable
+├── Bird
+└── Airplane
+\`\`\`
+
+---
+
+**Java 8+ Interface Features**
+- **Default methods**: Provide implementation in interface
+- **Static methods**: Utility methods on interface
+
+---
+
+**Real-World Example (Spring Boot)**
+
+**Interface** – Multiple implementations of same contract:
+\`\`\`java
+public interface NotificationService {
+    void sendNotification(String message);
+}
+
+// Implementations
+EmailNotificationService
+SMSNotificationService
+PushNotificationService
+\`\`\`
+
+**Abstract Class** – Shared base logic for related classes:
+\`\`\`java
+abstract class BaseController {
+    protected void validateRequest() {
+        System.out.println("Validation done");
+    }
+    abstract void process();
+}
+\`\`\`
+
+---
+
+**Short Interview Answer**
+> "An abstract class is used when we have a common base class where we want to share state and implementation among related classes. An interface defines a contract that multiple unrelated classes can implement. Abstract classes support constructors and instance variables; interfaces support multiple inheritance. Since Java 8, interfaces can also have default and static methods."`
   },
   {
     id: 3,
