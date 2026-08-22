@@ -526,17 +526,162 @@ class Child extends Parent {
 **Category:** Core Java & OOP
 
 #### Answer
-An immutable object cannot be modified after creation. Steps: declare class `final`, make fields `private final`, no setters, return defensive copies of mutable fields, initialize via constructor.
+Immutability means that once an object is created, its state cannot be changed after initialization. If any modification is required, Java creates a new object instead of changing the existing object.
 
-#### Code Example
+The best example of immutability in Java is the `String` class.
+
 ```java
-public final class ImmutablePoint {
-    private final int x, y;
-    public ImmutablePoint(int x, int y) { this.x = x; this.y = y; }
-    public int getX() { return x; }
-    public int getY() { return y; }
+String name = "Java";
+name = name.concat(" Programming");
+System.out.println(name); // Output: Java Programming
+```
+
+**Internally:**
+```
+Before:                          After concat():
+String Pool                      String Pool
++----------+                     +----------+
+| "Java"   |                     | "Java"   |  (unchanged)
++----------+                     +----------+
+                                 | "Java Programming"  <-- new object
+                                 +----------+
+```
+The original "Java" object is not modified.
+
+## Why are Immutable Objects Useful?
+
+### 1. Thread Safety
+Immutable objects are automatically thread-safe because multiple threads cannot modify their state.
+
+```java
+String username = "Kaushik";
+// Multiple threads can safely read it
+```
+
+### 2. Security
+Immutable objects prevent unwanted modification.
+- `String` (database URL, file path, credentials)
+- Wrapper classes (`Integer`, `Long`)
+
+### 3. Caching
+Since values cannot change, JVM can safely reuse objects (e.g., String Pool).
+
+## How to Create an Immutable Class?
+
+Rules for creating an immutable class:
+
+1. **Make the class `final`** — Prevents inheritance and overriding that could break immutability.
+   ```java
+   final class Employee { }
+   ```
+
+2. **Make all fields `private` and `final`**
+   ```java
+   private final String name;
+   private final int age;
+   ```
+   `final` ensures values are assigned only once.
+
+3. **Initialize fields through constructor only**
+   ```java
+   public Employee(String name, int age) {
+       this.name = name;
+       this.age = age;
+   }
+   ```
+
+4. **Do not provide setter methods**
+   ```java
+   // Wrong:
+   public void setName(String name) { this.name = name; }
+   ```
+
+5. **Return defensive copies for mutable objects** — If a class contains mutable objects like `Date`, `List`, `Map`, `Array`, do not expose the original reference.
+
+## Example of Immutable Class
+
+```java
+final class Employee {
+    private final String name;
+    private final int age;
+
+    public Employee(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String getName() { return name; }
+    public int getAge() { return age; }
 }
 ```
+
+**Usage:**
+```java
+public class Main {
+    public static void main(String[] args) {
+        Employee emp = new Employee("Kaushik", 30);
+        System.out.println(emp.getName());
+    }
+}
+```
+The object cannot be changed after creation.
+
+## Immutable Class with Mutable Field Example
+
+**Problem:**
+```java
+import java.util.List;
+
+final class Student {
+    private final List<String> subjects;
+    Student(List<String> subjects) { this.subjects = subjects; }
+    public List<String> getSubjects() { return subjects; }
+}
+
+// Problem:
+student.getSubjects().add("Java"); // Internal state changes!
+```
+
+**Correct Approach: Defensive Copy**
+```java
+import java.util.List;
+import java.util.ArrayList;
+
+final class Student {
+    private final List<String> subjects;
+    Student(List<String> subjects) { this.subjects = new ArrayList<>(subjects); }
+    public List<String> getSubjects() { return new ArrayList<>(subjects); }
+}
+```
+Now the internal list cannot be modified externally.
+
+## String Immutability Example
+
+```java
+String s1 = "Hello";
+s1.toUpperCase();
+System.out.println(s1); // Output: Hello (unchanged)
+```
+
+Because `toUpperCase()` creates a new `String`.
+
+```java
+String s2 = s1.toUpperCase();
+System.out.println(s2); // Output: HELLO
+```
+
+## Immutable vs Mutable Objects
+
+| Immutable | Mutable |
+|:---|:---|
+| State cannot change | State can change |
+| Thread-safe | Need synchronization |
+| Creates new object on modification | Same object is modified |
+| Example: `String`, `Integer` | Example: `StringBuilder`, `ArrayList` |
+
+## Short Interview Answer
+
+> "An immutable object is an object whose state cannot be changed after creation. To create an immutable class, we make the class final, keep fields private and final, initialize them through a constructor, avoid setters, and use defensive copying for mutable fields. Immutable objects are useful because they are thread-safe, secure, and can be safely shared between multiple threads."
 ---
 
 ### Q12. Difference between checked and unchecked exceptions?
