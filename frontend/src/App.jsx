@@ -563,7 +563,7 @@ function ReaderPane({ question, questions, onNavigate }) {
   return (
     <main className="reader flex-1 h-screen overflow-hidden bg-white dark:bg-slate-800 flex flex-col min-w-0">
       <div className="flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-6 lg:px-8 min-w-0">
-      <article className="paper max-w-3xl mx-auto w-full min-w-0 bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/40 p-4 sm:p-6 lg:p-8">
+      <article className="paper max-w-3xl mx-auto w-full min-w-0 bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05),0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2),0_10px_15px_-3px_rgba(0,0,0,0.4),0_4px_6px_-2px_rgba(0,0,0,0.2)] p-4 sm:p-6 lg:p-8">
         {/* Mobile top navigation - Previous/Next at top on mobile */}
         <div className="lg:hidden mb-4 flex items-center justify-between px-2">
           <button
