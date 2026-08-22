@@ -22,8 +22,8 @@ function Markdown({ text }) {
       {parts.map((part, index) => {
         if (index % 3 === 2) {
           return (
-            <pre key={index} className="bg-slate-900 rounded-lg p-4 overflow-x-auto border border-slate-700/50">
-              <code className="text-slate-100 text-sm leading-relaxed font-mono">{highlightCode(part.trim())}</code>
+            <pre key={index} className="bg-slate-900 rounded-lg p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full -mx-4 sm:mx-0 border border-slate-700/50">
+              <code className="text-slate-100 leading-relaxed font-mono whitespace-pre">{highlightCode(part.trim())}</code>
             </pre>
           )
         }
@@ -66,12 +66,12 @@ function Markdown({ text }) {
             }
             const [head, ...body] = rows
             out.push(
-              <div key={key} className="overflow-x-auto my-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                <table className="min-w-full text-sm border-collapse">
+              <div key={key} className="overflow-x-auto my-4 -mx-4 sm:mx-0 rounded-lg border border-slate-200 dark:border-slate-700 max-w-full">
+                <table className="min-w-full text-xs sm:text-sm border-collapse">
                   <thead>
                     <tr className="bg-slate-100 dark:bg-slate-800">
                       {head.map((cell, ci) => (
-                        <th key={ci} className="px-4 py-2.5 text-left font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700">{formatInline(cell)}</th>
+                        <th key={ci} className="px-3 sm:px-4 py-2 sm:py-2.5 text-left font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">{formatInline(cell)}</th>
                       ))}
                     </tr>
                   </thead>
@@ -79,7 +79,7 @@ function Markdown({ text }) {
                     {body.map((cells, ri) => (
                       <tr key={ri} className="even:bg-slate-50 dark:even:bg-slate-800/40">
                         {cells.map((cell, ci) => (
-                          <td key={ci} className="px-4 py-2.5 align-top text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">{formatInline(cell)}</td>
+                          <td key={ci} className="px-3 sm:px-4 py-2 sm:py-2.5 align-top text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">{formatInline(cell)}</td>
                         ))}
                       </tr>
                     ))}
