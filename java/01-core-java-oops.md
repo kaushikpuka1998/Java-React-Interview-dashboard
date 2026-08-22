@@ -707,15 +707,180 @@ void div(int a, int b) {
 **Category:** Core Java & OOP
 
 #### Answer
-Introduced in Java 7, `try-with-resources` automatically closes resources (those implementing `AutoCloseable`) at the end of the block, eliminating boilerplate `finally` blocks and preventing resource leaks.
+`try-with-resources` is a feature introduced in **Java 7** that automatically closes resources after they are used. It works with any object that implements the `AutoCloseable` interface (or `Closeable`), such as:
+- File streams
+- Database connections
+- Buffered readers
+- Sockets
+- Input/output streams
 
-#### Code Example
+It eliminates the need to explicitly close resources inside a `finally` block and helps prevent resource leaks.
+
+## Traditional Approach (Before Java 7)
 ```java
-try (BufferedReader br = new BufferedReader(new FileReader("file.txt"))) {
-    System.out.println(br.readLine());
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader("file.txt"));
+            System.out.println(br.readLine());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+**Problems:**
+- More boilerplate code
+- Easy to forget closing resources
+- Resource leaks can happen
+
+## Using Try-With-Resources
+```java
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) {
+        try (BufferedReader br =
+             new BufferedReader(new FileReader("file.txt"))) {
+            System.out.println(br.readLine());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+Here the JVM automatically calls `br.close()` when the `try` block finishes.
+
+## How Does It Work Internally?
+```java
+try (Resource r = new Resource()) {
+    // use resource
+}
+```
+is internally converted by the compiler into:
+```java
+Resource r = new Resource();
+try {
+    // use resource
+} finally {
+    r.close();
+}
+```
+So the resource closing happens automatically.
+
+## Multiple Resources
+You can declare multiple resources separated by a semicolon. They are all closed automatically.
+```java
+try (
+    FileInputStream fis = new FileInputStream("input.txt");
+    FileOutputStream fos = new FileOutputStream("output.txt")
+) {
+    // copy file
 } catch (IOException e) {
     e.printStackTrace();
-} // br auto-closed here
+}
+```
+
+## Resource Closing Order
+Resources are closed in **reverse order** of creation — the last opened resource is closed first.
+```java
+try (
+    ResourceA a = new ResourceA();
+    ResourceB b = new ResourceB()
+) {
+}
+// Closing order: ResourceB.close()  ->  ResourceA.close()
+```
+
+## Creating a Custom AutoCloseable Resource
+```java
+class DatabaseConnection implements AutoCloseable {
+    public void connect() {
+        System.out.println("Database connected");
+    }
+
+    @Override
+    public void close() {
+        System.out.println("Database connection closed");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        try (DatabaseConnection db = new DatabaseConnection()) {
+            db.connect();
+        }
+    }
+}
+```
+**Output:**
+```
+Database connected
+Database connection closed
+```
+
+## Exception Handling in Try-With-Resources
+If both the `try` block and the `close()` method throw exceptions, the exception from the `try` block is the **main** exception, and the close exception is stored as a **suppressed** exception.
+```java
+try (Resource r = new Resource()) {
+    throw new RuntimeException("Try exception");
+}
+```
+The close exception can be accessed using `exception.getSuppressed();`.
+
+## Real-Time Example (Database Connection)
+**Without try-with-resources:**
+```java
+Connection con = null;
+try {
+    con = dataSource.getConnection();
+    // execute query
+} finally {
+    con.close();
+}
+```
+**With try-with-resources:**
+```java
+try (Connection con = dataSource.getConnection()) {
+    // execute query
+}
+```
+The connection is automatically returned to the connection pool.
+
+## Short Interview Answer
+> "try-with-resources was introduced in Java 7 to automatically close resources after use. Any resource implementing `AutoCloseable` can be used inside the `try` block. The compiler automatically generates the closing logic using a `finally` block internally. It reduces boilerplate code and prevents resource leaks."
+
+## Common Follow-up Questions
+**Q1. Which interface is required for try-with-resources?**
+→ `AutoCloseable`
+
+**Q2. Difference between `Closeable` and `AutoCloseable`?**
+
+| AutoCloseable | Closeable |
+| --- | --- |
+| Introduced in Java 7 | Older I/O-specific interface |
+| `close() throws Exception` | `close() throws IOException` |
+| Used for all resources | Used mainly for I/O resources |
+
+**Q3. Can we use try-with-resources without `catch`?**
+Yes, if the exception is handled using `throws`.
+```java
+public void readFile() throws IOException {
+    try (FileReader fr = new FileReader("a.txt")) {
+    }
+}
 ```
 ---
 
