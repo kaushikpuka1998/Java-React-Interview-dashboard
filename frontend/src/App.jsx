@@ -1,5 +1,8 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
-import questionsData from './data/questions.json'
+
+const PAGE = 50
+// ponytail: 2.5MB JSON, lazy-loaded via dynamic import so first paint isn't blocked
+const loadQuestions = () => import('./data/questions.json')
 
 /**
  * Markdown renderer with support for:
@@ -412,12 +415,24 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading }) {
   const categories = useMemo(() =>
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
   )
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
+  const sentinelRef = useRef(null)
+
+  // ponytail: IntersectionObserver pagination; rootMargin 200px triggers just before the sentinel is visible
+  useEffect(() => {
+    if (!hasMore || !sentinelRef.current) return
+    const io = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) onLoadMore() },
+      { rootMargin: '200px' }
+    )
+    io.observe(sentinelRef.current)
+    return () => io.disconnect()
+  }, [hasMore, onLoadMore])
 
   return (
     <aside
@@ -517,7 +532,11 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
       )}
 
       <nav ref={questionListRef} className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-8 text-sm text-slate-500 dark:text-slate-400">
+            Loading questions…
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
             <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -525,15 +544,22 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
             <p>No questions match your filters</p>
           </div>
         ) : (
-          filtered.map(q => (
-            <QuestionLink
-              key={q.id}
-              question={q}
-              isActive={selectedId === q.id}
-              onClick={() => onSelect(q.id)}
-              selectedId={selectedId}
-            />
-          ))
+          <>
+            {filtered.map(q => (
+              <QuestionLink
+                key={q.id}
+                question={q}
+                isActive={selectedId === q.id}
+                onClick={() => onSelect(q.id)}
+                selectedId={selectedId}
+              />
+            ))}
+            {hasMore && (
+              <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                Loading more…
+              </div>
+            )}
+          </>
         )}
       </nav>
     </aside>
@@ -719,7 +745,10 @@ function MobileSidebar({ isOpen, onClose, ...sidebarProps }) {
 }
 
 function App() {
-  const [selectedId, setSelectedId] = useState(questionsData[0]?.id)
+  const [questionsData, setQuestionsData] = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const [pageCount, setPageCount] = useState(1)
+  const [selectedId, setSelectedId] = useState(null)
   const [query, setQuery] = useState('')
   const [tech, setTech] = useState('all')
   const [category, setCategory] = useState('all')
@@ -735,6 +764,18 @@ function App() {
   })
   const [sidebarWidth, setSidebarWidth] = useState(360)
 
+  // Lazy-load the 2.5MB question JSON after first paint
+  useEffect(() => {
+    let cancelled = false
+    loadQuestions().then(m => {
+      if (cancelled) return
+      setQuestionsData(m.default)
+      setLoaded(true)
+      setSelectedId(prev => prev ?? m.default[0]?.id)
+    })
+    return () => { cancelled = true }
+  }, [])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return questionsData
@@ -742,12 +783,17 @@ function App() {
         const matchesTech = tech === 'all' || item.tech === tech
         const matchesCategory = category === 'all' || item.category === category
         const matchesDifficulty = difficulty === 'all' || item.difficulty === difficulty
-        const text = `q${item.displayNumber} ${item.question} ${item.answer} ${item.category}`.toLowerCase()
+        const text = `${item.question} ${item.answer} ${item.category}`.toLowerCase()
         return matchesTech && matchesCategory && matchesDifficulty && (!q || text.includes(q))
       })
       // Sort by sortKey (primary) then displayNumber for consistent ordering
       .sort((a, b) => (a.sortKey || a.displayNumber || 0) - (b.sortKey || b.displayNumber || 0))
-  }, [query, tech, category, difficulty])
+  }, [query, tech, category, difficulty, questionsData])
+
+  // Reset to page 1 whenever the filter result changes
+  useEffect(() => { setPageCount(1) }, [filtered])
+
+  const visible = useMemo(() => filtered.slice(0, pageCount * PAGE), [filtered, pageCount])
 
   const selected = filtered.find(q => q.id === selectedId) || filtered[0] || questionsData[0]
 
@@ -825,7 +871,10 @@ function App() {
     <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
       <Sidebar
         questions={questionsData}
-        filtered={filtered}
+        filtered={visible}
+        hasMore={visible.length < filtered.length}
+        onLoadMore={() => setPageCount(c => c + 1)}
+        loading={!loaded}
         selectedId={selectedId}
         query={query}
         setQuery={setQuery}
@@ -849,7 +898,10 @@ function App() {
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         questions={questionsData}
-        filtered={filtered}
+        filtered={visible}
+        hasMore={visible.length < filtered.length}
+        onLoadMore={() => setPageCount(c => c + 1)}
+        loading={!loaded}
         selectedId={selectedId}
         query={query}
         setQuery={setQuery}
