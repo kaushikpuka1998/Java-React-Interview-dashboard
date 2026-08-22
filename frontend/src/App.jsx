@@ -144,41 +144,81 @@ function formatInline(line) {
 }
 
 /**
- * Question item in sidebar
+ * Question item in sidebar - polished, professional design
  */
 function QuestionLink({ question, isActive, onClick }) {
+  // Tech badge colors - consistent with TechFilter
+  const techStyles = {
+    hld: 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400',
+    java: 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400',
+    react: 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400',
+    node: 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400',
+    sql: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400',
+    microservices: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
+    'design-patterns': 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
+    kafka: 'bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400',
+    default: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
+  }
+
+  // Difficulty badge colors - softer, more refined
+  const diffStyles = {
+    Basic: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400',
+    Intermediate: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
+    Advanced: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
+    Experienced: 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
+    default: 'bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400',
+  }
+
+  const techLabel = question.tech === 'design-patterns' ? 'Design Patterns' :
+                    question.tech === 'hld' ? 'HLD' :
+                    question.tech.charAt(0).toUpperCase() + question.tech.slice(1)
+
   return (
     <button
-      className={`question-link w-full text-left px-3 py-2.5 rounded-lg transition-all duration-150 ${
-        isActive
-          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-4 border-blue-500'
-          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-      }`}
+      className={`question-link relative w-full text-left pl-2 pr-3 py-2.5 rounded-xl transition-all duration-200 ease-out group
+        border border-transparent
+        ${
+          isActive
+            ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-900/10 text-slate-900 dark:text-slate-100 shadow-[0_0_0_1px_rgba(59,130,246,0.3)] dark:shadow-[0_0_0_1px_rgba(59,130,246,0.2)]'
+            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-100 dark:hover:border-slate-800'
+        }
+        ${
+          isActive
+            ? 'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-7 before:bg-blue-500 before:rounded-r-full'
+            : ''
+        }`}
       onClick={onClick}
+      style={{ transformOrigin: 'left center' }}
     >
-      <div className="flex items-start gap-2">
-        <span className="qnum flex-shrink-0 text-xs font-mono font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-          Q{question.displayNumber}
-        </span>
-        <span className="text-sm leading-relaxed truncate">{question.question}</span>
+      {/* Subtle hover lift effect */}
+      <div className="relative flex items-start gap-2 transition-transform duration-200 group-hover:translate-x-0.5">
+        {/* Badge stack on the left - tech type above, difficulty below */}
+        <div className="flex flex-col gap-1 flex-shrink-0 items-start">
+          <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded tracking-wide ${techStyles[question.tech] || techStyles.default}`} style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+            {techLabel}
+          </span>
+          <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded ${diffStyles[question.difficulty] || diffStyles.default}`}>
+            {question.difficulty}
+          </span>
+        </div>
+
+        {/* Question number + text */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-1.5">
+            <span className="qnum flex-shrink-0 text-[11px] font-mono font-semibold text-slate-400 dark:text-slate-500 leading-none mt-0.5">
+              Q{question.displayNumber}.
+            </span>
+            <p className="text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors duration-150" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {question.question}
+            </p>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5 mt-1.5">
-        <span className={`badge px-2 py-0.5 text-xs rounded-full ${
-          question.tech === 'hld' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' :
-          question.tech === 'java' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
-          question.tech === 'node' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-          question.tech === 'sql' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-          question.tech === 'microservices' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' :
-          question.tech === 'design-patterns' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
-          question.tech === 'kafka' ? 'bg-slate-200 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200' :
-          'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
-        }`}>
-          {question.tech === 'design-patterns' ? 'DESIGN PATTERN' : question.tech === 'hld' ? 'HLD' : question.tech.toUpperCase()}
-        </span>
-        <span className="badge px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
-          {question.difficulty}
-        </span>
-      </div>
+
+      {/* Subtle active indicator dot */}
+      {isActive && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_0_2px_rgba(59,130,246,0.3)] dark:shadow-[0_0_0_2px_rgba(59,130,246,0.2)]" aria-hidden="true" />
+      )}
     </button>
   )
 }
@@ -216,7 +256,7 @@ function SearchInput({ value, onChange, placeholder }) {
 }
 
 /**
- * Tech filter segmented control
+ * Tech filter segmented control - colorful icons per technology
  */
 function TechFilter({ value, onChange }) {
   const options = [
@@ -228,26 +268,26 @@ function TechFilter({ value, onChange }) {
     {
       value: 'hld', label: 'HLD',
       active: 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30',
-      // architecture diagram (HLD)
-      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+      // architecture/sitemap icon
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
     },
     {
       value: 'java', label: 'Java',
       active: 'bg-orange-500 text-white shadow-sm shadow-orange-500/30',
-      // coffee cup (Java)
-      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h1a3 3 0 010 6h-1.17A5 5 0 0113 18H8a5 5 0 01-5-5V7a1 1 0 011-1h13a1 1 0 011 1v1zm0 2v2h1a1 1 0 000-2h-1zM6 3a1 1 0 012 0v1a1 1 0 01-2 0V3zm4 0a1 1 0 012 0v1a1 1 0 01-2 0V3zM4 20h14v2H4v-2z"/></svg>,
+      // Coffee cup with steam (Java)
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>,
     },
     {
       value: 'react', label: 'React',
       active: 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/30',
-      // atom (React)
-      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="10" ry="4.2" strokeWidth={1.5}/><ellipse cx="12" cy="12" rx="10" ry="4.2" strokeWidth={1.5} transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" strokeWidth={1.5} transform="rotate(120 12 12)"/></svg>,
+      // React atom logo
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/><ellipse cx="12" cy="12" rx="9" ry="3" fill="none" stroke="currentColor" strokeWidth="1.5"/><ellipse cx="12" cy="12" rx="9" ry="3" fill="none" stroke="currentColor" strokeWidth="1.5" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3" fill="none" stroke="currentColor" strokeWidth="1.5" transform="rotate(120 12 12)"/></svg>,
     },
     {
       value: 'node', label: 'Node',
       active: 'bg-green-500 text-white shadow-sm shadow-green-500/30',
-      // hexagon (Node)
-      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2zm0 4.2L7.5 8.8v6.4L12 17.8l4.5-2.6V8.8L12 6.2z"/></svg>,
+      // Node.js hexagon logo
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18l7.5 3.75v8.64L12 21.82 4.5 18.07v-8.64L12 4.18zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>,
     },
     {
       value: 'sql', label: 'SQL',
@@ -264,8 +304,8 @@ function TechFilter({ value, onChange }) {
     {
       value: 'kafka', label: 'Kafka',
       active: 'bg-slate-700 text-white shadow-sm shadow-slate-700/30',
-      // stacked logs (Kafka)
-      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C7 2 3 3.3 3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5c0-1.7-4-3-9-3zm7 17c0 .5-2.7 1.5-7 1.5S5 19.5 5 19v-2.2c1.7.8 4.3 1.2 7 1.2s5.3-.4 7-1.2V19zm0-5c0 .5-2.7 1.5-7 1.5S5 14.5 5 14v-2.2c1.7.8 4.3 1.2 7 1.2s5.3-.4 7-1.2V14zM12 9C7.7 9 5 8 5 7.5v-.3C6.7 8 9.3 8.4 12 8.4s5.3-.4 7-1.2v.3C19 8 16.3 9 12 9z"/></svg>,
+      // Kafka logo - streaming platform
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>,
     },
     {
       value: 'design-patterns', label: 'Design Pattern',
@@ -276,20 +316,21 @@ function TechFilter({ value, onChange }) {
   ]
 
   return (
-    <div className="segmented grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg" role="group" aria-label="Filter by technology">
+    <div className="segmented grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-lg" role="group" aria-label="Filter by technology">
       {options.map(opt => (
         <button
           key={opt.value}
-          className={`w-full min-w-0 text-center px-2 py-1.5 rounded-md text-xs font-medium whitespace-nowrap truncate transition-all duration-150 ${
+          className={`w-full min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap truncate transition-all duration-150 ${
             value === opt.value
               ? opt.active
-              : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'
+              : 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-900/40 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
           }`}
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
           title={opt.label}
         >
-          {opt.label}
+          {opt.icon}
+          <span>{opt.label}</span>
         </button>
       ))}
     </div>
@@ -297,40 +338,62 @@ function TechFilter({ value, onChange }) {
 }
 
 /**
- * Category dropdown
+ * Category dropdown - enhanced UI
  */
 function CategorySelect({ value, onChange, options, disabled }) {
   if (disabled || options.length === 0) return null
 
   return (
-    <select
-      className="select w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      aria-label="Filter by category"
-    >
-      <option value="all">All categories</option>
-      {options.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-    </select>
+    <div className="relative">
+      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+      </svg>
+      <select
+        className="select w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer appearance-none"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        aria-label="Filter by category"
+      >
+        <option value="all">All categories</option>
+        {options.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+      </select>
+      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 8l4 4 4-4" />
+      </svg>
+    </div>
   )
 }
 
 /**
- * Difficulty filter dropdown
+ * Difficulty filter dropdown - enhanced UI (uses actual data difficulties)
  */
-function DifficultySelect({ value, onChange }) {
-  const difficulties = ['Basic', 'Intermediate', 'Advanced', 'Experienced']
+function DifficultySelect({ value, onChange, questions, tech }) {
+  // Get unique difficulties from filtered questions
+  const allDifficulties = ['Basic', 'Intermediate', 'Advanced', 'Experienced']
+  const difficulties = useMemo(() => {
+    const techQuestions = questions.filter(q => tech === 'all' || q.tech === tech)
+    const found = new Set(techQuestions.map(q => q.difficulty))
+    return allDifficulties.filter(d => found.has(d))
+  }, [questions, tech])
 
   return (
-    <select
-      className="select w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      aria-label="Filter by difficulty"
-    >
-      <option value="all">All difficulties</option>
-      {difficulties.map(d => <option key={d} value={d}>{d}</option>)}
-    </select>
+    <div className="relative">
+      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+      <select
+        className="select w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer appearance-none"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        aria-label="Filter by difficulty"
+      >
+        <option value="all">All difficulties</option>
+        {difficulties.map(d => <option key={d} value={d}>{d}</option>)}
+      </select>
+      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 8l4 4 4-4" />
+      </svg>
+    </div>
   )
 }
 
@@ -348,7 +411,7 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360 }) {
   const categories = useMemo(() =>
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
@@ -356,12 +419,15 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
 
   return (
-    <aside className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'} ${className}`}>
+    <aside
+      className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'} ${className}`}
+      style={{ width: `${sidebarWidth}px`, minWidth: '280px', maxWidth: '600px', flexShrink: 0 }}
+    >
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="logo w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0">
-              JR
+              IR
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">Interview Reader</h1>
@@ -423,6 +489,8 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
               <DifficultySelect
                 value={difficulty}
                 onChange={setDifficulty}
+                questions={questions}
+                tech={tech}
               />
               <QuestionCount count={filtered.length} total={questions.length} />
             </div>
@@ -440,12 +508,14 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
           <DifficultySelect
             value={difficulty}
             onChange={setDifficulty}
+            questions={questions}
+            tech={tech}
           />
           <QuestionCount count={filtered.length} total={questions.length} />
         </div>
       )}
 
-      <nav className="question-list flex-1 overflow-y-auto p-3 space-y-1" aria-label="Question list">
+      <nav className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
         {filtered.length === 0 ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
             <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -474,7 +544,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
 function ReaderPane({ question, questions, onNavigate }) {
   if (!question) {
     return (
-      <main className="reader flex-1 flex items-center justify-center bg-slate-50 dark:bg-slate-950 min-w-0">
+      <main className="reader flex-1 flex items-center justify-center bg-white dark:bg-slate-800 min-w-0">
         <div className="text-center p-4 sm:p-8 w-full max-w-3xl mx-auto">
           <svg className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -491,8 +561,9 @@ function ReaderPane({ question, questions, onNavigate }) {
   const next = questions[selectedIndex + 1]
 
   return (
-    <main className="reader flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col min-w-0">
-      <article className="paper flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto w-full min-w-0">
+    <main className="reader flex-1 h-screen overflow-hidden bg-white dark:bg-slate-800 flex flex-col min-w-0">
+      <div className="flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-6 lg:px-8 min-w-0">
+      <article className="paper max-w-3xl mx-auto w-full min-w-0 bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/40 p-4 sm:p-6 lg:p-8">
         {/* Mobile top navigation - Previous/Next at top on mobile */}
         <div className="lg:hidden mb-4 flex items-center justify-between px-2">
           <button
@@ -523,7 +594,7 @@ function ReaderPane({ question, questions, onNavigate }) {
         </div>
 
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="badges flex flex-wrap gap-2 mb-4">
+          <div className="badges flex items-center justify-between mb-4 px-0.5">
             <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
               question.tech === 'hld'
                 ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
@@ -541,7 +612,7 @@ function ReaderPane({ question, questions, onNavigate }) {
                 ? 'bg-slate-200 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200'
                 : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
             }`}>
-              {question.tech === 'design-patterns' ? 'DESIGN PATTERN' : question.tech === 'hld' ? 'HLD' : question.tech.toUpperCase()}
+              {question.tech === 'design-patterns' ? 'Design Patterns' : question.tech === 'hld' ? 'HLD' : question.tech.charAt(0).toUpperCase() + question.tech.slice(1)}
             </span>
             <span className="badge px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {question.category}
@@ -563,9 +634,10 @@ function ReaderPane({ question, questions, onNavigate }) {
           <Markdown text={question.answer} />
         </div>
       </article>
+      </div>
 
       {/* Desktop bottom navigation */}
-      <footer className="hidden lg:block pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+      <footer className="hidden lg:block pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
         <div className="max-w-3xl mx-auto w-full px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             disabled={!prev}
@@ -659,16 +731,20 @@ function App() {
     }
     return false
   })
+  const [sidebarWidth, setSidebarWidth] = useState(360)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return questionsData.filter(item => {
-      const matchesTech = tech === 'all' || item.tech === tech
-      const matchesCategory = category === 'all' || item.category === category
-      const matchesDifficulty = difficulty === 'all' || item.difficulty === difficulty
-      const text = `q${item.displayNumber} ${item.question} ${item.answer} ${item.category}`.toLowerCase()
-      return matchesTech && matchesCategory && matchesDifficulty && (!q || text.includes(q))
-    })
+    return questionsData
+      .filter(item => {
+        const matchesTech = tech === 'all' || item.tech === tech
+        const matchesCategory = category === 'all' || item.category === category
+        const matchesDifficulty = difficulty === 'all' || item.difficulty === difficulty
+        const text = `q${item.displayNumber} ${item.question} ${item.answer} ${item.category}`.toLowerCase()
+        return matchesTech && matchesCategory && matchesDifficulty && (!q || text.includes(q))
+      })
+      // Sort by sortKey (primary) then displayNumber for consistent ordering
+      .sort((a, b) => (a.sortKey || a.displayNumber || 0) - (b.sortKey || b.displayNumber || 0))
   }, [query, tech, category, difficulty])
 
   const selected = filtered.find(q => q.id === selectedId) || filtered[0] || questionsData[0]
@@ -703,8 +779,33 @@ function App() {
     setCategory('all')
   }, [])
 
+  // Resizable divider logic
+  const handleDividerMouseDown = useCallback((e) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = sidebarWidth
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = Math.min(Math.max(startWidth + deltaX, 280), 600)
+      setSidebarWidth(newWidth)
+    }
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [sidebarWidth])
+
   return (
-    <div className="app-shell h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex">
+    <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
       <Sidebar
         questions={questionsData}
         filtered={filtered}
@@ -720,6 +821,7 @@ function App() {
         onSelect={handleSelect}
         onToggleDark={toggleDarkMode}
         isDark={isDark}
+        sidebarWidth={sidebarWidth}
       />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
@@ -745,6 +847,23 @@ function App() {
       />
 
       <MobileMenuButton isOpen={mobileMenuOpen} onToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
+
+      {/* Resizable divider - desktop only, single neutral color */}
+      <div
+        className="hidden lg:block w-1 cursor-col-resize bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors flex-shrink-0 select-none"
+        onMouseDown={handleDividerMouseDown}
+        role="separator"
+        aria-label="Resize sidebar"
+        aria-orientation="vertical"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') {
+            setSidebarWidth(prev => Math.max(prev - 20, 280))
+          } else if (e.key === 'ArrowRight') {
+            setSidebarWidth(prev => Math.min(prev + 20, 600))
+          }
+        }}
+      />
 
       <ReaderPane
         question={selected}
