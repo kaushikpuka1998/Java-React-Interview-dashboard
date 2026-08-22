@@ -277,17 +277,210 @@ public class A {
 **Category:** Core Java & OOP
 
 #### Answer
-Constructor chaining is calling one constructor from another using `this()` (same class) or `super()` (parent class). It must be the first statement in the constructor. It promotes code reuse for initialization.
+Constructor chaining is the process of calling one constructor from another constructor within the same class or from a parent class. It is used to reuse constructor logic and initialize objects properly.
 
-#### Code Example
+Constructor chaining is achieved using:
+- `this()` → calls another constructor of the same class
+- `super()` → calls a constructor of the parent class
+
+## 1. Constructor Chaining Using `this()`
+
+```java
+class Employee {
+    String name;
+    int age;
+
+    Employee() {
+        this("Unknown", 0);
+        System.out.println("Default constructor");
+    }
+
+    Employee(String name, int age) {
+        this.name = name;
+        this.age = age;
+        System.out.println("Parameterized constructor");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Employee e = new Employee();
+    }
+}
+```
+
+**Output:**
+```
+Parameterized constructor
+Default constructor
+```
+
+**Flow:**
+```
+new Employee()
+        |
+        v
+Employee()
+        |
+        | this("Unknown",0)
+        v
+Employee(String,int)
+        |
+        v
+Object initialized
+```
+
+## 2. Constructor Chaining Using `super()`
+
+When a child class object is created, the parent class constructor is called first.
+
 ```java
 class Person {
     String name;
-    Person() { this("Unknown"); }   // chaining
-    Person(String name) { this.name = name; }
+
+    Person(String name) {
+        this.name = name;
+        System.out.println("Person constructor");
+    }
+}
+
+class Employee extends Person {
+    int salary;
+
+    Employee(String name, int salary) {
+        super(name);
+        this.salary = salary;
+        System.out.println("Employee constructor");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Employee e = new Employee("Kaushik", 100000);
+    }
 }
 ```
----
+
+**Output:**
+```
+Person constructor
+Employee constructor
+```
+
+**Flow:**
+```
+Employee Object Creation
+        |
+        v
+Employee()
+        |
+        | super(name)
+        v
+Person()
+        |
+        v
+Employee initialization
+```
+
+## Important Rules of Constructor Chaining
+
+### 1. `this()` and `super()` must be the first statement
+
+**Valid:**
+```java
+class Test {
+    Test() {
+        this(10);
+    }
+    Test(int x) {
+        System.out.println(x);
+    }
+}
+```
+
+**Invalid:**
+```java
+class Test {
+    Test() {
+        System.out.println("Hello");
+        this(10); // Compile error
+    }
+}
+```
+
+### 2. Cannot use both `this()` and `super()` in the same constructor
+
+**Invalid:**
+```java
+class Test {
+    Test() {
+        this(10);
+        super();
+    }
+}
+```
+Because both must be the first statement.
+
+### 3. Constructor chaining prevents code duplication
+
+**Without chaining:**
+```java
+class User {
+    User() {
+        name = "Default";
+        age = 18;
+    }
+    User(String name) {
+        this.name = name;
+        age = 18;
+    }
+}
+```
+
+**With chaining:**
+```java
+class User {
+    User() {
+        this("Default",18);
+    }
+    User(String name) {
+        this(name,18);
+    }
+    User(String name,int age) {
+        this.name = name;
+        this.age = age;
+    }
+}
+```
+Common initialization logic exists in one place.
+
+## Real-Time Example (Spring Boot Style)
+
+**Base class:**
+```java
+class BaseEntity {
+    Long id;
+    BaseEntity(Long id) {
+        this.id = id;
+    }
+}
+```
+
+**Child class:**
+```java
+class User extends BaseEntity {
+    String username;
+    User(Long id, String username) {
+        super(id);
+        this.username = username;
+    }
+}
+```
+The child reuses parent initialization using `super()`.
+
+## Short Interview Answer
+
+> "Constructor chaining is a mechanism where one constructor calls another constructor to reuse initialization logic. In Java, `this()` is used to call another constructor in the same class, while `super()` is used to call the parent class constructor. The call must always be the first statement inside the constructor, and it helps reduce code duplication and ensures proper object initialization."
 
 ### Q9. What is the `final` keyword used for?
 **Difficulty:** `Basic`
