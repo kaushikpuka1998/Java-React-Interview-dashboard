@@ -401,6 +401,37 @@ function CategorySelect({ value, onChange, options, disabled }) {
 }
 
 /**
+ * Status filter - All / Visited / Solved (Read) / Unsolved (Unread)
+ */
+function StatusSelect({ value, onChange }) {
+  const options = [
+    { value: 'all', label: 'All' },
+    { value: 'visited', label: 'Visited' },
+    { value: 'solved', label: 'Solved' },
+    { value: 'unsolved', label: 'Unsolved' },
+  ]
+
+  return (
+    <div className="relative">
+      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+      <select
+        className="select w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer appearance-none"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        aria-label="Filter by status"
+      >
+        {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 8l4 4 4-4" />
+      </svg>
+    </div>
+  )
+}
+
+/**
  * Difficulty filter dropdown - enhanced UI (uses actual data difficulties)
  */
 function DifficultySelect({ value, onChange, questions, tech }) {
@@ -447,7 +478,7 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read }) {
   const categories = useMemo(() =>
     [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
     [tech, questions]
@@ -503,7 +534,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
 
       {/* Search always visible */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-        <SearchInput value={query} onChange={setQuery} placeholder="Search questions..." />
+        <SearchInput value={query} onChange={setQuery} placeholder="Search questions... (try '352' or 'Q352' for direct number lookup)" />
       </div>
 
       {/* Collapsible filters on mobile */}
@@ -540,6 +571,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
                 questions={questions}
                 tech={tech}
               />
+              <StatusSelect value={status} onChange={setStatus} />
               <QuestionCount count={filtered.length} total={questions.length} />
             </div>
           </div>
@@ -559,6 +591,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
             questions={questions}
             tech={tech}
           />
+          <StatusSelect value={status} onChange={setStatus} />
           <QuestionCount count={filtered.length} total={questions.length} />
         </div>
       )}
@@ -831,6 +864,7 @@ function App() {
   const [tech, setTech] = useState('all')
   const [category, setCategory] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
+  const [status, setStatus] = useState('all')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -857,18 +891,44 @@ function App() {
   }, [])
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const rawQuery = query.trim()
+    const q = rawQuery.toLowerCase()
+
+    // Check if query is a question number (e.g., "352", "Q352", "q352")
+    const numberMatch = rawQuery.match(/^q?(\d+)$/i)
+    const searchByNumber = numberMatch ? parseInt(numberMatch[1], 10) : null
+
     return questionsData
       .filter(item => {
         const matchesTech = tech === 'all' || item.tech === tech
         const matchesCategory = category === 'all' || item.category === category
         const matchesDifficulty = difficulty === 'all' || item.difficulty === difficulty
+        const isVisited = visited.has(item.id)
+        const isSolved = read.has(item.id)
+
+        // Status filter logic
+        let matchesStatus = true
+        if (status === 'visited') {
+          matchesStatus = isVisited
+        } else if (status === 'solved') {
+          matchesStatus = isSolved
+        } else if (status === 'unsolved') {
+          matchesStatus = !isSolved
+        }
+
+        // If searching by number, match displayNumber or number field
+        if (searchByNumber !== null) {
+          return matchesTech && matchesCategory && matchesDifficulty && matchesStatus &&
+                 (item.displayNumber === searchByNumber || item.number === searchByNumber)
+        }
+
+        // Regular text search
         const text = `${item.question} ${item.answer} ${item.category}`.toLowerCase()
-        return matchesTech && matchesCategory && matchesDifficulty && (!q || text.includes(q))
+        return matchesTech && matchesCategory && matchesDifficulty && matchesStatus && (!q || text.includes(q))
       })
       // Sort by sortKey (primary) then displayNumber for consistent ordering
       .sort((a, b) => (a.sortKey || a.displayNumber || 0) - (b.sortKey || b.displayNumber || 0))
-  }, [query, tech, category, difficulty, questionsData])
+  }, [query, tech, category, difficulty, status, visited, read, questionsData])
 
   // Reset to page 1 whenever the filter result changes
   useEffect(() => { setPageCount(1) }, [filtered])
@@ -1010,6 +1070,8 @@ function App() {
         questionListRef={questionListRef}
         visited={visited}
         read={read}
+        status={status}
+        setStatus={setStatus}
       />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
@@ -1032,6 +1094,8 @@ function App() {
         setCategory={setCategory}
         difficulty={difficulty}
         setDifficulty={setDifficulty}
+        status={status}
+        setStatus={setStatus}
         onSelect={handleSelect}
         onToggleDark={toggleDarkMode}
         isDark={isDark}

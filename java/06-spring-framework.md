@@ -26,18 +26,291 @@ class OrderService {
 
 ---
 
-### Q352. What is Dependency Injection (DI) and what are its types?
+### Q352. What is Dependency Injection (DI) and What Are Its Types?
 **Difficulty:** `Basic`
 **Category:** Spring Framework & Microservices
 
 #### Answer
-Dependency Injection is the implementation mechanism of IoC: the container supplies an object's dependencies rather than the object constructing them. Spring supports three injection styles:
 
-1. **Constructor Injection** – dependencies passed via the constructor. Best for required, immutable dependencies.
-2. **Setter Injection** – dependencies set via setter methods. Best for optional or reconfigurable dependencies.
-3. **Field Injection** – dependencies injected directly into fields via `@Autowired`. Convenient but discouraged (harder to test, hides dependencies).
+Dependency Injection (DI) is a design pattern where an object's dependencies are provided from outside instead of the object creating them itself.
 
-Spring recommends constructor injection for mandatory dependencies.
+In simple words:
+
+> "DI is a technique where the responsibility of creating and managing dependencies is transferred from the class itself to an external container or framework."
+
+It helps achieve loose coupling, better testability, and easier maintenance.
+
+---
+
+### Without Dependency Injection (Tight Coupling)
+
+```java
+class EmailService {
+    public void sendEmail() {
+        System.out.println("Sending email");
+    }
+}
+
+class NotificationService {
+    private EmailService emailService;
+
+    NotificationService() {
+        this.emailService = new EmailService();
+    }
+
+    public void notifyUser() {
+        emailService.sendEmail();
+    }
+}
+```
+
+**Problem:** `NotificationService` is tightly coupled with `EmailService`. If we need `SMSService` or `PushNotificationService`, we must modify `NotificationService`.
+
+---
+
+### With Dependency Injection (Loose Coupling)
+
+```java
+interface MessageService {
+    void sendMessage();
+}
+
+class EmailService implements MessageService {
+    public void sendMessage() {
+        System.out.println("Sending Email");
+    }
+}
+
+class NotificationService {
+    private MessageService messageService;
+
+    NotificationService(MessageService messageService) {
+        this.messageService = messageService;
+    }
+
+    public void notifyUser() {
+        messageService.sendMessage();
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        MessageService service = new EmailService();
+        NotificationService notification = new NotificationService(service);
+        notification.notifyUser();
+    }
+}
+```
+
+Now `NotificationService` does not care about the implementation.
+
+---
+
+### Types of Dependency Injection
+
+There are mainly three types:
+
+1. **Constructor Injection** (Recommended)
+2. **Setter Injection**
+3. **Field Injection**
+
+---
+
+### 1. Constructor Injection (Recommended)
+
+Dependency is provided through the constructor.
+
+```java
+@Service
+class OrderService {
+    private final PaymentService paymentService;
+
+    @Autowired
+    OrderService(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+}
+```
+
+**Advantages:**
+- ✅ Dependency is mandatory
+- ✅ Object is always in a valid state
+- ✅ Supports immutability (`final` fields)
+- ✅ Easier unit testing
+
+**Example test:**
+```java
+PaymentService payment = new MockPaymentService();
+OrderService service = new OrderService(payment);
+```
+
+---
+
+### 2. Setter Injection
+
+Dependency is provided using a setter method.
+
+```java
+class OrderService {
+    private PaymentService paymentService;
+
+    @Autowired
+    public void setPaymentService(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+}
+```
+
+**Advantages:**
+- ✅ Useful for optional dependencies
+- ✅ Dependency can be changed later
+
+**Disadvantages:**
+- ❌ Object can exist without dependency
+- ❌ Mutable state
+
+---
+
+### 3. Field Injection
+
+Dependency is injected directly into the field.
+
+```java
+@Service
+class OrderService {
+    @Autowired
+    private PaymentService paymentService;
+}
+```
+
+**Advantages:**
+- Less code
+- Easy to write
+
+**Disadvantages:**
+- ❌ Difficult to unit test
+- ❌ Uses reflection
+- ❌ Cannot make field `final`
+- ❌ Hides class dependencies
+
+> Most Spring Boot projects avoid field injection.
+
+---
+
+### Dependency Injection in Spring Boot
+
+Spring provides an IoC container called **ApplicationContext** that manages object creation and dependency injection.
+
+```java
+@Service
+class UserService {
+    private final UserRepository repository;
+
+    UserService(UserRepository repository) {
+        this.repository = repository;
+    }
+}
+```
+
+Spring automatically:
+1. Creates `UserRepository` bean
+2. Creates `UserService` bean
+3. Injects repository into `UserService`
+
+---
+
+### DI vs IoC
+
+| Dependency Injection | Inversion of Control |
+|---------------------|---------------------|
+| Technique to provide dependencies | Principle of transferring control |
+| Achieved through constructor/setter/field injection | Achieved using frameworks like Spring |
+| Part of IoC | Broader concept |
+
+**Example:**
+```
+Spring IoC Container
+          |
+          v
+Dependency Injection
+          |
+          v
+Object gets required dependency
+```
+
+---
+
+### Real-Time Spring Boot Example
+
+**Controller:**
+```java
+@RestController
+class UserController {
+    private final UserService userService;
+
+    UserController(UserService userService) {
+        this.userService = userService;
+    }
+}
+```
+
+**Service:**
+```java
+@Service
+class UserService {
+    private final UserRepository repository;
+
+    UserService(UserRepository repository) {
+        this.repository = repository;
+    }
+}
+```
+
+**Repository:**
+```java
+@Repository
+interface UserRepository extends JpaRepository<User, Long> {}
+```
+
+**Flow:**
+```
+UserController
+        |
+        v
+    UserService
+        |
+        v
+ UserRepository
+```
+
+Spring creates and injects these objects automatically.
+
+---
+
+### Interview Answer (Short Version)
+
+> "Dependency Injection is a design pattern where dependencies are provided to a class from an external source instead of the class creating them itself. It helps achieve loose coupling and improves testability. The three types of DI are constructor injection, setter injection, and field injection. In Spring Boot, constructor injection is preferred because it makes dependencies mandatory, supports immutability, and makes unit testing easier."
+
+---
+
+### Follow-up Interview Questions
+
+**Q1. Why is constructor injection preferred in Spring Boot?**
+- Supports immutable fields
+- Makes dependencies mandatory
+- Easier mocking in unit tests
+- Avoids reflection
+
+**Q2. What is the difference between DI and Service Locator?**
+- DI → dependency is given to the object
+- Service Locator → object asks for dependency
+
+**Q3. What happens internally when Spring performs DI?**
+1. Scans classes using component scanning
+2. Creates beans
+3. Stores beans in ApplicationContext
+4. Resolves dependencies
+5. Injects required objects into beans
 
 #### Code Example / Key Takeaways
 ```java
