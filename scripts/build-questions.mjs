@@ -33,6 +33,7 @@ const TOPICS = {
     ['07-jpa-hibernate-db.md', 'JPA, Hibernate & Security'],
     ['08-streams-lambda.md', 'Java Streams & Lambdas'],
     ['09-java8-functional.md', 'Java 8 Functional Programming'],
+    ['10-junit-mockito-testing.md', 'JUnit & Mockito Testing'],
   ],
   react: [
     ['01-react-basics-jsx.md', 'React Basics & JSX'],

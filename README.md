@@ -6,7 +6,7 @@ Welcome to the ultimate **Java & React Interview Questions** repository! This co
 
 ---
 
-## ☕ Java Interview Questions (500 Questions)
+## ☕ Java Interview Questions (575 Questions)
 
 | Topic File | Range | Questions | Key Areas |
 |:-----------|:------|:----------|:----------|
@@ -17,6 +17,7 @@ Welcome to the ultimate **Java & React Interview Questions** repository! This co
 | [05. JVM Architecture & GC](./java/05-jvm-memory-gc.md) | Q301‑Q350 | 50 | Heap, Stack, G1/ZGC Garbage Collectors, ClassLoaders, JVM Tuning |
 | [06. Spring Framework & Microservices](./java/06-spring-framework.md) | Q351‑Q425 | 75 | IoC, DI, Spring Boot, REST APIs, Microservices patterns |
 | [07. JPA, Hibernate & Security](./java/07-jpa-hibernate-db.md) | Q426‑Q500 | 75 | ORM, Entity mappings, N+1 problem, Spring Security, JWT, OAuth2 |
+| [08. JUnit & Mockito Testing](./java/10-junit-mockito-testing.md) | Q501‑Q575 | 75 | JUnit 4/5 lifecycle, Assertions, Mockito mocks/stubs/spies, ArgumentCaptor, Spring Test, Testcontainers, WireMock, TDD |
 
 ---
 

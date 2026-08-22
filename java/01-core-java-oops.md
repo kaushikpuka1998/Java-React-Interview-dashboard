@@ -21,7 +21,10 @@ public class BankAccount {
     public double getBalance() { return balance; }
 }
 
+// Abstraction
 abstract class Animal { abstract void sound(); }
+
+// Inheritance + Polymorphism
 class Dog extends Animal {
     @Override void sound() { System.out.println("Dog barks"); } // polymorphism
 }

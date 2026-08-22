@@ -4,6 +4,81 @@ A curated set of 75 interview questions covering thread creation & lifecycle, `R
 
 ---
 
+### Q151. What is the difference between Concurrency and Parallelism?
+**Difficulty:** `Basic`
+**Category:** Multithreading & Concurrency
+
+#### Answer
+
+**Concurrency** and **Parallelism** are related but distinct concepts in multi-threaded programming.
+
+### Concurrency
+
+Concurrency means **multiple tasks are making progress during the same time period**. It does not require them to execute at the exact same instant.
+
+A single CPU core achieves concurrency through context switching — the OS rapidly switches between threads, giving the illusion of simultaneous execution.
+
+```java
+// Two threads on a single core — concurrency
+Thread t1 = new Thread(() -> System.out.println("Task A: downloading file"));
+Thread t2 = new Thread(() -> System.out.println("Task B: processing request"));
+t1.start(); t2.start();
+// Output interleaves; only one runs at any instant
+```
+
+### Parallelism
+
+Parallelism means **multiple tasks are executing at the exact same time** — this requires multiple CPU cores.
+
+```java
+// True parallelism requires multi-core hardware
+int cores = Runtime.getRuntime().availableProcessors();
+System.out.println("Available cores: " + cores);
+
+// Parallel stream example
+List.of(1,2,3,4,5).parallelStream()
+    .map(n -> n * 2)
+    .forEach(System.out::println);
+// Java splits work across cores (if available)
+```
+
+### Key Differences
+
+| Aspect | Concurrency | Parallelism |
+|--------|-------------|-------------|
+| **Definition** | Multiple tasks in progress | Multiple tasks simultaneously |
+| **Hardware** | Works on single core | Requires multi-core |
+| **Mechanism** | Context switching | Simultaneous execution |
+| **Goal** | Responsiveness, throughput | Speed, throughput |
+| **Example** | Web server handling many requests | Image processing on 8 cores |
+
+### Relationship
+
+```
+Concurrency ──────┬──── Single-core (context switching)
+                  └──── Multi-core (parallel execution)
+```
+
+**Parallelism is a subset of concurrency.** All parallel programs are concurrent; not all concurrent programs are parallel.
+
+### In Java
+
+| Category | APIs / Constructs |
+|----------|-------------------|
+| **Concurrency** | `Thread`, `ExecutorService`, `CompletableFuture`, `synchronized`, `Lock`, `Atomic*` |
+| **Parallelism** | `parallelStream()`, `ForkJoinPool`, `CompletableFuture` (with thread pool) |
+
+### Interview Summary
+
+> **Concurrency is about *dealing with* many things at once.**  
+> **Parallelism is about *doing* many things at once.**
+
+- A single-threaded event loop (Node.js, Vert.x) is concurrent but not parallel.
+- A CPU-bound `ForkJoinPool` task on 8 cores is both concurrent and parallel.
+- I/O-bound apps benefit from concurrency; CPU-bound apps benefit from parallelism.
+
+---
+
 ### Q151. What is a Thread in Java and how does it differ from a Process?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency

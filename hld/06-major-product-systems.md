@@ -424,6 +424,84 @@ Storage:  media → object storage + CDN; metadata sharded
 
 ---
 
+### Q196a. How does Instagram handle celebrity posts with millions of followers — push (fan-out-on-write) vs pull (fan-out-on-read)?
+**Difficulty:** `Hard`
+**Category:** Product Design
+
+#### Answer
+Instagram uses a **hybrid fan-out** strategy. The naïve extremes both break at scale:
+
+- **Pure push (fan-out-on-write)**: when a celebrity posts, the system writes the post into every follower's precomputed feed (timeline cache). For 100M followers that's 100M writes per post — the "celebrity problem". It blows up write amplification, cache memory, and write latency. Most of those followers never open the app.
+- **Pure pull (fan-out-on-read)**: nothing is precomputed; each timeline read merges the celebrity's recent posts at request time. Writes are cheap, but reads get expensive as a user follows more celebrities, and latency/merge cost rise with follower counts.
+
+**Instagram's hybrid model:**
+1. **Regular users** (followers ≤ ~10k–100k, the threshold is internal) → **push**: on upload, an async fan-out worker pushes the post into each follower's feed cache (e.g., Redis sorted set per user, score = timestamp). Follower reads are O(1) lookups — fast and cheap.
+2. **Celebrities** (millions of followers) → **pull**: skip the fan-out. The post is just written once to the post store and indexed.
+3. **Read path**: timeline read = `push_cache_for_user` ∪ `pull_merged_recent_from_celebrities_I_follow`, ranked by a model (engagement, recency, affinity). The pull side is bounded — most users follow only a handful of celebrities — so the merge stays cheap.
+
+**Why hybrid works:** it pushes only where writes are cheap (small follower sets) and pulls only where reads stay bounded (small set of celebrities per viewer). Neither side faces 100M amplification.
+
+**Key components behind it:**
+- **Kafka** for the fan-out pipeline — durable, partitioned per user_id so a single hot user doesn't choke the topic.
+- **Redis** (sorted sets / `ZADD` with timestamp scores) for the per-user timeline cache; `ZREMRANGEBYRANK` to cap memory and evict old posts.
+- **Postgres / sharded MySQL** for the post store; the source of truth.
+- **Cassandra / wide-column** for celebrity post streams (high write rate, simple key lookups, append-only).
+- **TAO-like graph store** for the follow graph, with a `is_celebrity` flag materialized on the celebrity's edge node.
+- **CDN** for media; only the URL/pointer lives in the feed cache.
+- **Ranking service** merges push + pull and applies ML scoring before returning the page.
+
+**Operational details:**
+- **Backpressure**: celebrity posts still need delivery — push is skipped but a lighter "notification fan-out" pushes only to *active* recent followers (people who opened the app in the last N days). This is what creates the "celebrity posted → notification for you" experience without fanning out to inactive accounts.
+- **Cache invalidation**: a delete/edit publishes a tombstone on Kafka; the worker removes from each follower's feed cache. For celebrities (pull path), deletion just hides the post in the source stream.
+- **Consistency**: feed is eventually consistent — acceptable for social timelines. Strong consistency is reserved for likes/view-counts and DMs.
+- **Failure modes**: if Kafka is down, posts buffer in the producer's local outbox; if Redis is down, the read path falls back to "pull-only" mode until cache warms.
+- **Hot-key protection**: per-user Redis shards + read replicas behind a consistent-hash ring; a celebrity stream is read by many followers but each follower's pull query is bounded.
+
+**Back-of-envelope numbers (Instagram scale):**
+- 500M DAU, ~100M posts/day, ~10B feed reads/day.
+- Average follower count ≈ a few hundred; celebrity tail: a few thousand accounts with >1M followers.
+- Pure push on a 100M-follower post = 100M Redis writes + 100M cache slots permanently consumed. Pure pull = merging 1k+ celebrity streams per read.
+- Hybrid: push ≈ a few hundred writes per regular post; pull = merge ≤ tens of celebrities per read. Both sides stay within budget.
+
+#### Code Example / Key Takeaways
+```text
+── HYBRID FAN-OUT PIPELINE ──
+Producer (post service)
+   │
+   ▼
+┌────────────┐  topic: posts.created  (partitioned by user_id)
+│   Kafka    │
+└─────┬──────┘
+      ▼
+┌──────────────────────────────────────────────┐
+│           Fan-out Worker (consumers)         │
+│                                              │
+│  if follower_count <= THRESHOLD (regular):   │
+│     → PUSH: ZADD timeline:{follower_id}      │
+│             score = post.created_at_ms       │
+│                                              │
+│  if follower_count >  THRESHOLD (celebrity): │
+│     → SKIP push; write to celeb_posts:{uid}  │
+│     → enqueue "active followers" notif push  │
+└──────────────────────────────────────────────┘
+
+── READ PATH ──
+GET /feed?user=U
+   ├── push:  ZREVRANGE timeline:{U} 0 49        ← O(log N + 50)
+   ├── pull:  for each celeb in followed_celebs(U):
+   │             latest N from celeb_posts:{uid}  ← bounded
+   └── rank:  merge(push, pull) → ML ranker → top 50
+
+── CELEBRITY HOT-KEY ──
+Problem:  1M followers × 1 post/sec = 1M cache writes/sec
+Fix:      (a) skip fan-out (pull path)
+          (b) Kafka partition by follower_id so writes spread
+          (c) shard Redis: timeline:{uid} → slot = hash(uid) % 4096
+          (d) notification fan-out limited to active_recent_followers(uid)
+```
+
+---
+
 ### Q197. Design Facebook.
 **Difficulty:** `Hard`
 **Category:** Product Design
