@@ -2,11 +2,11 @@
 
 https://interviewreader.up.railway.app/
 
-Welcome to the ultimate **Java & React Interview Questions** repository! This collection contains **1,000** curated interview questions (500 Java, 500 React) organized into topic-focused markdown files.
+Welcome to the ultimate **Java & React Interview Questions** repository! This collection contains **2,800+** curated interview questions (695 Java, 500 React, 353 HLD, 700 Node, 232 Kafka, 80 Microservices, 58 Design Patterns, 200 SQL) organized into topic-focused markdown files.
 
 ---
 
-## ☕ Java Interview Questions (575 Questions)
+## ☕ Java Interview Questions (695 Questions)
 
 | Topic File | Range | Questions | Key Areas |
 |:-----------|:------|:----------|:----------|
@@ -18,6 +18,24 @@ Welcome to the ultimate **Java & React Interview Questions** repository! This co
 | [06. Spring Framework & Microservices](./java/06-spring-framework.md) | Q351‑Q425 | 75 | IoC, DI, Spring Boot, REST APIs, Microservices patterns |
 | [07. JPA, Hibernate & Security](./java/07-jpa-hibernate-db.md) | Q426‑Q500 | 75 | ORM, Entity mappings, N+1 problem, Spring Security, JWT, OAuth2 |
 | [08. JUnit & Mockito Testing](./java/10-junit-mockito-testing.md) | Q501‑Q575 | 75 | JUnit 4/5 lifecycle, Assertions, Mockito mocks/stubs/spies, ArgumentCaptor, Spring Test, Testcontainers, WireMock, TDD |
+
+---
+
+## 🏗️ High-Level Design (HLD) Interview Questions (353 Questions)
+
+| Topic File | Range | Questions | Key Areas |
+|:-----------|:------|:----------|:----------|
+| [01. Fundamentals](./hld/01-fundamentals.md) | Q1‑Q25 | 25 | Scalability, Availability, CAP, DNS, CDN, Load Balancers |
+| [02. Easy Design Problems](./hld/02-easy-design-problems.md) | Q26‑Q55 | 30 | URL Shortener, Pastebin, Rate Limiter, Key-Value Store |
+| [03. Core Distributed Systems](./hld/03-core-distributed-systems.md) | Q56‑Q90 | 35 | Consensus, Replication, Sharding, Consistent Hashing, Leader Election |
+| [04. Database & Storage](./hld/04-database-storage.md) | Q91‑Q130 | 40 | SQL vs NoSQL, Indexing, Transactions, ACID, CAP in practice |
+| [05. Kafka & Event-Driven](./hld/05-kafka-event-driven.md) | Q131‑Q165 | 35 | Topics, Partitions, Consumers, Exactly-once, Rebalancing |
+| [06. Major Product Systems](./hld/06-major-product-systems.md) | Q166‑Q205 | 40 | WhatsApp, Uber, Instagram, Netflix, Twitter, Airbnb |
+| [07. Fintech & Payments](./hld/07-fintech-payments.md) | Q206‑Q235 | 30 | Ledger, Idempotency, Settlement, PCI-DSS, Fraud Detection |
+| [08. Advanced Distributed Systems](./hld/08-advanced-distributed-systems.md) | Q236‑Q270 | 35 | CRDTs, Vector Clocks, Byzantine Fault Tolerance, Sagas |
+| [09. Realtime & High Scale](./hld/09-realtime-high-scale.md) | Q271‑Q305 | 35 | WebSockets, SSE, WebRTC, Push, Presence, Millions of Connections |
+| [10. Expert & Complex Systems](./hld/10-expert-complex-systems.md) | Q306‑Q335 | 30 | Multi-region, Disaster Recovery, Chaos Engineering, Observability |
+| [11. Interview Follow-Up Questions](./hld/11-followup-questions.md) | Q336‑Q353 | 18 | Deep-dives, Trade-offs, What-If scenarios |
 
 ---
 

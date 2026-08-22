@@ -1,8 +1,9 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 
 const PAGE = 50
-// ponytail: 2.5MB JSON, lazy-loaded via dynamic import so first paint isn't blocked
-const loadQuestions = () => import('./data/questions.json')
+// ponytail: 2.5MB JSON served as a static asset (public/), fetched after first paint.
+// Skips the JSON→JS parse of a bundled import and lets the host gzip it (~2.5MB → ~400KB on the wire).
+const loadQuestions = () => fetch(`${import.meta.env.BASE_URL}questions.json`).then(r => r.json())
 
 /**
  * Markdown renderer with support for:
@@ -270,16 +271,16 @@ function TechFilter({ value, onChange }) {
       icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
     },
     {
-      value: 'hld', label: 'HLD',
-      active: 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30',
-      // architecture/sitemap icon
-      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
-    },
-    {
       value: 'java', label: 'Java',
       active: 'bg-orange-500 text-white shadow-sm shadow-orange-500/30',
       // Coffee cup with steam (Java)
       icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>,
+    },
+    {
+      value: 'hld', label: 'HLD',
+      active: 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30',
+      // architecture/sitemap icon
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
     },
     {
       value: 'react', label: 'React',
@@ -767,11 +768,11 @@ function App() {
   // Lazy-load the 2.5MB question JSON after first paint
   useEffect(() => {
     let cancelled = false
-    loadQuestions().then(m => {
+    loadQuestions().then(data => {
       if (cancelled) return
-      setQuestionsData(m.default)
+      setQuestionsData(data)
       setLoaded(true)
-      setSelectedId(prev => prev ?? m.default[0]?.id)
+      setSelectedId(prev => prev ?? data[0]?.id)
     })
     return () => { cancelled = true }
   }, [])

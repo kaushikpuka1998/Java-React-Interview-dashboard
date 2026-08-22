@@ -6,10 +6,22 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
-const outDir = path.join(root, 'frontend', 'src', 'data')
+const outDir = path.join(root, 'frontend', 'public')
 fs.mkdirSync(outDir, { recursive: true })
 
 const TOPICS = {
+  java: [
+    ['01-core-java-oops.md', 'Core Java & OOP'],
+    ['02-collections-framework.md', 'Collections & Generics'],
+    ['03-multithreading-concurrency.md', 'Multithreading & Concurrency'],
+    ['04-java8-to-21-features.md', 'Java 8-21 Features'],
+    ['05-jvm-memory-gc.md', 'JVM Architecture & GC'],
+    ['06-spring-framework.md', 'Spring Framework & Microservices'],
+    ['07-jpa-hibernate-db.md', 'JPA, Hibernate & Security'],
+    ['08-streams-lambda.md', 'Java Streams & Lambdas'],
+    ['09-java8-functional.md', 'Java 8 Functional Programming'],
+    ['10-junit-mockito-testing.md', 'JUnit & Mockito Testing'],
+  ],
   hld: [
     ['01-fundamentals.md', 'HLD Fundamentals'],
     ['02-easy-design-problems.md', 'Easy Design Problems'],
@@ -22,18 +34,6 @@ const TOPICS = {
     ['09-realtime-high-scale.md', 'Realtime & High Scale'],
     ['10-expert-complex-systems.md', 'Expert & Complex Systems'],
     ['11-followup-questions.md', 'Interview Follow-Up Questions'],
-  ],
-  java: [
-    ['01-core-java-oops.md', 'Core Java & OOP'],
-    ['02-collections-framework.md', 'Collections & Generics'],
-    ['03-multithreading-concurrency.md', 'Multithreading & Concurrency'],
-    ['04-java8-to-21-features.md', 'Java 8-21 Features'],
-    ['05-jvm-memory-gc.md', 'JVM Architecture & GC'],
-    ['06-spring-framework.md', 'Spring Framework & Microservices'],
-    ['07-jpa-hibernate-db.md', 'JPA, Hibernate & Security'],
-    ['08-streams-lambda.md', 'Java Streams & Lambdas'],
-    ['09-java8-functional.md', 'Java 8 Functional Programming'],
-    ['10-junit-mockito-testing.md', 'JUnit & Mockito Testing'],
   ],
   react: [
     ['01-react-basics-jsx.md', 'React Basics & JSX'],
@@ -220,4 +220,4 @@ fs.writeFileSync(
   JSON.stringify(merged, null, 2)
 )
 
-console.log(`Wrote ${merged.length} questions to frontend/src/data/questions.json`)
+console.log(`Wrote ${merged.length} questions to frontend/public/questions.json`)

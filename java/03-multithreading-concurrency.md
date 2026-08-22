@@ -4,7 +4,7 @@ A curated set of 75 interview questions covering thread creation & lifecycle, `R
 
 ---
 
-### Q151. What is the difference between Concurrency and Parallelism?
+### Q152. What is the difference between Concurrency and Parallelism?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -79,7 +79,7 @@ Concurrency ──────┬──── Single-core (context switching)
 
 ---
 
-### Q151. What is a Thread in Java and how does it differ from a Process?
+### Q152. What is a Thread in Java and how does it differ from a Process?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -96,7 +96,7 @@ System.out.println("State: " + t.getState());
 System.out.println("Is daemon: " + t.isDaemon());
 ```
 ---
-### Q152. What are the different ways to create a Thread in Java?
+### Q153. What are the different ways to create a Thread in Java?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -118,7 +118,7 @@ new Thread(r).start();
 // 3. Callable via ExecutorService (covered later)
 ```
 ---
-### Q153. What is the difference between calling `start()` and `run()`?
+### Q154. What is the difference between calling `start()` and `run()`?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -133,7 +133,7 @@ t.run();   // prints "Running in: main" — no new thread
 t.start(); // prints "Running in: Thread-0" — new thread (throws if called twice)
 ```
 ---
-### Q154. Explain the life cycle / states of a Thread.
+### Q155. Explain the life cycle / states of a Thread.
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -151,7 +151,7 @@ System.out.println(t.getState()); // RUNNABLE (or TERMINATED if already done)
 // TIMED_WAITING: Thread.sleep() / wait(timeout)
 ```
 ---
-### Q155. What is the difference between `Runnable` and `Callable`?
+### Q156. What is the difference between `Runnable` and `Callable`?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -169,7 +169,7 @@ Future<Integer> f2 = es.submit(c);  // Future<Integer> — f2.get() returns 42
 es.shutdown();
 ```
 ---
-### Q156. What is the purpose of the `volatile` keyword?
+### Q157. What is the purpose of the `volatile` keyword?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -188,7 +188,7 @@ class Helper { int n = 1; }
 class Publisher { volatile Helper h; }
 ```
 ---
-### Q157. What is the difference between `synchronized` and `volatile`?
+### Q158. What is the difference between `synchronized` and `volatile`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -205,7 +205,7 @@ int count = 0;
 synchronized void increment() { count++; } // atomic read-modify-write
 ```
 ---
-### Q158. What is a `synchronized` method and a `synchronized` block?
+### Q159. What is a `synchronized` method and a `synchronized` block?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -230,7 +230,7 @@ public void baz() {
 }
 ```
 ---
-### Q159. What is the difference between a static and an instance `synchronized` method?
+### Q160. What is the difference between a static and an instance `synchronized` method?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -250,7 +250,7 @@ class Counter {
 // Thread B: new Counter().incLocal() -> locks instance; runs concurrently with A
 ```
 ---
-### Q160. What are atomic classes in `java.util.concurrent.atomic`?
+### Q161. What are atomic classes in `java.util.concurrent.atomic`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -272,7 +272,7 @@ adder.increment(); // no contention on single CAS
 long sum = adder.sum();
 ```
 ---
-### Q161. How does `AtomicInteger` work internally?
+### Q162. How does `AtomicInteger` work internally?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -298,7 +298,7 @@ public class AtomicInteger {
 // Under the hood: JVM intrinsic -> CPU LOCK CMPXCHG
 ```
 ---
-### Q162. What is ABA problem and how do you solve it?
+### Q163. What is ABA problem and how do you solve it?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -315,7 +315,7 @@ boolean ok = ref.compareAndSet(cur, 101, stamp[0], stamp[0] + 1);
 // CAS fails because stamp[0]=0 != expected 2, preventing the ABA bug.
 ```
 ---
-### Q163. What is `ReentrantLock` and how does it differ from `synchronized`?
+### Q164. What is `ReentrantLock` and how does it differ from `synchronized`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -338,7 +338,7 @@ try {
 // - lock.newCondition()               // multiple wait sets
 ```
 ---
-### Q164. What does "reentrant" mean in `ReentrantLock`?
+### Q165. What does "reentrant" mean in `ReentrantLock`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -361,7 +361,7 @@ try {
 }
 ```
 ---
-### Q165. What is a `ReadWriteLock`?
+### Q166. What is a `ReadWriteLock`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -382,7 +382,7 @@ rw.writeLock().lock();
 try { cache.put(key, value); } finally { rw.writeLock().unlock(); }
 ```
 ---
-### Q166. What is a `Semaphore`?
+### Q167. What is a `Semaphore`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -404,7 +404,7 @@ void access() throws InterruptedException {
 Semaphore mutex = new Semaphore(1);
 ```
 ---
-### Q167. What is a `CountDownLatch`?
+### Q168. What is a `CountDownLatch`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -427,7 +427,7 @@ start.countDown(); // release all workers
 done.await();      // wait for all to finish (one-shot, not reusable)
 ```
 ---
-### Q168. What is a `CyclicBarrier`?
+### Q169. What is a `CyclicBarrier`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -449,7 +449,7 @@ for (int i = 0; i < 4; i++) {
 }
 ```
 ---
-### Q169. What is the difference between `CountDownLatch` and `CyclicBarrier`?
+### Q170. What is the difference between `CountDownLatch` and `CyclicBarrier`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -462,7 +462,7 @@ Key differences: (1) **Reusability**: `CountDownLatch` is one-shot; `CyclicBarri
 // Use CyclicBarrier when: all threads must meet repeatedly (phased algorithms)
 ```
 ---
-### Q170. What is an `ExecutorService` and why would you use it instead of raw threads?
+### Q171. What is an `ExecutorService` and why would you use it instead of raw threads?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -478,7 +478,7 @@ pool.shutdown();          // no new tasks, finish submitted ones
 pool.awaitTermination(1, TimeUnit.MINUTES);
 ```
 ---
-### Q171. What are the common factory methods in `Executors`?
+### Q172. What are the common factory methods in `Executors`?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -502,7 +502,7 @@ ScheduledExecutorService scheduled = Executors.newScheduledThreadPool(2);
 // In production: use ThreadPoolExecutor with bounded queue.
 ```
 ---
-### Q172. Explain the `ThreadPoolExecutor` parameters.
+### Q173. Explain the `ThreadPoolExecutor` parameters.
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -527,7 +527,7 @@ ThreadPoolExecutor ex = new ThreadPoolExecutor(
     new ThreadPoolExecutor.CallerRunsPolicy()); // backpressure
 ```
 ---
-### Q173. What is a `Future`?
+### Q174. What is a `Future`?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -547,7 +547,7 @@ try {
 }
 ```
 ---
-### Q174. What is `CompletableFuture`?
+### Q175. What is `CompletableFuture`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -571,7 +571,7 @@ CompletableFuture<Integer> sum = a.thenCombine(b, (x, y) -> x + y);
 CompletableFuture.allOf(f1, f2, f3).join();
 ```
 ---
-### Q175. How does `thenApply`, `thenAccept`, `thenRun` differ?
+### Q176. How does `thenApply`, `thenAccept`, `thenRun` differ?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -590,7 +590,7 @@ CompletableFuture.supplyAsync(() -> "abc")
     .thenRun(() -> System.out.println("done")); // Runnable: prints done
 ```
 ---
-### Q176. What is the difference between `thenCompose` and `thenCombine`?
+### Q177. What is the difference between `thenCompose` and `thenCombine`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -611,7 +611,7 @@ CompletableFuture<Integer> qty = fetchQty();
 CompletableFuture<Double> total = price.thenCombine(qty, (p, q) -> p * q);
 ```
 ---
-### Q177. What is deadlock and how do you prevent it?
+### Q178. What is deadlock and how do you prevent it?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -632,7 +632,7 @@ synchronized (a) { synchronized (b) { } }
 // Both threads use same order -> no circular wait
 ```
 ---
-### Q178. What is the difference between deadlock, livelock, and starvation?
+### Q179. What is the difference between deadlock, livelock, and starvation?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -650,7 +650,7 @@ while (conflict) { /* give up resource */ Thread.yield(); } // neither progresse
 // under an unfair lock. Fix: ReentrantLock(true) or priority adjustment.
 ```
 ---
-### Q179. What is `wait()`, `notify()`, and `notifyAll()` and how are they used?
+### Q180. What is `wait()`, `notify()`, and `notifyAll()` and how are they used?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -675,7 +675,7 @@ synchronized (lock) {
 }
 ```
 ---
-### Q180. What is a `Condition` and how does it differ from `wait/notify`?
+### Q181. What is a `Condition` and how does it differ from `wait/notify`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -699,7 +699,7 @@ void put(E e) {
 // wait-set per condition avoids "signal to wrong thread" issue with notify()
 ```
 ---
-### Q181. What is the `ForkJoinPool` and `ForkJoinTask`?
+### Q182. What is the `ForkJoinPool` and `ForkJoinTask`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -727,7 +727,7 @@ class SumTask extends RecursiveTask<Long> {
 Long total = new ForkJoinPool().invoke(new SumTask(arr, 0, arr.length));
 ```
 ---
-### Q182. What is work-stealing in `ForkJoinPool`?
+### Q183. What is work-stealing in `ForkJoinPool`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -743,7 +743,7 @@ ForkJoinPool pool = ForkJoinPool.commonPool();
 List<Integer> result = list.parallelStream().map(x -> x*2).toList();
 ```
 ---
-### Q183. What is `ThreadLocal` and when would you use it?
+### Q184. What is `ThreadLocal` and when would you use it?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -767,7 +767,7 @@ try {
 }
 ```
 ---
-### Q184. What is `InheritableThreadLocal`?
+### Q185. What is `InheritableThreadLocal`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -784,7 +784,7 @@ new Thread(() -> System.out.println(traceId.get())).start(); // prints "req-1-ch
 // But: Executors.newSingleThreadExecutor().submit(() -> traceId.get()) -> null!
 ```
 ---
-### Q185. What are Virtual Threads in Java 21?
+### Q186. What are Virtual Threads in Java 21?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -805,7 +805,7 @@ try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
 // Thread.ofVirtual().name("vt-", 0).start(() -> doWork());
 ```
 ---
-### Q186. How do virtual threads differ from platform threads?
+### Q187. How do virtual threads differ from platform threads?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -821,7 +821,7 @@ Thread.ofVirtual().name("v-", 0).start(() -> {});
 // Mixed: virtual threads run ON platform carrier threads internally
 ```
 ---
-### Q187. What is pinning in virtual threads and why does it matter?
+### Q188. What is pinning in virtual threads and why does it matter?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -840,7 +840,7 @@ lock.lock();
 try { socket.read(); } finally { lock.unlock(); }
 ```
 ---
-### Q188. What is `happens-before` in the Java Memory Model?
+### Q189. What is `happens-before` in the Java Memory Model?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -859,7 +859,7 @@ if (ready) { // volatile read
 }
 ```
 ---
-### Q189. What is a race condition vs data race?
+### Q190. What is a race condition vs data race?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -877,7 +877,7 @@ if (!map.containsKey(k)) map.put(k, v); // another thread may insert between cal
 // Or synchronize the whole check-and-put block on one shared lock
 ```
 ---
-### Q190. What is `Thread.sleep()` vs `Object.wait()` vs `LockSupport.park()`?
+### Q191. What is `Thread.sleep()` vs `Object.wait()` vs `LockSupport.park()`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -892,7 +892,7 @@ LockSupport.park();          // parks until unpark or interrupt
 LockSupport.unpark(otherThread);
 ```
 ---
-### Q191. How does interruption work in Java?
+### Q192. How does interruption work in Java?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -913,7 +913,7 @@ void work() {
 }
 ```
 ---
-### Q192. What is `join()` and how does it work?
+### Q193. What is `join()` and how does it work?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -928,7 +928,7 @@ t.join(); // current thread waits until t terminates
 t.join(1000); // wait at most 1 second
 ```
 ---
-### Q193. What are daemon vs user threads?
+### Q194. What are daemon vs user threads?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -943,7 +943,7 @@ t.start();
 // JVM can exit even if t is still looping
 ```
 ---
-### Q194. What is `Phaser` and when would you use it?
+### Q195. What is `Phaser` and when would you use it?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -963,7 +963,7 @@ for (int i = 0; i < n; i++) {
 phaser.arriveAndAwaitAdvance(); // wait for all workers
 ```
 ---
-### Q195. What is `Exchanger`?
+### Q196. What is `Exchanger`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -987,7 +987,7 @@ while (true) {
 }
 ```
 ---
-### Q196. What are concurrent collections (`ConcurrentHashMap`, `CopyOnWriteArrayList`, `BlockingQueue`)?
+### Q197. What are concurrent collections (`ConcurrentHashMap`, `CopyOnWriteArrayList`, `BlockingQueue`)?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1013,7 +1013,7 @@ q.put(task);   // blocks if full
 Task t = q.take(); // blocks if empty
 ```
 ---
-### Q197. How does `ConcurrentHashMap` work internally (Java 8+)?
+### Q198. How does `ConcurrentHashMap` work internally (Java 8+)?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1031,7 +1031,7 @@ ConcurrentHashMap<K,V> m = new ConcurrentHashMap<>();
 m.computeIfAbsent(k, this::load); // lock-free-ish compound
 ```
 ---
-### Q198. What is the difference between `HashMap`, `Hashtable`, `Collections.synchronizedMap`, and `ConcurrentHashMap`?
+### Q199. What is the difference between `HashMap`, `Hashtable`, `Collections.synchronizedMap`, and `ConcurrentHashMap`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1052,7 +1052,7 @@ ConcurrentHashMap<K,V> chm = new ConcurrentHashMap<>();
 chm.putIfAbsent(k, v);
 ```
 ---
-### Q199. What is `StampedLock`?
+### Q200. What is `StampedLock`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1074,7 +1074,7 @@ double distance() {
 }
 ```
 ---
-### Q200. What is `ThreadFactory` and why customize it?
+### Q201. What is `ThreadFactory` and why customize it?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1093,7 +1093,7 @@ ThreadFactory named = r -> {
 ExecutorService es = Executors.newFixedThreadPool(8, named);
 ```
 ---
-### Q201. What is `RejectedExecutionHandler`?
+### Q202. What is `RejectedExecutionHandler`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1112,7 +1112,7 @@ new ThreadPoolExecutor(4, 8, 60, TimeUnit.SECONDS,
     new ThreadPoolExecutor.CallerRunsPolicy()); // backpressure: caller runs
 ```
 ---
-### Q202. How do you shut down an `ExecutorService` correctly?
+### Q203. How do you shut down an `ExecutorService` correctly?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1139,7 +1139,7 @@ try {
 // Java 19+: try (var es = Executors.newVirtualThreadPerTaskExecutor()) { ... }
 ```
 ---
-### Q203. What is `ScheduledExecutorService`?
+### Q204. What is `ScheduledExecutorService`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1154,7 +1154,7 @@ sch.scheduleAtFixedRate(this::tick, 0, 1, TimeUnit.SECONDS); // every 1s from st
 sch.scheduleWithFixedDelay(this::tick, 0, 1, TimeUnit.SECONDS); // 1s after previous ends
 ```
 ---
-### Q204. What is `invokeAll` vs `invokeAny`?
+### Q205. What is `invokeAll` vs `invokeAny`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1168,7 +1168,7 @@ List<Future<String>> all = es.invokeAll(tasks); // wait for both
 String first = es.invokeAny(tasks);             // first success, cancel rest
 ```
 ---
-### Q205. What is `CompletionService`?
+### Q206. What is `CompletionService`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1186,7 +1186,7 @@ for (int i = 0; i < n; i++) {
 }
 ```
 ---
-### Q206. What is double-checked locking and is it safe in Java?
+### Q207. What is double-checked locking and is it safe in Java?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1213,7 +1213,7 @@ class Holder {
 }
 ```
 ---
-### Q207. What is `AtomicReference` and when is it useful?
+### Q208. What is `AtomicReference` and when is it useful?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1229,7 +1229,7 @@ cfg.updateAndGet(old -> new Config(old.timeout() + 10, old.url()));
 Config snap = cfg.get(); // readers never see a torn Config
 ```
 ---
-### Q208. What is `LongAdder` and when should you prefer it over `AtomicLong`?
+### Q209. What is `LongAdder` and when should you prefer it over `AtomicLong`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1244,7 +1244,7 @@ long total = hits.sum(); // approximate under concurrent writes
 // vs AtomicLong: one CAS location, retries under contention
 ```
 ---
-### Q209. What is `Thread.yield()` and `Thread.priority`?
+### Q210. What is `Thread.yield()` and `Thread.priority`?
 **Difficulty:** `Basic`
 **Category:** Multithreading & Concurrency
 
@@ -1257,7 +1257,7 @@ Thread.currentThread().setPriority(Thread.MAX_PRIORITY); // hint only
 Thread.yield(); // hint only — never for correctness
 ```
 ---
-### Q210. What is `LockSupport`?
+### Q211. What is `LockSupport`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1272,7 +1272,7 @@ LockSupport.unpark(worker);  // grant permit (safe if called first)
 // AQS: FIFO queue of waiters + park/unpark
 ```
 ---
-### Q211. What is `AbstractQueuedSynchronizer` (AQS)?
+### Q212. What is `AbstractQueuedSynchronizer` (AQS)?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1291,7 +1291,7 @@ class Mutex extends AbstractQueuedSynchronizer {
 }
 ```
 ---
-### Q212. What is `CompletionStage` vs `CompletableFuture`?
+### Q213. What is `CompletionStage` vs `CompletableFuture`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1305,7 +1305,7 @@ CompletionStage<String> fetch() { return CompletableFuture.supplyAsync(() -> "x"
 // CompletableFuture = CompletionStage + Future (blocking get, cancel)
 ```
 ---
-### Q213. How do you handle exceptions in `CompletableFuture` chains?
+### Q214. How do you handle exceptions in `CompletableFuture` chains?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1327,7 +1327,7 @@ CompletableFuture.supplyAsync(() -> "ok")
     .whenComplete((v, ex) -> log.info("done: " + v));
 ```
 ---
-### Q214. What is `allOf` and `anyOf` in `CompletableFuture`?
+### Q215. What is `allOf` and `anyOf` in `CompletableFuture`?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1346,7 +1346,7 @@ CompletableFuture<Object> first = CompletableFuture.anyOf(a, b);
 Object fast = first.join(); // first result
 ```
 ---
-### Q215. What is `StructuredTaskScope` (Java 21/24)?
+### Q216. What is `StructuredTaskScope` (Java 21/24)?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1365,7 +1365,7 @@ try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
 }
 ```
 ---
-### Q216. What is `ScopedValue` (Java 21+)?
+### Q217. What is `ScopedValue` (Java 21+)?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1387,7 +1387,7 @@ void handle(Request req) {
 }
 ```
 ---
-### Q217. What is the Memory Consistency Error and how to avoid it?
+### Q218. What is the Memory Consistency Error and how to avoid it?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
@@ -1403,7 +1403,7 @@ boolean ready = false; int value = 0;
 // Fix: make ready volatile (write happens-before read) -> reader sees 42.
 ```
 ---
-### Q218. What is safe publication in Java?
+### Q219. What is safe publication in Java?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1421,7 +1421,7 @@ r = new Resource(); // any thread reading r sees full object
 class Bad { Bad() { registry.register(this); } }
 ```
 ---
-### Q219. What is `final` field semantics in the JMM?
+### Q220. What is `final` field semantics in the JMM?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1442,7 +1442,7 @@ class Immutable {
 // Thread B: reads i.x, i.s — guaranteed to see 1 and "a" without volatile/sync
 ```
 ---
-### Q220. What is false sharing and how do you avoid it?
+### Q221. What is false sharing and how do you avoid it?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1459,7 +1459,7 @@ requests.increment();
 // Or @jdk.internal.vm.annotation.Contended with JVM flag (not portable API)
 ```
 ---
-### Q221. How do you detect deadlocks in production?
+### Q222. How do you detect deadlocks in production?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1476,7 +1476,7 @@ if (deadlocked != null) {
 }
 ```
 ---
-### Q222. What is `CompletableFuture` `thenComposeAsync` vs `thenCompose`?
+### Q223. What is `CompletableFuture` `thenComposeAsync` vs `thenCompose`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1493,7 +1493,7 @@ fetchId().thenComposeAsync(id -> fetchUser(id));
 fetchId().thenComposeAsync(id -> fetchUser(id), myExecutor);
 ```
 ---
-### Q223. What is the difference between `Thread.startVirtualThread` and `Thread.ofVirtual().start`?
+### Q224. What is the difference between `Thread.startVirtualThread` and `Thread.ofVirtual().start`?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1508,7 +1508,7 @@ Thread vt = Thread.ofVirtual().name("worker-", 0).unstarted(() -> work());
 vt.start(); // later
 ```
 ---
-### Q224. When should you NOT use virtual threads?
+### Q225. When should you NOT use virtual threads?
 **Difficulty:** `Advanced`
 **Category:** Multithreading & Concurrency
 
@@ -1525,7 +1525,7 @@ try (var e = Executors.newVirtualThreadPerTaskExecutor()) {
 e.submit(() -> { db.query(); http.get(); }); // virtual threads shine
 ```
 ---
-### Q225. What are best practices for writing concurrent Java code?
+### Q226. What are best practices for writing concurrent Java code?
 **Difficulty:** `Intermediate`
 **Category:** Multithreading & Concurrency
 
