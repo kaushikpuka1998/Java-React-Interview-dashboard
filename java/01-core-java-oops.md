@@ -1784,7 +1784,50 @@ Method[] methods = clazz.getDeclaredMethods();
 **Category:** Core Java & OOP
 
 #### Answer
-`public`: accessible from JVM. `static`: no instance needed. `void`: no return value. `main`: entry point name. `String[] args`: command-line arguments.
+
+In `public static void main(String[] args)`, each component has a specific purpose:
+
+| Component | Meaning |
+|-----------|---------|
+| `public` | Access modifier — JVM must be able to access `main()` from outside the class. |
+| `static` | Class-level method — JVM can call `main()` without creating an object of the class. |
+| `void` | Return type — `main()` does not return any value. |
+| `main` | Method name — JVM looks specifically for this method as the entry point. |
+| `String[]` | Array of String — stores command-line arguments. |
+| `args` | Parameter name — variable holding the command-line arguments. |
+
+**Interview answer**
+
+> "`public static void main(String[] args)` is the entry point of a Java application. `public` allows the JVM to access it, `static` allows the JVM to call it without creating an object, `void` means it doesn't return anything, `main` is the predefined method name recognized by the JVM, and `String[] args` stores command-line arguments."
+
+#### Code Example
+```java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello");
+    }
+}
+```
+
+If you run:
+
+```bash
+java Main Hello Java
+```
+
+Then:
+```
+args[0] = "Hello";
+args[1] = "Java";
+```
+
+**Important interview point:** `args` is not a keyword. You can rename it:
+
+```java
+public static void main(String[] arguments)
+```
+
+This works exactly the same way.
 
 #### Code Example
 ```java

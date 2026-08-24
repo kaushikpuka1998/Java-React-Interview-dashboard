@@ -1,0 +1,15 @@
+#!/bin/bash
+# Maven Wrapper Script
+# This is a minimal wrapper - for production use, generate with: mvn -N wrapper:wrapper
+
+MAVEN_VERSION=3.9.6
+MAVEN_HOME="${HOME}/.m2/wrapper/dists/apache-maven-${MAVEN_VERSION}-bin"
+
+if [ ! -d "${MAVEN_HOME}" ]; then
+    echo "Maven wrapper not fully configured. Please install Maven or run:"
+    echo "  mvn -N wrapper:wrapper"
+    echo "Then commit the generated .mvn folder and mvnw files."
+    exit 1
+fi
+
+exec "${MAVEN_HOME}/bin/mvn" "$@"
