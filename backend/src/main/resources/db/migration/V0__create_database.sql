@@ -1,0 +1,2 @@
+-- This migration ensures interviewdb exists
+-- Note: Flyway handles database existence checks

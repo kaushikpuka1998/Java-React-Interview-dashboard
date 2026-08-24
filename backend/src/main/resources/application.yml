@@ -32,7 +32,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    baseline-version: 0
     validate-on-migrate: true
+    # The interviewdb database itself is created (if missing) by
+    # com.interview.backend.config.DatabaseInitializer before the Spring context starts,
+    # since Flyway/Hikari cannot connect to a database that doesn't exist yet.
 
 logging:
   level:
