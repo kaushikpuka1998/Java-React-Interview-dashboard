@@ -215,9 +215,13 @@ for (const q of merged) {
   delete q.codeLang
 }
 
-fs.writeFileSync(
-  path.join(outDir, 'questions.json'),
-  JSON.stringify(merged, null, 2)
-)
+const json = JSON.stringify(merged, null, 2)
+fs.writeFileSync(path.join(outDir, 'questions.json'), json)
 
-console.log(`Wrote ${merged.length} questions to frontend/public/questions.json`)
+// Also bundle into the backend jar (classpath) so prod seeding works without the frontend dir on disk.
+const backendDir = path.join(root, 'backend', 'src', 'main', 'resources')
+if (fs.existsSync(backendDir)) {
+  fs.writeFileSync(path.join(backendDir, 'questions.json'), json)
+}
+
+console.log(`Wrote ${merged.length} questions to frontend/public/ and backend/src/main/resources/`)

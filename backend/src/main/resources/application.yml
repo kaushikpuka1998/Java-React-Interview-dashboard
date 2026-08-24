@@ -1,0 +1,48 @@
+server:
+  port: ${PORT:8082}
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: interview-backend
+  datasource:
+    # DATABASE_URL must be a JDBC url (jdbc:postgresql://host:port/db). Falls back to localhost for local dev.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/interviewdb}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:1998}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    hibernate:
+      # Hibernate owns the schema — creates the questions table from the entity if missing (idempotent).
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    show-sql: false
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.interview.backend: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  migration:
+    json-path: ${MIGRATION_JSON_PATH:../frontend/public/questions.json}
+    batch-size: 100

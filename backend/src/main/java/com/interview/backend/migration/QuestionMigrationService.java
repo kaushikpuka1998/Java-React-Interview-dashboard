@@ -1,0 +1,143 @@
+package com.interview.backend.migration;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interview.backend.entity.Question;
+import com.interview.backend.repository.QuestionRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class QuestionMigrationService implements CommandLineRunner {
+
+    private final QuestionRepository questionRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${app.migration.json-path:../../frontend/public/questions.json}")
+    private String jsonPath;
+
+    @Value("${app.migration.batch-size:100}")
+    private int batchSize;
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+        if (questionRepository.count() > 0) {
+            log.info("Database already contains {} questions. Skipping migration.", questionRepository.count());
+            return;
+        }
+
+        log.info("Starting question migration from JSON...");
+        try {
+            migrateQuestions();
+        } catch (Exception e) {
+            log.error("Migration failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Migration failed", e);
+        }
+    }
+
+    /** Load questions.json from the classpath (bundled in the jar for prod), falling back to the filesystem path for local dev. */
+    private String readQuestionsJson() throws IOException {
+        ClassPathResource resource = new ClassPathResource("questions.json");
+        if (resource.exists()) {
+            log.info("Reading questions from classpath: questions.json");
+            try (InputStream in = resource.getInputStream()) {
+                return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        }
+        Path path = Paths.get(jsonPath).toAbsolutePath().normalize();
+        if (!Files.exists(path)) {
+            path = Paths.get(".").toAbsolutePath().resolve(jsonPath).normalize();
+        }
+        if (!Files.exists(path)) {
+            return null;
+        }
+        log.info("Reading questions from: {}", path);
+        return Files.readString(path);
+    }
+
+    private void migrateQuestions() throws IOException {
+        String content = readQuestionsJson();
+        if (content == null) {
+            log.warn("questions.json not found on classpath or at path: {}", jsonPath);
+            return;
+        }
+        JsonNode rootNode = objectMapper.readTree(content);
+
+        if (!rootNode.isArray()) {
+            log.error("JSON root is not an array");
+            return;
+        }
+
+        List<Question> batch = new ArrayList<>();
+        int total = 0;
+        int skipped = 0;
+
+        for (JsonNode node : rootNode) {
+            try {
+                Question question = parseQuestion(node);
+                if (question != null) {
+                    if (!questionRepository.existsById(question.getId())) {
+                        batch.add(question);
+                    } else {
+                        skipped++;
+                    }
+
+                    if (batch.size() >= batchSize) {
+                        questionRepository.saveAll(batch);
+                        total += batch.size();
+                        log.info("Saved batch of {} questions. Total: {}", batch.size(), total);
+                        batch.clear();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to parse question: {}", e.getMessage());
+            }
+        }
+
+        // Save remaining
+        if (!batch.isEmpty()) {
+            questionRepository.saveAll(batch);
+            total += batch.size();
+            log.info("Saved final batch of {} questions. Total: {}", batch.size(), total);
+        }
+
+        log.info("Migration complete! Total questions: {}, Skipped: {}", total, skipped);
+    }
+
+    private Question parseQuestion(JsonNode node) {
+        String id = node.path("id").asText();
+        if (id.isEmpty()) {
+            return null;
+        }
+
+        return Question.builder()
+                .id(id)
+                .number(node.path("number").asInt(0))
+                .displayNumber(node.path("displayNumber").asInt(node.path("number").asInt(0)))
+                .sortKey(node.path("sortKey").asInt(node.path("displayNumber").asInt(node.path("number").asInt(0))))
+                .title(node.path("title").asText(""))
+                .question(node.path("question").asText(node.path("title").asText("")))
+                .answer(node.path("answer").asText(""))
+                .difficulty(node.path("difficulty").asText("Basic"))
+                .category(node.path("category").asText(""))
+                .tech(node.path("tech").asText("java"))
+                .build();
+    }
+}
