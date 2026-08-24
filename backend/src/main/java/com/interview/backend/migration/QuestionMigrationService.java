@@ -8,13 +8,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,9 +24,10 @@ import java.util.List;
 public class QuestionMigrationService implements CommandLineRunner {
 
     private final QuestionRepository questionRepository;
+    private final ResourceLoader resourceLoader;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${app.migration.json-path:../../frontend/public/questions.json}")
+    @Value("${app.migration.json-path:classpath:questions.json}")
     private String jsonPath;
 
     @Value("${app.migration.batch-size:100}")
@@ -50,21 +51,20 @@ public class QuestionMigrationService implements CommandLineRunner {
     }
 
     private void migrateQuestions() throws IOException {
-        // Resolve path relative to project root (works from both IDE and jar)
-        Path path = Paths.get(jsonPath).toAbsolutePath().normalize();
+        // Load the questions JSON from the classpath so it works both locally and
+        // when packaged inside the application JAR.
+        Resource resource = resourceLoader.getResource(jsonPath);
 
-        if (!Files.exists(path)) {
-            // Fallback: try from current working directory
-            path = Paths.get(".").toAbsolutePath().resolve(jsonPath).normalize();
-        }
-
-        if (!Files.exists(path)) {
-            log.warn("JSON file not found at: {}", path);
+        if (!resource.exists()) {
+            log.warn("JSON file not found at: {}", jsonPath);
             return;
         }
 
-        log.info("Reading questions from: {}", path);
-        String content = Files.readString(path);
+        log.info("Reading questions from: {}", jsonPath);
+        String content;
+        try (InputStream inputStream = resource.getInputStream()) {
+            content = new String(inputStream.readAllBytes());
+        }
         JsonNode rootNode = objectMapper.readTree(content);
 
         if (!rootNode.isArray()) {
