@@ -3479,3 +3479,8 @@
 .claude/
 .DS_Store
 .serena/
+.class
+*/target/*
+*/.idea/**
+.env*
+.idea*

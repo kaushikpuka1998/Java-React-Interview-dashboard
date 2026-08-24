@@ -3,9 +3,39 @@ import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 const PAGE = 50
 const STORAGE_KEY_VISITED = 'ir_visited_questions'
 const STORAGE_KEY_READ = 'ir_read_questions'
-// ponytail: 2.5MB JSON served as a static asset (public/), fetched after first paint.
-// Skips the JSON→JS parse of a bundled import and lets the host gzip it (~2.5MB → ~400KB on the wire).
-const loadQuestions = () => fetch(`${import.meta.env.BASE_URL}questions.json`).then(r => r.json())
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
+
+// Backend API integration
+async function fetchQuestions({ tech, category, difficulty, search, status, visitedIds, readIds, page = 0, size = PAGE }) {
+  // Always send IDs when status filter is active for correct pagination
+  const shouldSendIds = status && status !== 'all'
+
+  const params = new URLSearchParams()
+  if (tech && tech !== 'all') params.set('tech', tech)
+  if (category && category !== 'all') params.set('category', category)
+  if (difficulty && difficulty !== 'all') params.set('difficulty', difficulty)
+  if (search) params.set('search', search)
+  if (status && status !== 'all') params.set('status', status)
+  if (shouldSendIds && visitedIds && visitedIds.length > 0) params.set('visitedIds', visitedIds.join(','))
+  if (shouldSendIds && readIds && readIds.length > 0) params.set('readIds', readIds.join(','))
+  params.set('page', page)
+  params.set('size', size)
+  const res = await fetch(`${API_BASE}/questions?${params}`)
+  if (!res.ok) throw new Error('Failed to fetch questions')
+  return res.json()
+}
+
+async function fetchCategories(tech) {
+  const res = await fetch(`${API_BASE}/questions/categories?tech=${tech}`)
+  if (!res.ok) return []
+  return res.json()
+}
+
+async function fetchStats() {
+  const res = await fetch(`${API_BASE}/questions/stats`)
+  if (!res.ok) return { total: 0, byTech: {} }
+  return res.json()
+}
 
 // Visited/Read tracking utilities
 function loadVisited() {
@@ -478,24 +508,25 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read }) {
-  const categories = useMemo(() =>
-    [...new Set(questions.filter(q => tech === 'all' || q.tech === tech).map(q => q.category))].sort(),
-    [tech, questions]
-  )
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
   const sentinelRef = useRef(null)
+  // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
+  const internalListRef = useRef(null)
+  const listRef = questionListRef || internalListRef
 
-  // ponytail: IntersectionObserver pagination; rootMargin 200px triggers just before the sentinel is visible
+  // ponytail: scroll-listener pagination — fires onLoadMore when within 200px of the bottom.
+  // More reliable than IntersectionObserver, which is throttled/flaky on some mobile browsers.
   useEffect(() => {
-    if (!hasMore || !sentinelRef.current) return
-    const io = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) onLoadMore() },
-      { rootMargin: '200px' }
-    )
-    io.observe(sentinelRef.current)
-    return () => io.disconnect()
-  }, [hasMore, onLoadMore])
+    const el = listRef.current
+    if (!hasMore || !el) return
+    const onScroll = () => {
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) onLoadMore()
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    onScroll() // in case the list is already short enough to show the bottom
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [hasMore, onLoadMore, listRef])
 
   return (
     <aside
@@ -596,8 +627,8 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
         </div>
       )}
 
-      <nav ref={questionListRef} className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
-        {loading ? (
+      <nav ref={listRef} className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
+        {loading && filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-slate-500 dark:text-slate-400">
             Loading questions…
           </div>
@@ -858,7 +889,7 @@ function MobileSidebar({ isOpen, onClose, ...sidebarProps }) {
 function App() {
   const [questionsData, setQuestionsData] = useState([])
   const [loaded, setLoaded] = useState(false)
-  const [pageCount, setPageCount] = useState(1)
+  const [page, setPage] = useState(0)
   const [selectedId, setSelectedId] = useState(null)
   const [query, setQuery] = useState('')
   const [tech, setTech] = useState('all')
@@ -875,65 +906,94 @@ function App() {
     return false
   })
   const [sidebarWidth, setSidebarWidth] = useState(360)
+  const [categories, setCategories] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+
+  // Initialize visited/read from localStorage
   const [visited, setVisited] = useState(() => loadVisited())
   const [read, setRead] = useState(() => loadRead())
 
-  // Lazy-load the 2.5MB question JSON after first paint
-  useEffect(() => {
-    let cancelled = false
-    loadQuestions().then(data => {
-      if (cancelled) return
-      setQuestionsData(data)
+  // Refs for current visited/read to avoid re-fetching on click
+  const visitedRef = useRef(visited)
+  const readRef = useRef(read)
+  visitedRef.current = visited
+  readRef.current = read
+
+  // Refs mirror pagination state so the scroll handler always reads fresh values
+  // (avoids stale-closure double-loads of the same page)
+  const pageRef = useRef(0)
+  const hasMoreRef = useRef(false)
+  const loadingRef = useRef(false)
+  pageRef.current = page
+  hasMoreRef.current = hasMore
+
+  // Load questions from backend API
+  const loadQuestionsFromAPI = useCallback(async (pageToLoad, append) => {
+    loadingRef.current = true
+    setIsLoading(true)
+    try {
+      const data = await fetchQuestions({
+        tech: tech === 'all' ? undefined : tech,
+        category: category === 'all' ? undefined : category,
+        difficulty: difficulty === 'all' ? undefined : difficulty,
+        search: query || undefined,
+        status: status === 'all' ? undefined : status,
+        visitedIds: Array.from(visitedRef.current),
+        readIds: Array.from(readRef.current),
+        page: pageToLoad,
+        size: PAGE
+      })
+      setQuestionsData(prev => append ? [...prev, ...data.content] : data.content)
+      // Update refs synchronously so a scroll firing before re-render sees the new page
+      pageRef.current = data.number
+      hasMoreRef.current = data.totalPages > data.number + 1
+      setPage(data.number)
+      setTotalCount(data.totalElements)
+      setHasMore(hasMoreRef.current)
+    } catch (err) {
+      console.error('Failed to load questions:', err)
+    } finally {
+      loadingRef.current = false
+      setIsLoading(false)
       setLoaded(true)
-      setSelectedId(prev => prev ?? data[0]?.id)
-    })
-    return () => { cancelled = true }
+    }
+  }, [tech, category, difficulty, query, status])
+
+  // Load page 0 fresh whenever filters change
+  useEffect(() => {
+    loadQuestionsFromAPI(0, false)
+  }, [tech, category, difficulty, query, status])
+
+
+  // Load categories when tech changes
+  useEffect(() => {
+    if (tech !== 'all') {
+      fetchCategories(tech).then(setCategories).catch(() => setCategories([]))
+    } else {
+      setCategories([])
+    }
+  }, [tech])
+
+  // Load stats
+  useEffect(() => {
+    fetchStats().then(stats => {
+      // Stats available if needed
+    }).catch(() => {})
   }, [])
 
-  const filtered = useMemo(() => {
-    const rawQuery = query.trim()
-    const q = rawQuery.toLowerCase()
+  // Load more (pagination) — stable identity; reads fresh state from refs to avoid
+  // stale-closure double-loads. Guards against concurrent loads.
+  const handleLoadMore = useCallback(() => {
+    if (loadingRef.current || !hasMoreRef.current) return
+    loadQuestionsFromAPI(pageRef.current + 1, true)
+  }, [loadQuestionsFromAPI])
 
-    // Check if query is a question number (e.g., "352", "Q352", "q352")
-    const numberMatch = rawQuery.match(/^q?(\d+)$/i)
-    const searchByNumber = numberMatch ? parseInt(numberMatch[1], 10) : null
-
-    return questionsData
-      .filter(item => {
-        const matchesTech = tech === 'all' || item.tech === tech
-        const matchesCategory = category === 'all' || item.category === category
-        const matchesDifficulty = difficulty === 'all' || item.difficulty === difficulty
-        const isVisited = visited.has(item.id)
-        const isSolved = read.has(item.id)
-
-        // Status filter logic
-        let matchesStatus = true
-        if (status === 'visited') {
-          matchesStatus = isVisited
-        } else if (status === 'solved') {
-          matchesStatus = isSolved
-        } else if (status === 'unsolved') {
-          matchesStatus = !isSolved
-        }
-
-        // If searching by number, match displayNumber or number field
-        if (searchByNumber !== null) {
-          return matchesTech && matchesCategory && matchesDifficulty && matchesStatus &&
-                 (item.displayNumber === searchByNumber || item.number === searchByNumber)
-        }
-
-        // Regular text search
-        const text = `${item.question} ${item.answer} ${item.category}`.toLowerCase()
-        return matchesTech && matchesCategory && matchesDifficulty && matchesStatus && (!q || text.includes(q))
-      })
-      // Sort by sortKey (primary) then displayNumber for consistent ordering
-      .sort((a, b) => (a.sortKey || a.displayNumber || 0) - (b.sortKey || b.displayNumber || 0))
-  }, [query, tech, category, difficulty, status, visited, read, questionsData])
-
-  // Reset to page 1 whenever the filter result changes
-  useEffect(() => { setPageCount(1) }, [filtered])
-
-  const visible = useMemo(() => filtered.slice(0, pageCount * PAGE), [filtered, pageCount])
+  // Server handles all filtering/pagination — questionsData holds every loaded page
+  const filtered = questionsData
+  const visible = questionsData
+  const effectiveHasMore = hasMore
 
   const selected = filtered.find(q => q.id === selectedId) || filtered[0] || questionsData[0]
 
@@ -1050,10 +1110,10 @@ function App() {
     <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
       <Sidebar
         questions={questionsData}
-        filtered={visible}
-        hasMore={visible.length < filtered.length}
-        onLoadMore={() => setPageCount(c => c + 1)}
-        loading={!loaded}
+        filtered={filtered}
+        hasMore={effectiveHasMore}
+        onLoadMore={handleLoadMore}
+        loading={isLoading}
         selectedId={selectedId}
         query={query}
         setQuery={setQuery}
@@ -1072,6 +1132,7 @@ function App() {
         read={read}
         status={status}
         setStatus={setStatus}
+        categories={categories}
       />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
@@ -1081,10 +1142,10 @@ function App() {
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         questions={questionsData}
-        filtered={visible}
-        hasMore={visible.length < filtered.length}
-        onLoadMore={() => setPageCount(c => c + 1)}
-        loading={!loaded}
+        filtered={filtered}
+        hasMore={effectiveHasMore}
+        onLoadMore={handleLoadMore}
+        loading={isLoading}
         selectedId={selectedId}
         query={query}
         setQuery={setQuery}
@@ -1101,6 +1162,7 @@ function App() {
         isDark={isDark}
         visited={visited}
         read={read}
+        categories={categories}
       />
 
       <MobileMenuButton isOpen={mobileMenuOpen} onToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
