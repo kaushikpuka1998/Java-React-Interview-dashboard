@@ -1,9 +1,18 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+import NotFound from './components/NotFound.jsx'
 
 const PAGE = 50
 const STORAGE_KEY_VISITED = 'ir_visited_questions'
 const STORAGE_KEY_READ = 'ir_read_questions'
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
+
+// URL slug from a question's text, e.g. "What are the four..." -> "what-are-the-four-..."
+const slugify = (text) =>
+  String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80)
 
 // Backend API integration
 async function fetchQuestions({ tech, category, difficulty, search, status, visitedIds, readIds, page = 0, size = PAGE }) {
@@ -227,7 +236,7 @@ function QuestionLink({ question, isActive, onClick, selectedId, visited, read }
         ${
           isActive
             ? 'bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/20 dark:to-blue-900/10 text-slate-900 dark:text-slate-100 shadow-[0_0_0_1px_rgba(59,130,246,0.3)] dark:shadow-[0_0_0_1px_rgba(59,130,246,0.2)]'
-            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-100 dark:hover:border-slate-800'
+            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-100 dark:hover:border-slate-800'
         }
         ${
           isActive
@@ -260,9 +269,10 @@ function QuestionLink({ question, isActive, onClick, selectedId, visited, read }
             {question.question}
           </p>
         </div>
+      </div>
 
-        {/* Visited/Read indicators - fixed right side */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+      {/* Visited/Read indicators - fixed right side */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {read.has(question.id) && (
             <span className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded" title="Read" aria-label="Read">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -278,14 +288,8 @@ function QuestionLink({ question, isActive, onClick, selectedId, visited, read }
               </svg>
             </span>
           )}
-        </div>
       </div>
-
-      {/* Subtle active indicator dot */}
-      {isActive && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_0_2px_rgba(59,130,246,0.3)] dark:shadow-[0_0_0_2px_rgba(59,130,246,0.2)]" aria-hidden="true" />
-      )}
-    </button>
+      </button>
   )
 }
 
@@ -341,7 +345,7 @@ function TechFilter({ value, onChange }) {
       value: 'hld', label: 'HLD',
       active: 'bg-indigo-500 text-white shadow-sm shadow-indigo-500/30',
       // architecture/sitemap icon
-      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
     },
     {
       value: 'react', label: 'React',
@@ -386,7 +390,7 @@ function TechFilter({ value, onChange }) {
       {options.map(opt => (
         <button
           key={opt.value}
-          className={`w-full min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap truncate transition-all duration-150 ${
+          className={`w-full min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
             value === opt.value
               ? opt.active
               : 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-900/40 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
@@ -431,7 +435,7 @@ function CategorySelect({ value, onChange, options, disabled }) {
 }
 
 /**
- * Status filter - All / Visited / Solved (Read) / Unsolved (Unread)
+ * Status filter - All / Visited / Solved / Unread
  */
 function StatusSelect({ value, onChange }) {
   const options = [
@@ -508,7 +512,7 @@ function QuestionCount({ count, total }) {
 /**
  * Sidebar component
  */
-function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, className = '', isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories }) {
+function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
@@ -530,7 +534,7 @@ function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTe
 
   return (
     <aside
-      className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'} ${className}`}
+      className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'}`}
       style={{ width: `${sidebarWidth}px`, minWidth: '280px', maxWidth: '600px', flexShrink: 0 }}
     >
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
@@ -671,13 +675,7 @@ function ReaderPane({ question, questions, onNavigate, visited, read, onMarkRead
   if (!question) {
     return (
       <main className="reader flex-1 flex items-center justify-center bg-white dark:bg-slate-800 min-w-0">
-        <div className="text-center p-4 sm:p-8 w-full max-w-3xl mx-auto">
-          <svg className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">Select a question</h2>
-          <p className="text-slate-500 dark:text-slate-400">Choose from the sidebar to start reading</p>
-        </div>
+        <NotFound />
       </main>
     )
   }
@@ -689,7 +687,7 @@ function ReaderPane({ question, questions, onNavigate, visited, read, onMarkRead
   return (
     <main className="reader flex-1 h-screen overflow-hidden bg-white dark:bg-slate-800 flex flex-col min-w-0">
       <div className="flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-6 lg:px-8 min-w-0">
-      <article className="paper max-w-3xl mx-auto w-full min-w-0 bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05),0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2),0_10px_15px_-3px_rgba(0,0,0,0.4),0_4px_6px_-2px_rgba(0,0,0,0.2)] p-4 sm:p-6 lg:p-8">
+      <article className="paper max-w-3xl mx-auto w-full min-w-0 bg-white dark:bg-slate-800 rounded-2xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15),0_0_20px_rgba(0,0,0,0.06)] dark:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5),0_0_20px_rgba(0,0,0,0.3)] p-4 sm:p-6 lg:p-8">
         {/* Mobile top navigation - Previous/Next at top on mobile */}
         <div className="lg:hidden mb-4 flex items-center justify-between px-2">
           <button
@@ -886,7 +884,7 @@ function MobileSidebar({ isOpen, onClose, ...sidebarProps }) {
   )
 }
 
-function App() {
+function App({ path = '/', onPathChange = () => {} }) {
   const [questionsData, setQuestionsData] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [page, setPage] = useState(0)
@@ -995,7 +993,27 @@ function App() {
   const visible = questionsData
   const effectiveHasMore = hasMore
 
-  const selected = filtered.find(q => q.id === selectedId) || filtered[0] || questionsData[0]
+  // URL routing: the path is a question slug. Resolve it against loaded questions.
+  const slug = path === '/' ? '' : decodeURIComponent(path.replace(/^\/+/, ''))
+  const byId = filtered.find(q => q.id === selectedId)
+  const bySlug = slug ? questionsData.find(q => slugify(q.question || q.title) === slug) : null
+  // A real selection (byId) wins over the path, so clicking clears a stale/bad route.
+  const selected = byId || bySlug || (slug ? null : (filtered[0] || questionsData[0]))
+  // 404 only when a non-root path resolves to nothing (after data has loaded).
+  const routeNotFound = !!slug && loaded && !selected
+
+  // Deep link (URL -> state): select the question named in the URL once it's loaded.
+  useEffect(() => {
+    if (bySlug && bySlug.id !== selectedId) setSelectedId(bySlug.id)
+  }, [bySlug?.id])
+
+  // Sync (state -> URL bar): update the address on selection. pushState only — popstate
+  // (in main.jsx) handles back/forward, so we never feed `path` back and loop.
+  useEffect(() => {
+    if (!selected) return
+    const next = `/${slugify(selected.question || selected.title)}`
+    if (next !== window.location.pathname) window.history.pushState({}, '', next)
+  }, [selected?.id])
 
   const toggleDarkMode = useCallback(() => {
     setIsDark(prev => {
@@ -1123,6 +1141,8 @@ function App() {
         setCategory={setCategory}
         difficulty={difficulty}
         setDifficulty={setDifficulty}
+        status={status}
+        setStatus={setStatus}
         onSelect={handleSelect}
         onToggleDark={toggleDarkMode}
         isDark={isDark}
@@ -1130,8 +1150,6 @@ function App() {
         questionListRef={questionListRef}
         visited={visited}
         read={read}
-        status={status}
-        setStatus={setStatus}
         categories={categories}
       />
 

@@ -1,0 +1,58 @@
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.not-found-container {
+  max-width: 700px;
+  padding: 3rem;
+  margin: 2rem auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  animation: fadeInDown 1.5s ease-out forwards;
+  text-align: center;
+}
+
+.not-found-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #ff4d4d;
+  margin-bottom: 1.5rem;
+  letter-spacing: 2px;
+}
+
+.not-found-desc {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.not-found-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.not-found-button {
+  padding: 0.8rem 1.5rem;
+  background: none;
+  border: 2px solid #ff4d4d;
+  border-radius: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.not-found-button:hover {
+  transform: scale(1.05);
+  background: #ff4d4d;
+  color: white;
+}

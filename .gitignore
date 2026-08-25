@@ -3484,3 +3484,4 @@
 */.idea/**
 .env*
 .idea*
+node_modules*
