@@ -49,3 +49,10 @@ app:
   migration:
     json-path: ${MIGRATION_JSON_PATH:../frontend/public/questions.json}
     batch-size: 100
+  s3:
+    # LocalStack for local dev; override all of these in prod with real AWS values.
+    endpoint: ${AWS_S3_ENDPOINT}
+    region: ${AWS_REGION}
+    bucket: ${AWS_S3_BUCKET}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}

@@ -53,10 +53,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/questions/**").hasRole("ADMIN")
+                        // Image upload is admin-only
+                        .requestMatchers(HttpMethod.POST, "/images/**").hasRole("ADMIN")
                         // Public: auth + read-only question browsing
                         .requestMatchers("/auth/**", "/health", "/questions/**").permitAll()
-                        // Progress requires a logged-in user
-                        .requestMatchers("/progress/**").authenticated()
+                        // Progress + profile require a logged-in user
+                        .requestMatchers("/progress/**", "/profile/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

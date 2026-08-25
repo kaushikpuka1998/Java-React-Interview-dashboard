@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: interview-backend
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   data:
     redis:
       # Railway Redis provides REDIS_URL (redis://default:pass@host:port). Falls back to localhost.
@@ -45,6 +49,17 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 app:
+  # This backend's own public origin (no trailing slash). Uploaded images are served
+  # back via {public-base-url}/api/images/file/**, so the S3 bucket can stay private.
+  # On Railway set APP_PUBLIC_BASE_URL to the backend's public URL (https://...up.railway.app).
+  public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8082}
+  s3:
+    # LocalStack for local dev; override with real AWS/Railway values in prod.
+    endpoint: ${AWS_S3_ENDPOINT:http://localhost:4566}
+    region: ${AWS_REGION:us-east-1}
+    bucket: ${AWS_S3_BUCKET:blog-images}
+    access-key: ${AWS_ACCESS_KEY_ID:test}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:test}
   admin:
     # Comma-separated emails that get ROLE_ADMIN (can publish questions). Override with ADMIN_EMAILS.
     emails: ${ADMIN_EMAILS:kaushikghosh199832@gmail.com}

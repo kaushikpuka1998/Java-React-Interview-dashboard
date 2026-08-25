@@ -109,3 +109,14 @@ export async function deleteQuestion(id) {
   })
   if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
 }
+
+// Upload an image (to S3/LocalStack via the backend). Returns the public URL.
+export async function uploadImage(file) {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch(`${API_BASE}/images`, {
+    method: 'POST', headers: { ...authHeaders() }, body, // no Content-Type: browser sets multipart boundary
+  })
+  if (!res.ok) throw new Error(await parseError(res) || `Upload failed (${res.status})`)
+  return (await res.json()).url
+}
