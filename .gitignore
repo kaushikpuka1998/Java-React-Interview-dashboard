@@ -3485,3 +3485,7 @@
 .env*
 .idea*
 node_modules*
+
+# Vite build output
+frontend/dist/
+dist/*
