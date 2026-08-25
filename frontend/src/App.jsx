@@ -5,6 +5,8 @@ import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
+import AuthModal from './components/AuthModal.jsx'
+import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote } from './lib/auth.js'
 
 function App({ path = '/', onPathChange = () => {} }) {
   const [questionsData, setQuestionsData] = useState([])
@@ -34,6 +36,45 @@ function App({ path = '/', onPathChange = () => {} }) {
   // Initialize visited/read from localStorage
   const [visited, setVisited] = useState(() => loadVisited())
   const [read, setRead] = useState(() => loadRead())
+
+  // Auth state
+  const [user, setUser] = useState(() => getUser())
+  const [authOpen, setAuthOpen] = useState(false)
+
+  // On login: merge guest progress into the account, then load the account's progress.
+  const loadServerProgress = useCallback(async () => {
+    try {
+      await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
+      const { visited: v, read: r } = await fetchProgress()
+      const vs = new Set(v), rs = new Set(r)
+      setVisited(vs); setRead(rs); saveVisited(vs); saveRead(rs)
+    } catch (e) { console.error('Failed to sync progress:', e) }
+  }, [])
+
+  const handleAuthSuccess = useCallback((u) => {
+    setUser({ email: u.email, name: u.name })
+    setAuthOpen(false)
+    loadServerProgress()
+  }, [loadServerProgress])
+
+  const handleLogout = useCallback(() => {
+    authLogout()
+    setUser(null)
+    const empty = new Set()
+    setVisited(new Set(empty)); setRead(new Set(empty))
+    saveVisited(empty); saveRead(empty)
+  }, [])
+
+  // If already logged in on load, pull the latest progress from the server.
+  useEffect(() => {
+    if (isLoggedIn()) {
+      fetchProgress().then(({ visited: v, read: r }) => {
+        const vs = new Set(v), rs = new Set(r)
+        setVisited(vs); setRead(rs); saveVisited(vs); saveRead(rs)
+      }).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Refs for current visited/read to avoid re-fetching on click
   const visitedRef = useRef(visited)
@@ -168,6 +209,7 @@ function App({ path = '/', onPathChange = () => {} }) {
         const next = new Set(prev)
         next.add(id)
         saveVisited(next)
+        if (isLoggedIn()) markVisitedRemote(id).catch(() => {})
         return next
       }
       return prev
@@ -186,6 +228,7 @@ function App({ path = '/', onPathChange = () => {} }) {
       const next = new Set(prev)
       next.add(id)
       saveRead(next)
+      if (isLoggedIn()) markReadRemote(id).catch(() => {})
       return next
     })
     // Also mark as visited if not already
@@ -254,6 +297,9 @@ function App({ path = '/', onPathChange = () => {} }) {
     visited,
     read,
     categories,
+    user,
+    onLoginClick: () => setAuthOpen(true),
+    onLogout: handleLogout,
   }
 
   return (
@@ -292,6 +338,8 @@ function App({ path = '/', onPathChange = () => {} }) {
         read={read}
         onMarkRead={handleMarkRead}
       />
+
+      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
     </div>
   )
 }

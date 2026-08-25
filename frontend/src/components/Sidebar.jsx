@@ -5,7 +5,7 @@ import { SearchInput, TechFilter, CategorySelect, StatusSelect, DifficultySelect
 /**
  * Sidebar component
  */
-export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories }) {
+export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, user, onLoginClick, onLogout }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
@@ -57,6 +57,30 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
               </svg>
             )}
           </button>
+        </div>
+
+        {/* Auth row: shows sign-in when logged out, account + logout when logged in */}
+        <div className="mt-3 flex items-center justify-between gap-2">
+          {user ? (
+            <>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {(user.name || user.email || '?').trim().charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm text-slate-600 dark:text-slate-300 truncate">{user.name || user.email}</span>
+              </div>
+              <button onClick={onLogout} className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex-shrink-0">
+                Log out
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onLoginClick}
+              className="w-full py-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-sm font-semibold shadow hover:opacity-95 transition"
+            >
+              Log in / Sign up
+            </button>
+          )}
         </div>
       </div>
 

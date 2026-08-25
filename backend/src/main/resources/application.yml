@@ -45,8 +45,12 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 app:
+  jwt:
+    # Override in prod via APP_JWT_SECRET (>= 32 chars). Dev fallback is fine for local only.
+    secret: ${APP_JWT_SECRET:dev-only-change-me-interview-jwt-secret-key}
+    expiration-ms: ${APP_JWT_EXPIRATION_MS:604800000}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000}
   migration:
     json-path: ${MIGRATION_JSON_PATH:../frontend/public/questions.json}
     batch-size: 100
