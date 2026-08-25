@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: interview-backend
+  data:
+    redis:
+      # Railway Redis provides REDIS_URL (redis://default:pass@host:port). Falls back to localhost.
+      url: ${REDIS_URL:redis://localhost:6379}
   datasource:
     # DATABASE_URL must be a JDBC url (jdbc:postgresql://host:port/db). Falls back to localhost for local dev.
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/interviewdb}

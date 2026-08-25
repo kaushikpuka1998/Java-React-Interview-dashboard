@@ -1,4 +1,8 @@
 spring:
+  data:
+    redis:
+      # Set REDIS_URL on Railway to the Redis plugin's ${{Redis.REDIS_URL}}
+      url: ${REDIS_URL:redis://localhost:6379}
   datasource:
     # DATABASE_URL must be a JDBC url. On Railway set it to:
     #   jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
