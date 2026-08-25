@@ -50,4 +50,10 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
 
     @Query("SELECT COUNT(q) FROM Question q")
     long countAll();
+
+    @Query("SELECT COALESCE(MAX(q.number), 0) FROM Question q WHERE q.tech = :tech")
+    int maxNumberByTech(@Param("tech") String tech);
+
+    @Query("SELECT COALESCE(MAX(q.sortKey), 0) FROM Question q")
+    int maxSortKey();
 }

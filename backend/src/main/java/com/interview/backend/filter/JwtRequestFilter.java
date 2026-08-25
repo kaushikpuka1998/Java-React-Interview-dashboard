@@ -5,8 +5,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -14,13 +15,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final Set<String> adminEmails;
+
+    public JwtRequestFilter(JwtUtil jwtUtil, @Value("${app.admin.emails:}") String adminEmailsCsv) {
+        this.jwtUtil = jwtUtil;
+        this.adminEmails = Arrays.stream(adminEmailsCsv.split(","))
+                .map(s -> s.trim().toLowerCase())
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -30,8 +42,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String email = jwtUtil.extractEmail(header.substring(7));
             if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                List<SimpleGrantedAuthority> authorities = adminEmails.contains(email.toLowerCase())
+                        ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                        : List.of();
                 UserDetails details = new org.springframework.security.core.userdetails.User(
-                        email, "", Collections.emptyList());
+                        email, "", authorities);
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         details, null, details.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

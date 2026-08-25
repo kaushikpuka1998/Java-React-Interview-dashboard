@@ -72,4 +72,48 @@ public class QuestionController {
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "UP"));
     }
+
+    // --- Admin-only: create questions (secured to ROLE_ADMIN in SecurityConfig) ---
+
+    @PostMapping
+    public ResponseEntity<?> createQuestion(@RequestBody com.interview.backend.dto.QuestionInput input) {
+        try {
+            List<Question> saved = questionService.createFromInputs(List.of(input));
+            return ResponseEntity.status(201).body(saved.get(0));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/bulk")
+    public ResponseEntity<?> createBulk(@RequestBody List<com.interview.backend.dto.QuestionInput> inputs) {
+        if (inputs == null || inputs.isEmpty())
+            return ResponseEntity.badRequest().body(Map.of("error", "No questions provided"));
+        try {
+            List<Question> saved = questionService.createFromInputs(inputs);
+            return ResponseEntity.status(201).body(Map.of("created", saved.size()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateQuestion(@PathVariable String id,
+                                            @RequestBody com.interview.backend.dto.QuestionInput input) {
+        try {
+            return ResponseEntity.ok(questionService.update(id, input));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteQuestion(@PathVariable String id) {
+        try {
+            questionService.delete(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

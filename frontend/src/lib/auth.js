@@ -10,9 +10,9 @@ export function getUser() {
 }
 export function isLoggedIn() { return !!getToken() }
 
-function setSession({ token, email, name }) {
+function setSession({ token, email, name, admin }) {
   localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(USER_KEY, JSON.stringify({ email, name }))
+  localStorage.setItem(USER_KEY, JSON.stringify({ email, name, admin: !!admin }))
 }
 export function logout() {
   localStorage.removeItem(TOKEN_KEY)
@@ -71,4 +71,41 @@ export function mergeProgress({ visited, read }) {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ visited, read }),
   })
+}
+
+// --- admin: publish questions ---
+
+export async function createQuestion(input) {
+  const res = await fetch(`${API_BASE}/questions`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
+  return res.json()
+}
+
+// inputs: array of question objects. Returns { created: n }.
+export async function createQuestionsBulk(inputs) {
+  const res = await fetch(`${API_BASE}/questions/bulk`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(inputs),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
+  return res.json()
+}
+
+export async function updateQuestion(id, input) {
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(id)}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
+  return res.json()
+}
+
+export async function deleteQuestion(id) {
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(id)}`, {
+    method: 'DELETE', headers: { ...authHeaders() },
+  })
+  if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
 }

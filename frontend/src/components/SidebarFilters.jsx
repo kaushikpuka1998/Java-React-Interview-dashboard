@@ -85,6 +85,12 @@ export function TechFilter({ value, onChange }) {
       icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>,
     },
     {
+      value: 'golang', label: 'Go',
+      active: 'bg-sky-500 text-white shadow-sm shadow-sky-500/30',
+      // Go gopher-ish / Go blue mark
+      icon: <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M2 12h4"/><path d="M18 12h4"/><circle cx="10" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="10" r="1.2" fill="currentColor" stroke="none"/><path d="M6 13a6 6 0 0 0 12 0V9a6 6 0 0 0-12 0z"/></svg>,
+    },
+    {
       value: 'design-patterns', label: 'Design Pattern',
       active: 'bg-amber-500 text-white shadow-sm shadow-amber-500/30',
       // puzzle piece (design patterns)

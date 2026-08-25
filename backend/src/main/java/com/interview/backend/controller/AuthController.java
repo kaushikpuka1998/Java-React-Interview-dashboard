@@ -6,6 +6,7 @@ import com.interview.backend.repository.UserRepository;
 import com.interview.backend.service.ProgressService;
 import com.interview.backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +28,16 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final ProgressService progressService;
 
+    @Value("${app.admin.emails:}")
+    private String adminEmailsCsv;
+
+    private boolean isAdmin(String email) {
+        for (String a : adminEmailsCsv.split(",")) {
+            if (a.trim().equalsIgnoreCase(email)) return true;
+        }
+        return false;
+    }
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
         if (req.email() == null || req.password() == null || req.email().isBlank() || req.password().length() < 6) {
@@ -43,7 +54,7 @@ public class AuthController {
         user = userRepository.save(user);
 
         String token = jwtUtil.generateToken(email);
-        return ResponseEntity.ok(new AuthResponse(token, email, user.getName()));
+        return ResponseEntity.ok(new AuthResponse(token, email, user.getName(), isAdmin(email)));
     }
 
     @PostMapping("/login")
@@ -56,6 +67,6 @@ public class AuthController {
         }
         User user = userRepository.findByEmail(email).orElseThrow();
         String token = jwtUtil.generateToken(email);
-        return ResponseEntity.ok(new AuthResponse(token, email, user.getName()));
+        return ResponseEntity.ok(new AuthResponse(token, email, user.getName(), isAdmin(email)));
     }
 }

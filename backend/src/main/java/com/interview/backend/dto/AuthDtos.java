@@ -9,7 +9,7 @@ public class AuthDtos {
 
     public record LoginRequest(String email, String password) {}
 
-    public record AuthResponse(String token, String email, String name) {}
+    public record AuthResponse(String token, String email, String name, boolean admin) {}
 
     // Guest progress optionally merged on login/register.
     public record ProgressPayload(List<String> visited, List<String> read) {}

@@ -84,4 +84,85 @@ public class QuestionService {
     public boolean existsById(String id) {
         return questionRepository.existsById(id);
     }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "questionSearch", allEntries = true),
+            @CacheEvict(value = "categories", allEntries = true),
+            @CacheEvict(value = "stats", allEntries = true),
+            @CacheEvict(value = "questionById", allEntries = true)
+    })
+    public List<Question> createFromInputs(List<com.interview.backend.dto.QuestionInput> inputs) {
+        int sortKey = questionRepository.maxSortKey();
+        // Track the running max number per tech so a bulk push assigns sequential numbers.
+        java.util.Map<String, Integer> nextNumber = new java.util.HashMap<>();
+        List<Question> toSave = new java.util.ArrayList<>();
+
+        for (com.interview.backend.dto.QuestionInput in : inputs) {
+            if (in.tech() == null || in.tech().isBlank())
+                throw new IllegalArgumentException("tech is required");
+            if (in.title() == null || in.title().isBlank())
+                throw new IllegalArgumentException("title is required");
+            if (in.answer() == null || in.answer().isBlank())
+                throw new IllegalArgumentException("answer is required");
+
+            String tech = in.tech().trim().toLowerCase();
+            int number = nextNumber.computeIfAbsent(tech, questionRepository::maxNumberByTech) + 1;
+            nextNumber.put(tech, number);
+            sortKey++;
+
+            String id = (in.id() == null || in.id().isBlank()) ? tech + "-" + number : in.id().trim();
+            if (questionRepository.existsById(id))
+                throw new IllegalArgumentException("Question id already exists: " + id);
+
+            String questionText = (in.question() == null || in.question().isBlank()) ? in.title() : in.question();
+
+            toSave.add(Question.builder()
+                    .id(id)
+                    .number(number)
+                    .displayNumber(number)
+                    .sortKey(sortKey)
+                    .title(in.title().trim())
+                    .question(questionText)
+                    .answer(in.answer())
+                    .difficulty(in.difficulty() == null || in.difficulty().isBlank() ? "Basic" : in.difficulty())
+                    .category(in.category() == null ? "" : in.category())
+                    .tech(tech)
+                    .build());
+        }
+        return questionRepository.saveAll(toSave);
+    }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "questionSearch", allEntries = true),
+            @CacheEvict(value = "categories", allEntries = true),
+            @CacheEvict(value = "stats", allEntries = true),
+            @CacheEvict(value = "questionById", allEntries = true)
+    })
+    public Question update(String id, com.interview.backend.dto.QuestionInput in) {
+        Question q = questionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Question not found: " + id));
+        // Only overwrite fields the admin actually supplied.
+        if (in.title() != null && !in.title().isBlank()) q.setTitle(in.title().trim());
+        if (in.question() != null && !in.question().isBlank()) q.setQuestion(in.question());
+        if (in.answer() != null && !in.answer().isBlank()) q.setAnswer(in.answer());
+        if (in.difficulty() != null && !in.difficulty().isBlank()) q.setDifficulty(in.difficulty());
+        if (in.category() != null) q.setCategory(in.category());
+        if (in.tech() != null && !in.tech().isBlank()) q.setTech(in.tech().trim().toLowerCase());
+        return questionRepository.save(q);
+    }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "questionSearch", allEntries = true),
+            @CacheEvict(value = "categories", allEntries = true),
+            @CacheEvict(value = "stats", allEntries = true),
+            @CacheEvict(value = "questionById", allEntries = true)
+    })
+    public void delete(String id) {
+        if (!questionRepository.existsById(id))
+            throw new IllegalArgumentException("Question not found: " + id);
+        questionRepository.deleteById(id);
+    }
 }

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -48,6 +49,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Publishing questions is admin-only
+                        .requestMatchers(HttpMethod.POST, "/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/questions/**").hasRole("ADMIN")
                         // Public: auth + read-only question browsing
                         .requestMatchers("/auth/**", "/health", "/questions/**").permitAll()
                         // Progress requires a logged-in user

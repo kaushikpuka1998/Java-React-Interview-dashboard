@@ -290,6 +290,7 @@ function App({ path = '/', onPathChange = () => {} }) {
     user,
     onLoginClick: () => setAuthOpen(true),
     onLogout: handleLogout,
+    onAdminClick: () => { window.location.href = '/admin' },
   }
 
   return (
