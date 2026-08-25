@@ -63,12 +63,12 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
         <div className="mt-3 flex items-center justify-between gap-2">
           {user ? (
             <>
-              <div className="flex items-center gap-2 min-w-0">
+              <a href="/profile" className="flex items-center gap-2 min-w-0 hover:opacity-80" title="View your profile">
                 <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
                   {(user.name || user.email || '?').trim().charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm text-slate-600 dark:text-slate-300 truncate">{user.name || user.email}</span>
-              </div>
+                <span className="text-sm text-slate-600 dark:text-slate-300 truncate hover:underline">{user.name || user.email}</span>
+              </a>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {user.admin && (
                   <button onClick={onAdminClick} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">

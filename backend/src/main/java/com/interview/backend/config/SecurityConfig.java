@@ -1,6 +1,7 @@
 package com.interview.backend.config;
 
 import com.interview.backend.filter.JwtRequestFilter;
+import com.interview.backend.filter.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,6 +33,12 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins}")
     private String[] allowedOrigins;
 
+    @Value("${app.ratelimit.auth-max-requests:10}")
+    private int authMaxRequests;
+
+    @Value("${app.ratelimit.auth-window-seconds:60}")
+    private long authWindowSeconds;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -47,6 +54,12 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Security headers: deny framing (clickjacking), no MIME sniffing, tight referrer.
+                .headers(h -> h
+                        .frameOptions(f -> f.deny())
+                        .contentTypeOptions(c -> {})
+                        .referrerPolicy(r -> r.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Publishing questions is admin-only
@@ -60,6 +73,8 @@ public class SecurityConfig {
                         // Progress + profile require a logged-in user
                         .requestMatchers("/progress/**", "/profile/**").authenticated()
                         .anyRequest().permitAll())
+                // Rate limiter runs first (before auth) to blunt brute-force on /auth/**.
+                .addFilterBefore(new RateLimitFilter(authMaxRequests, authWindowSeconds), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

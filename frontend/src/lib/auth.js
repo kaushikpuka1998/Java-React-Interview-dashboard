@@ -73,6 +73,21 @@ export function mergeProgress({ visited, read }) {
   })
 }
 
+// --- user profile ---
+
+export async function fetchProfile() {
+  const res = await fetch(`${API_BASE}/profile/me`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(await parseError(res) || 'Failed to load profile')
+  return res.json()
+}
+
+// kind: 'solved' | 'visited'
+export async function fetchProfileQuestions(kind) {
+  const res = await fetch(`${API_BASE}/profile/questions/${kind}`, { headers: authHeaders() })
+  if (!res.ok) return []
+  return res.json()
+}
+
 // --- admin: publish questions ---
 
 export async function createQuestion(input) {

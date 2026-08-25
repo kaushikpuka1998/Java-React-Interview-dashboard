@@ -56,4 +56,13 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
 
     @Query("SELECT COALESCE(MAX(q.sortKey), 0) FROM Question q")
     int maxSortKey();
+
+    @Query("SELECT DISTINCT q.tech FROM Question q ORDER BY q.tech")
+    List<String> findDistinctTechs();
+
+    @Query("SELECT DISTINCT q.difficulty FROM Question q WHERE q.difficulty IS NOT NULL ORDER BY q.difficulty")
+    List<String> findDistinctDifficulties();
+
+    @Query("SELECT COUNT(q) FROM Question q WHERE q.difficulty = :difficulty")
+    long countByDifficulty(@Param("difficulty") String difficulty);
 }

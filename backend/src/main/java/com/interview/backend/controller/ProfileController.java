@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 // Current-user profile: identity + progress. Auth required (locked in SecurityConfig).
 // Context-path is already /api, so this maps to /api/profile/*.
@@ -36,13 +39,47 @@ public class ProfileController {
     public ResponseEntity<Map<String, Object>> me() {
         User u = currentUser();
         List<UserProgress> rows = progressRepository.findByUserId(u.getId());
-        long visited = rows.stream().filter(UserProgress::isVisited).count();
-        long solved = rows.stream().filter(UserProgress::isRead).count();
-        return ResponseEntity.ok(Map.of(
-                "email", u.getEmail(),
-                "name", u.getName() == null ? "" : u.getName(),
-                "visitedCount", visited,
-                "solvedCount", solved));
+
+        List<String> visitedIds = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
+        List<String> solvedIds = rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList();
+
+        long total = questionRepository.count();
+
+        List<Question> solvedQuestions = questionRepository.findAllById(solvedIds);
+
+        // Per-tech breakdown: total questions vs how many this user has solved.
+        Map<String, Long> solvedByTech = solvedQuestions.stream()
+                .collect(Collectors.groupingBy(Question::getTech, Collectors.counting()));
+        List<Map<String, Object>> byTech = new ArrayList<>();
+        for (String tech : questionRepository.findDistinctTechs()) {
+            byTech.add(Map.of(
+                    "tech", tech,
+                    "total", questionRepository.countByTech(tech),
+                    "solved", solvedByTech.getOrDefault(tech, 0L)));
+        }
+
+        // Per-difficulty breakdown (Basic / Intermediate / Advanced / ...).
+        Map<String, Long> solvedByDiff = solvedQuestions.stream()
+                .filter(q -> q.getDifficulty() != null)
+                .collect(Collectors.groupingBy(Question::getDifficulty, Collectors.counting()));
+        List<Map<String, Object>> byDifficulty = new ArrayList<>();
+        for (String diff : questionRepository.findDistinctDifficulties()) {
+            byDifficulty.add(Map.of(
+                    "difficulty", diff,
+                    "total", questionRepository.countByDifficulty(diff),
+                    "solved", solvedByDiff.getOrDefault(diff, 0L)));
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("email", u.getEmail());
+        body.put("name", u.getName() == null ? "" : u.getName());
+        body.put("memberSince", u.getCreatedAt());
+        body.put("totalQuestions", total);
+        body.put("visitedCount", visitedIds.size());
+        body.put("solvedCount", solvedIds.size());
+        body.put("byTech", byTech);
+        body.put("byDifficulty", byDifficulty);
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping("/questions/solved")

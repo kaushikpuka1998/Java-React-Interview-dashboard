@@ -68,6 +68,10 @@ app:
   admin:
     # Comma-separated emails that get ROLE_ADMIN (can publish questions). Override with ADMIN_EMAILS.
     emails: ${ADMIN_EMAILS:kaushikghosh199832@gmail.com}
+  ratelimit:
+    # Per-IP limit on POST /auth/** (login/register) to blunt brute-force.
+    auth-max-requests: ${AUTH_RATE_LIMIT:10}
+    auth-window-seconds: ${AUTH_RATE_WINDOW:60}
   jwt:
     # Override in prod via APP_JWT_SECRET (>= 32 chars). Dev fallback is fine for local only.
     secret: ${APP_JWT_SECRET:dev-only-change-me-interview-jwt-secret-key}
