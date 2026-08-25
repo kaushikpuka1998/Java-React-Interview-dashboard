@@ -5,6 +5,8 @@ import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
+import { useBackendStatus } from './hooks/useBackendStatus.js'
+import BackendStatusBadge from './components/BackendStatusBadge.jsx'
 
 function App({ path = '/', onPathChange = () => {} }) {
   const [questionsData, setQuestionsData] = useState([])
@@ -30,6 +32,9 @@ function App({ path = '/', onPathChange = () => {} }) {
   const [isLoading, setIsLoading] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [hasMore, setHasMore] = useState(false)
+
+  // Live backend connectivity status, surfaced as a badge in the header.
+  const { status: backendStatus, apiBase } = useBackendStatus()
 
   // Initialize visited/read from localStorage
   const [visited, setVisited] = useState(() => loadVisited())
@@ -257,6 +262,10 @@ function App({ path = '/', onPathChange = () => {} }) {
 
   return (
     <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
+      <div className="fixed top-3 right-3 z-50">
+        <BackendStatusBadge status={backendStatus} apiBase={apiBase} />
+      </div>
+
       <Sidebar {...sidebarProps} sidebarWidth={sidebarWidth} questionListRef={questionListRef} />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
