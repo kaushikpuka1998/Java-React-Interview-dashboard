@@ -60,6 +60,7 @@ app:
     bucket: ${AWS_S3_BUCKET:blog-images}
     access-key: ${AWS_ACCESS_KEY_ID:test}
     secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+    public-url: ${AWS_S3_PUBLIC_URL:http://localhost:4566}
   admin:
     # Comma-separated emails that get ROLE_ADMIN (can publish questions). Override with ADMIN_EMAILS.
     emails: ${ADMIN_EMAILS:kaushikghosh199832@gmail.com}
