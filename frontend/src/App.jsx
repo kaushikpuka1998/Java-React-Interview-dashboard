@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { PAGE, fetchQuestions, fetchCategories, fetchStats } from './lib/api.js'
-import { loadVisited, loadRead, saveVisited, saveRead } from './lib/storage.js'
 import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
@@ -33,44 +32,38 @@ function App({ path = '/', onPathChange = () => {} }) {
   const [totalCount, setTotalCount] = useState(0)
   const [hasMore, setHasMore] = useState(false)
 
-  // Initialize visited/read from localStorage
-  const [visited, setVisited] = useState(() => loadVisited())
-  const [read, setRead] = useState(() => loadRead())
+  // Visited/read are per-user and server-authoritative. Empty until the account's
+  // progress loads; guests (not logged in) have no persisted status.
+  const [visited, setVisited] = useState(() => new Set())
+  const [read, setRead] = useState(() => new Set())
 
   // Auth state
   const [user, setUser] = useState(() => getUser())
   const [authOpen, setAuthOpen] = useState(false)
 
-  // On login: merge guest progress into the account, then load the account's progress.
-  const loadServerProgress = useCallback(async () => {
+  // On login: merge any status the user clicked this session (pre-login) into the
+  // account, then load the account's authoritative progress.
+  const handleAuthSuccess = useCallback(async (u) => {
+    setUser({ email: u.email, name: u.name })
+    setAuthOpen(false)
     try {
       await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
       const { visited: v, read: r } = await fetchProgress()
-      const vs = new Set(v), rs = new Set(r)
-      setVisited(vs); setRead(rs); saveVisited(vs); saveRead(rs)
+      setVisited(new Set(v)); setRead(new Set(r))
     } catch (e) { console.error('Failed to sync progress:', e) }
   }, [])
-
-  const handleAuthSuccess = useCallback((u) => {
-    setUser({ email: u.email, name: u.name })
-    setAuthOpen(false)
-    loadServerProgress()
-  }, [loadServerProgress])
 
   const handleLogout = useCallback(() => {
     authLogout()
     setUser(null)
-    const empty = new Set()
-    setVisited(new Set(empty)); setRead(new Set(empty))
-    saveVisited(empty); saveRead(empty)
+    setVisited(new Set()); setRead(new Set())
   }, [])
 
-  // If already logged in on load, pull the latest progress from the server.
+  // If already logged in on load, pull the account's progress from the server.
   useEffect(() => {
     if (isLoggedIn()) {
       fetchProgress().then(({ visited: v, read: r }) => {
-        const vs = new Set(v), rs = new Set(r)
-        setVisited(vs); setRead(rs); saveVisited(vs); saveRead(rs)
+        setVisited(new Set(v)); setRead(new Set(r))
       }).catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -208,7 +201,6 @@ function App({ path = '/', onPathChange = () => {} }) {
       if (!prev.has(id)) {
         const next = new Set(prev)
         next.add(id)
-        saveVisited(next)
         if (isLoggedIn()) markVisitedRemote(id).catch(() => {})
         return next
       }
@@ -227,16 +219,14 @@ function App({ path = '/', onPathChange = () => {} }) {
     setRead(prev => {
       const next = new Set(prev)
       next.add(id)
-      saveRead(next)
       if (isLoggedIn()) markReadRemote(id).catch(() => {})
       return next
     })
-    // Also mark as visited if not already
+    // Also mark as visited if not already (markRead on the server already implies visited)
     setVisited(prev => {
       if (!prev.has(id)) {
         const next = new Set(prev)
         next.add(id)
-        saveVisited(next)
         return next
       }
       return prev
