@@ -53,7 +53,8 @@ Or just open the **[live app](https://interviewreader.up.railway.app/)**.
 | Frontend   | React 18, Vite 4, Tailwind CSS 3, Framer Motion                       |
 | Backend    | Spring Boot 3.2 (Java 21), Spring Web, Spring Data JPA / Hibernate    |
 | Database   | PostgreSQL 16                                                          |
-| Hosting    | Railway (frontend static site + backend service + managed Postgres)   |
+| Cache      | Redis (Spring Cache) — read-through caching to cut DB load            |
+| Hosting    | Railway (frontend + backend + managed Postgres + Redis)              |
 
 ## 🏗️ Architecture
 
@@ -61,12 +62,14 @@ Or just open the **[live app](https://interviewreader.up.railway.app/)**.
 flowchart LR
   U[Browser] -->|slug URLs, fetch| FE[React + Vite SPA]
   FE -->|/api/questions ...| BE[Spring Boot API]
-  BE -->|JPA / Hibernate| DB[(PostgreSQL)]
+  BE -->|1. check cache| R[(Redis)]
+  BE -->|2. on miss: JPA / Hibernate| DB[(PostgreSQL)]
   BE -.->|first-boot seed from bundled questions.json| DB
 ```
 
 - The SPA calls the backend at `VITE_API_BASE` (defaults to `http://localhost:8082/api`).
 - Hibernate owns the schema (`ddl-auto: update`) and the app seeds the `questions` table on first boot from a `questions.json` bundled on the classpath (`QuestionMigrationService`).
+- Read endpoints are cached in **Redis** first; Postgres is only queried on a cache miss.
 
 ## 📁 Project structure
 
@@ -101,14 +104,20 @@ flowchart LR
 - Node.js 18+
 - Java 21 + Maven
 - PostgreSQL 16 running locally
+- Redis running locally
 
-### 1. Database
+### 1. Database & cache
 ```bash
-# Docker (quickest)
+# Postgres
 docker run --name interview-pg -e POSTGRES_DB=interviewdb \
   -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=1998 \
   -p 5432:5432 -d postgres:16
+
+# Redis
+docker run --name interview-redis -p 6379:6379 -d redis:7
 ```
+> Redis is optional for local dev — if it isn't running, the app logs a warning and
+> serves straight from Postgres (caching just no-ops). See [Caching](#-caching-redis).
 
 ### 2. Backend
 ```bash
@@ -133,6 +142,7 @@ npm run dev                # serves http://127.0.0.1:5173
 | `DATABASE_USER`       | DB user                          | `postgres`    |
 | `DATABASE_PASSWORD`   | DB password                      | `1998`        |
 | `PORT`                | HTTP port                        | `8082`        |
+| `REDIS_URL`           | Redis connection (`redis://[:pass@]host:port`) | `redis://localhost:6379` |
 | `CORS_ALLOWED_ORIGINS`| comma-separated allowed origins  | `http://localhost:5173,http://localhost:3000` |
 
 **Frontend**
@@ -142,8 +152,9 @@ npm run dev                # serves http://127.0.0.1:5173
 | `VITE_API_BASE`  | Backend API base URL   | `http://localhost:8082/api`      |
 
 > On Railway, `application-prod.yml` builds the JDBC url from the Postgres plugin's
-> `PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD` variables. Set `CORS_ALLOWED_ORIGINS`
-> to your frontend origin (`https://interviewreader.up.railway.app`).
+> `PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD` variables. Add the **Redis** plugin and
+> set `REDIS_URL=${{Redis.REDIS_URL}}`, and set `CORS_ALLOWED_ORIGINS` to your frontend
+> origin (`https://interviewreader.up.railway.app`).
 
 ## 📡 API
 
@@ -156,6 +167,45 @@ Base path: `/api`
 | `GET`  | `/questions/categories?tech=`  | Categories for a technology                        |
 | `GET`  | `/questions/stats`             | Totals / counts                                    |
 | `GET`  | `/health`                      | Liveness probe (used by Railway healthcheck)       |
+
+## ⚡ Caching (Redis)
+
+The question data is effectively read-only, so read endpoints are cached in Redis to
+take load off Postgres. Implemented with Spring's cache abstraction
+(`@Cacheable` / `@CacheEvict`) backed by a `RedisCacheManager`.
+
+**Cached reads** (`QuestionService`):
+
+| Cache            | Method                | Key                                                  |
+|------------------|-----------------------|------------------------------------------------------|
+| `questionSearch` | `searchQuestions(…)`  | `tech|category|difficulty|search|page|size|sort`     |
+| `questionById`   | `getById(id)`         | `id`                                                 |
+| `categories`     | `getCategoriesByTech` | `tech`                                               |
+| `stats`          | `getTotalCount` / `getCountByTech` | `total` / `tech`                        |
+
+Design notes:
+
+- **TTL 10 min, `ir:` key prefix.** Writes (`save` / `saveAll`) evict the caches so
+  re-seeds/edits show through.
+- **Search caches only anonymous browses** (`condition = "#status == null"`). Status
+  filters (Visited / Solved / Unsolved) depend on per-user `visitedIds`/`readIds`, so
+  they skip the cache to avoid cross-user leakage.
+- **Human-readable JSON values.** Values serialize as JSON via
+  `GenericJackson2JsonRedisSerializer`; paginated results use a small `CachedPage`
+  wrapper so Spring's `Page` can round-trip through JSON.
+- **Fail-open.** A `CacheErrorHandler` logs and falls back to Postgres if Redis is
+  unavailable — requests never fail because of the cache.
+
+**Verify it's working locally** — hit the same endpoint twice and watch the backend
+log (SQL is logged at `DEBUG`):
+
+```bash
+curl -s "http://localhost:8082/api/questions?page=0&size=50" -o /dev/null   # 1st: runs SQL
+curl -s "http://localhost:8082/api/questions?page=0&size=50" -o /dev/null   # 2nd: no SQL (cache hit)
+
+docker exec -it interview-redis redis-cli KEYS 'ir:*'        # see cached keys
+docker exec -it interview-redis redis-cli GET  'ir:stats::total'
+```
 
 ## 📝 Content / data
 
