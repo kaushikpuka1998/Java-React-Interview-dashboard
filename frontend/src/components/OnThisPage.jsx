@@ -1,50 +1,41 @@
-import { useEffect, useMemo, useState } from 'react'
-import { slugifyHeading } from './Markdown.jsx'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { headingIds } from './Markdown.jsx'
 
 /**
  * Section outline for the current answer.
  *
  * Design note: rather than a separate progress bar above a plain list, the rail
- * itself IS the progress indicator — it fills from the top as you scroll, and each
- * section is a node on that rail. Passed nodes are solid, the current one carries a
- * halo, upcoming ones stay hollow.
+ * itself IS the progress indicator — it fills from the top down to the section you
+ * are currently reading, so the fill and the highlighted node always agree.
  */
 
-// Pull headings out of the markdown, ignoring anything inside fenced code blocks.
-function extractHeadings(md) {
-  const out = []
-  let inFence = false
-  for (const line of String(md || '').split('\n')) {
-    if (/^\s*```/.test(line)) { inFence = !inFence; continue }
-    if (inFence) continue
-    const m = line.match(/^(#{1,4})\s+(.+?)\s*$/)
-    if (!m) continue
-    const level = m[1].length
-    if (level > 3) continue                       // h4+ is too granular for an outline
-    const label = m[2]
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/\*([^*]+)\*/g, '$1')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    out.push({ level, label, id: slugifyHeading(m[2]) })
-  }
-  return out
+function cleanLabel(raw) {
+  return String(raw)
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .trim()
 }
 
 export default function OnThisPage({ text, scrollRef }) {
-  const headings = useMemo(() => extractHeadings(text), [text])
+  // Same id sequence the renderer uses (deduplicated), filtered to h1-h3 for display.
+  const headings = useMemo(
+    () => headingIds(text).filter(h => h.level <= 3).map(h => ({ ...h, label: cleanLabel(h.raw) })),
+    [text]
+  )
+
   const [activeId, setActiveId] = useState('')
   const [progress, setProgress] = useState(0)
-
+  const [fillPx, setFillPx] = useState(0)
+  const listRef = useRef(null)
+  const itemRefs = useRef({})
 
   // Track scroll progress and which section is currently in view.
   useEffect(() => {
     const scroller = scrollRef?.current
     if (!scroller || headings.length === 0) return
 
-    // Computed directly rather than throttled through requestAnimationFrame: with a
-    // handful of headings the cost is trivial, and a rAF guard can stick permanently
-    // if frames are paused (backgrounded tab) while a callback is still pending.
     const onScroll = () => {
       const max = scroller.scrollHeight - scroller.clientHeight
       setProgress(max > 0 ? Math.min(100, Math.max(0, (scroller.scrollTop / max) * 100)) : 0)
@@ -57,6 +48,8 @@ export default function OnThisPage({ text, scrollRef }) {
         if (!el) continue
         if (el.getBoundingClientRect().top <= line) current = h.id
       }
+      // Once scrolled to the very bottom, the last section is the one being read.
+      if (max > 0 && scroller.scrollTop >= max - 2) current = headings[headings.length - 1].id
       setActiveId(current || headings[0].id)
     }
 
@@ -69,8 +62,26 @@ export default function OnThisPage({ text, scrollRef }) {
     }
   }, [headings, scrollRef, text])
 
+  // Fill the rail down to the middle of the active node, so the gradient and the
+  // highlighted item can never disagree (raw scroll % did not line up with them).
+  useEffect(() => {
+    const el = itemRefs.current[activeId]
+    const list = listRef.current
+    if (!el || !list) { setFillPx(0); return }
+    setFillPx(el.offsetTop + el.offsetHeight / 2)
+
+    // Keep the active entry visible when the outline is longer than the rail.
+    if (list.scrollHeight > list.clientHeight) {
+      const top = el.offsetTop
+      const bottom = top + el.offsetHeight
+      if (top < list.scrollTop + 8 || bottom > list.scrollTop + list.clientHeight - 8) {
+        list.scrollTo({ top: top - list.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' })
+      }
+    }
+  }, [activeId, headings])
+
   // Reset when the question changes.
-  useEffect(() => { setActiveId(''); setProgress(0) }, [text])
+  useEffect(() => { setActiveId(''); setProgress(0); setFillPx(0) }, [text])
 
   const jump = (id) => {
     const el = document.getElementById(id)
@@ -87,23 +98,23 @@ export default function OnThisPage({ text, scrollRef }) {
   return (
     <nav
       aria-label="Sections in this answer"
-      className="hidden xl:block w-56 flex-shrink-0 sticky top-6 self-start max-h-[calc(100vh-6rem)] overflow-y-auto pl-2"
+      className="hidden xl:flex w-56 flex-shrink-0 sticky top-6 self-start max-h-[calc(100vh-6rem)] flex-col pl-2"
     >
-      <div className="flex items-baseline justify-between mb-3 pr-1">
+      <div className="flex items-baseline justify-between mb-3 pr-1 flex-shrink-0">
         <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
           Sections
         </span>
-        <span className="text-[11px] font-mono tabular-nums text-slate-400 dark:text-slate-500">
+        <span className="text-[11px] font-mono tabular-nums text-slate-400 dark:text-slate-500" title="Reading progress">
           {Math.round(progress)}%
         </span>
       </div>
 
-      <div className="relative">
-        {/* the rail: a track with a fill that grows as you scroll */}
+      <div ref={listRef} className="relative overflow-y-auto min-h-0">
+        {/* the rail: a track whose fill ends at the section you are reading */}
         <div className="absolute left-[5px] top-1 bottom-1 w-px bg-slate-200 dark:bg-slate-700" aria-hidden="true" />
         <div
-          className="absolute left-[5px] top-1 w-px bg-gradient-to-b from-blue-500 to-indigo-500 transition-[height] duration-150 ease-out"
-          style={{ height: `calc(${progress}% - 0.25rem)` }}
+          className="absolute left-[5px] top-1 w-px bg-gradient-to-b from-blue-500 to-indigo-500 transition-[height] duration-200 ease-out"
+          style={{ height: `${Math.max(0, fillPx - 4)}px` }}
           aria-hidden="true"
         />
 
@@ -112,7 +123,7 @@ export default function OnThisPage({ text, scrollRef }) {
             const isActive = h.id === activeId
             const isPassed = activeIndex > -1 && i < activeIndex
             return (
-              <li key={h.id + i}>
+              <li key={h.id} ref={(el) => { itemRefs.current[h.id] = el }}>
                 <button
                   onClick={() => jump(h.id)}
                   aria-current={isActive ? 'true' : undefined}

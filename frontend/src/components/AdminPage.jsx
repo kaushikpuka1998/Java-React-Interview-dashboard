@@ -9,6 +9,7 @@ const TECHS = ['java', 'react', 'node', 'sql', 'hld', 'kafka','golang']
 const DIFFICULTIES = ['Basic', 'Intermediate', 'Advanced', 'Experienced']
 const EMPTY = { id: '', tech: 'java', title: '', question: '', answer: '', difficulty: 'Basic', category: '' }
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
+const toolBtn = 'inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
 
 function Banner({ msg }) {
   if (!msg) return null
@@ -16,10 +17,12 @@ function Banner({ msg }) {
 }
 
 // Shared editable fields for both the Add tab and the Manage edit panel.
-function EditorFields({ form, set, requireAnswer, answerRows = 12, onInsertImage }) {
+function EditorFields({ form, set, requireAnswer, answerRows = 12, onInsertImage, onLoadMarkdown }) {
   const fileRef = useRef(null)
+  const mdRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [upErr, setUpErr] = useState('')
+  const [copied, setCopied] = useState(false)
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
@@ -32,6 +35,48 @@ function EditorFields({ form, set, requireAnswer, answerRows = 12, onInsertImage
     } catch (err) {
       setUpErr(err.message)
     } finally { setUploading(false) }
+  }
+
+  // Load a .md file straight into the Answer field.
+  async function handleMarkdownFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUpErr('')
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUpErr('Markdown file exceeds 2 MB')
+      return
+    }
+    // Don't silently destroy work already typed in the box.
+    if (form.answer.trim() && !window.confirm(`Replace the current answer with the contents of "${file.name}"?`)) {
+      return
+    }
+    try {
+      const text = await file.text()
+      onLoadMarkdown(text, file)
+    } catch {
+      setUpErr('Could not read that file')
+    }
+  }
+
+  async function copyAnswer() {
+    if (!form.answer) return
+    try {
+      await navigator.clipboard.writeText(form.answer)
+    } catch {
+      // Clipboard API needs a secure context; fall back to a temporary selection.
+      const ta = document.createElement('textarea')
+      ta.value = form.answer
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch { setUpErr('Copy failed'); }
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -50,17 +95,52 @@ function EditorFields({ form, set, requireAnswer, answerRows = 12, onInsertImage
 
       <div className="flex items-center justify-between gap-2">
         <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Answer (Markdown)</label>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {upErr && <span className="text-xs text-red-500">{upErr}</span>}
+
+          {/* Load a .md file into the answer */}
+          <input ref={mdRef} type="file" accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain" onChange={handleMarkdownFile} className="hidden" />
+          <button
+            type="button"
+            onClick={() => mdRef.current?.click()}
+            title="Load a Markdown file into the answer"
+            className={toolBtn}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6H16a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v9" /></svg>
+            Upload .md
+          </button>
+
+          {/* Copy the answer markdown */}
+          <button
+            type="button"
+            onClick={copyAnswer}
+            disabled={!form.answer}
+            title="Copy the answer Markdown to the clipboard"
+            className={toolBtn}
+          >
+            {copied ? (
+              <>
+                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                Copied
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                Copy
+              </>
+            )}
+          </button>
+
           <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-60"
+            title="Upload an image and insert it into the answer"
+            className={toolBtn}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" /></svg>
-            {uploading ? 'Uploading…' : 'Upload image'}
+            {uploading ? 'Uploading…' : 'Image'}
           </button>
         </div>
       </div>
@@ -118,6 +198,27 @@ export default function AdminPage() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   // Append an uploaded image as Markdown into the answer.
+  // Load a .md file into the answer. If the file opens with a single `# Heading`
+  // and the title is still blank, use it to prefill title/question and drop it from
+  // the body so the heading is not duplicated above the question text.
+  const loadMarkdown = (text, file) => {
+    setForm((f) => {
+      let answer = text.replace(/^﻿/, '').replace(/\r\n/g, '\n')
+      let title = f.title
+
+      const m = answer.match(/^\s*#\s+(.+?)\s*\n/)
+      if (m && !f.title.trim()) {
+        title = m[1].replace(/[`*_]/g, '').trim()
+        answer = answer.slice(m[0].length).replace(/^\n+/, '')
+      }
+      if (!title.trim() && file) {
+        title = file.name.replace(/\.(md|markdown|mdown|txt)$/i, '').replace(/[-_]+/g, ' ').trim()
+      }
+      return { ...f, answer, title, question: f.question || title }
+    })
+    setMsg({ ok: true, text: `Loaded ${file?.name || 'file'} into the answer` })
+  }
+
   const insertImage = (url) => setForm((f) => ({
     ...f,
     answer: (f.answer ? f.answer.replace(/\s*$/, '') + '\n\n' : '') + `![image](${url})\n`,
@@ -219,7 +320,7 @@ export default function AdminPage() {
           <div className={showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-5 items-start' : ''}>
             {/* Left: editor fields */}
             <div className="space-y-3">
-              <EditorFields form={form} set={set} requireAnswer={!editingId} onInsertImage={insertImage} />
+              <EditorFields form={form} set={set} requireAnswer={!editingId} onInsertImage={insertImage} onLoadMarkdown={loadMarkdown} />
               <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
                 <input type="checkbox" checked={showPreview} onChange={(e) => setShowPreview(e.target.checked)} className="rounded border-slate-300 dark:border-slate-600" />
                 Live preview
@@ -283,7 +384,7 @@ export default function AdminPage() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">Editing <code>{editingId}</code>.
                   <button type="button" onClick={() => { setForm(EMPTY); setEditingId(null) }} className="ml-2 text-blue-600 dark:text-blue-400 hover:underline">Cancel</button>
                 </p>
-                <EditorFields form={form} set={set} requireAnswer={false} answerRows={10} onInsertImage={insertImage} />
+                <EditorFields form={form} set={set} requireAnswer={false} answerRows={10} onInsertImage={insertImage} onLoadMarkdown={loadMarkdown} />
                 <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
                   <input type="checkbox" checked={showPreview} onChange={(e) => setShowPreview(e.target.checked)} className="rounded border-slate-300 dark:border-slate-600" />
                   Live preview

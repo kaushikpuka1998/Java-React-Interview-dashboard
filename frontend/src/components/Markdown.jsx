@@ -68,6 +68,29 @@ function formatInline(line) {
   })
 }
 
+/**
+ * Walks the markdown and returns the heading id for the Nth heading, deduplicated.
+ * Repeated headings ("Flow", "Architecture") must not share an id or
+ * document.getElementById would always resolve to the first one — which broke
+ * scroll-spy and anchor links. Exported so the outline derives identical ids.
+ */
+export function headingIds(md) {
+  const ids = []
+  const seen = new Map()
+  let inFence = false
+  for (const line of String(md || '').split('\n')) {
+    if (/^\s*```/.test(line)) { inFence = !inFence; continue }
+    if (inFence) continue
+    const m = line.match(/^(#{1,6})\s+(.+?)\s*$/)
+    if (!m) continue
+    const base = slugifyHeading(m[2]) || 'section'
+    const n = (seen.get(base) || 0) + 1
+    seen.set(base, n)
+    ids.push({ level: m[1].length, raw: m[2], id: n === 1 ? base : `${base}-${n}` })
+  }
+  return ids
+}
+
 // GitHub-style heading id so in-page [links](#anchor) actually jump.
 // Exported so the on-this-page outline derives identical ids.
 export function slugifyHeading(text) {
@@ -101,6 +124,10 @@ const HEADING_STYLES = {
  */
 export default function Markdown({ text }) {
   const parts = String(text || '').split(/```(\w+)?\n([\s\S]*?)```/g)
+
+  // Precomputed deduplicated ids, consumed in document order as headings render.
+  const ids = headingIds(text)
+  let headingCursor = 0
 
   return (
     <div className="markdown prose prose-slate dark:prose-invert max-w-none">
@@ -274,8 +301,10 @@ export default function Markdown({ text }) {
             const level = h[1].length
             const content = h[2]
             const Tag = `h${level}`
+            const id = ids[headingCursor]?.id || slugifyHeading(content)
+            headingCursor++
             out.push(
-              <Tag key={key} id={slugifyHeading(content)} className={HEADING_STYLES[level]}>
+              <Tag key={key} id={id} className={HEADING_STYLES[level]}>
                 {formatInline(content)}
               </Tag>
             )
