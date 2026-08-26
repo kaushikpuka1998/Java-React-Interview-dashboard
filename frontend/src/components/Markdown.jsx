@@ -1,9 +1,14 @@
-// ponytail: regex tokenizer, covers Java/JS/TS well enough; swap for Shiki if more langs needed
-const KEYWORDS = new Set('abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while var let function async await yield typeof instanceof of in delete null true false undefined NaN'.split(' '))
+import Mermaid from './Mermaid.jsx'
+
+// ponytail: regex tokenizer, covers Java/JS/TS/Go well enough; swap for Shiki if more langs needed
+const KEYWORDS = new Set('abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while var let function async await yield typeof of in delete null true false undefined NaN chan defer fallthrough func go map range select struct type nil iota make append copy panic recover len cap string error any rune uint int64 int32 float64 bool def elif except raise lambda pass None True False self'.split(' '))
+
+// Languages that are prose/diagram rather than code — highlighting them looks wrong.
+const PLAIN_LANGS = new Set(['mermaid', 'text', 'txt', 'plain', 'diagram', ''])
 
 function highlightCode(code) {
   // token regex: comments | strings | numbers | annotations | identifiers | other
-  const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(@\w+)|(\b\d[\d.xXa-fA-F_]*\b)|(\b[A-Za-z_$][\w$]*\b)/g
+  const re = /(\/\/[^\n]*|#[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(@\w+)|(\b\d[\d.xXa-fA-F_]*\b)|(\b[A-Za-z_$][\w$]*\b)/g
   const out = []
   let last = 0, m, k = 0
   while ((m = re.exec(code))) {
@@ -27,9 +32,35 @@ function highlightCode(code) {
 }
 
 function formatInline(line) {
-  const chunks = line.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g)
+  // Order matters: images before links, links before emphasis.
+  const chunks = String(line).split(/(!?\[[^\]]*\]\([^)]*\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g)
   return chunks.map((chunk, index) => {
-    if (chunk.startsWith('`') && chunk.endsWith('`')) return <code key={index} className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-slate-900 dark:text-slate-100">{chunk.slice(1, -1)}</code>
+    if (!chunk) return null
+    // Inline image: ![alt](src)
+    if (chunk.startsWith('![')) {
+      const m = chunk.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
+      if (m) return <img key={index} src={m[2]} alt={m[1]} title={m[3]} className="inline-block max-w-full h-auto rounded" loading="lazy" />
+    }
+    // Link: [text](href) — anchors stay in-page, external links open in a new tab
+    if (chunk.startsWith('[')) {
+      const m = chunk.match(/^\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
+      if (m) {
+        const href = m[2]
+        const isAnchor = href.startsWith('#')
+        return (
+          <a
+            key={index}
+            href={href}
+            title={m[3]}
+            {...(isAnchor ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            className="text-blue-600 dark:text-blue-400 hover:underline break-words"
+          >
+            {formatInline(m[1])}
+          </a>
+        )
+      }
+    }
+    if (chunk.startsWith('`') && chunk.endsWith('`')) return <code key={index} className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-slate-900 dark:text-slate-100 break-words">{chunk.slice(1, -1)}</code>
     if (chunk.startsWith('**') && chunk.endsWith('**')) return <strong key={index} className="font-semibold text-slate-900 dark:text-slate-100">{chunk.slice(2, -2)}</strong>
     if (chunk.startsWith('*') && chunk.endsWith('*')) return <em key={index} className="italic text-slate-700 dark:text-slate-300">{chunk.slice(1, -1)}</em>
     if (chunk.startsWith('~~') && chunk.endsWith('~~')) return <del key={index} className="line-through text-slate-500 dark:text-slate-400">{chunk.slice(2, -2)}</del>
@@ -37,15 +68,35 @@ function formatInline(line) {
   })
 }
 
+// GitHub-style heading id so in-page [links](#anchor) actually jump.
+function slugifyHeading(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[`*_~]/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // link text only
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+}
+
+const HEADING_STYLES = {
+  1: 'text-2xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-4 scroll-mt-4',
+  2: 'text-xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-3 scroll-mt-4',
+  3: 'text-lg font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2 scroll-mt-4',
+  4: 'text-base font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2 scroll-mt-4',
+  5: 'text-sm font-semibold text-slate-800 dark:text-slate-200 mt-3 mb-1 scroll-mt-4',
+  6: 'text-sm font-semibold text-slate-600 dark:text-slate-400 mt-3 mb-1 scroll-mt-4',
+}
+
 /**
  * Markdown renderer with support for:
- * - Headers (h1-h3)
- * - Code blocks with language
- * - Inline code
- * - Bold/italic
- * - Lists (unordered)
- * - Tables
- * - Blockquotes
+ * - Headers (h1-h6) with anchor ids
+ * - Code blocks with language (mermaid/text rendered plain)
+ * - Inline code, bold/italic/strikethrough, links, images
+ * - Ordered and unordered lists, including nesting
+ * - Tables (with alignment separators)
+ * - Blockquotes (multi-line, inline formatted)
+ * - Horizontal rules
  */
 export default function Markdown({ text }) {
   const parts = String(text || '').split(/```(\w+)?\n([\s\S]*?)```/g)
@@ -54,10 +105,26 @@ export default function Markdown({ text }) {
     <div className="markdown prose prose-slate dark:prose-invert max-w-none">
       {parts.map((part, index) => {
         if (index % 3 === 2) {
+          const lang = (parts[index - 1] || '').toLowerCase()
+          const body = part.replace(/\n$/, '')
+
+          // Mermaid blocks render as real diagrams (lazy-loaded).
+          if (lang === 'mermaid') return <Mermaid key={index} code={body.trim()} />
+
+          const plain = PLAIN_LANGS.has(lang)
           return (
-            <pre key={index} className="bg-slate-900 rounded-lg p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full -mx-4 sm:mx-0 border border-slate-700/50">
-              <code className="text-slate-100 leading-relaxed font-mono whitespace-pre">{highlightCode(part.trim())}</code>
-            </pre>
+            <div key={index} className="my-4 -mx-4 sm:mx-0">
+              {lang && (
+                <div className="px-3 sm:px-4 py-1 text-[11px] font-mono uppercase tracking-wide text-slate-400 bg-slate-800 border border-b-0 border-slate-700/50 rounded-t-lg sm:rounded-t-lg">
+                  {lang}
+                </div>
+              )}
+              <pre className={`bg-slate-900 ${lang ? 'rounded-b-lg' : 'rounded-lg'} p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full border border-slate-700/50`}>
+                <code className="text-slate-100 leading-relaxed font-mono whitespace-pre">
+                  {plain ? body : highlightCode(body.trim())}
+                </code>
+              </pre>
+            </div>
           )
         }
         if (index % 3 === 1) return null
@@ -68,19 +135,13 @@ export default function Markdown({ text }) {
           const line = lines[lineIndex]
           const key = `${index}-${lineIndex}`
 
-          // Images: ![alt](src "optional title")
-          const imgMatch = line.match(/!\[([^\]]*)\]\(([^)"\s]+)(?:\s+"([^"]*)")?\)/)
+          // Standalone image line: ![alt](src "optional title")
+          const imgMatch = line.match(/^\s*!\[([^\]]*)\]\(([^)"\s]+)(?:\s+"([^"]*)")?\)\s*$/)
           if (imgMatch) {
             const [, alt, src, title] = imgMatch
             out.push(
               <div key={key} className="my-4">
-                <img
-                  src={src}
-                  alt={alt}
-                  title={title}
-                  className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700"
-                  loading="lazy"
-                />
+                <img src={src} alt={alt} title={title} className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700" loading="lazy" />
                 {alt && <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1">{alt}</p>}
               </div>
             )
@@ -90,48 +151,136 @@ export default function Markdown({ text }) {
           // Group consecutive pipe lines into one table (skip the |---| separator)
           const isRow = (l) => l && l.includes('|') && l.split('|').map(c => c.trim()).filter(Boolean).length > 1
           const isSep = (l) => l && /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes('-')
-          if (isRow(line)) {
+          if (isRow(line) && !isSep(line)) {
             const rows = []
+            let align = []
             let j = lineIndex
             while (j < lines.length && (isRow(lines[j]) || isSep(lines[j]))) {
-              if (!isSep(lines[j])) rows.push(lines[j].split('|').map(c => c.trim()).filter((c, i, a) => !(c === '' && (i === 0 || i === a.length - 1))))
+              if (isSep(lines[j])) {
+                // Capture per-column alignment from :--- / :---: / ---:
+                align = lines[j].split('|').map(c => c.trim()).filter((c, i, a) => !(c === '' && (i === 0 || i === a.length - 1)))
+                  .map(c => (c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : 'left'))
+              } else {
+                rows.push(lines[j].split('|').map(c => c.trim()).filter((c, i, a) => !(c === '' && (i === 0 || i === a.length - 1))))
+              }
               j++
             }
             const [head, ...body] = rows
-            out.push(
-              <div key={key} className="overflow-x-auto my-4 -mx-4 sm:mx-0 rounded-lg border border-slate-200 dark:border-slate-700 max-w-full">
-                <table className="min-w-full text-xs sm:text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 dark:bg-slate-800">
-                      {head.map((cell, ci) => (
-                        <th key={ci} className="px-3 sm:px-4 py-2 sm:py-2.5 text-left font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">{formatInline(cell)}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {body.map((cells, ri) => (
-                      <tr key={ri} className="even:bg-slate-50 dark:even:bg-slate-800/40">
-                        {cells.map((cell, ci) => (
-                          <td key={ci} className="px-3 sm:px-4 py-2 sm:py-2.5 align-top text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">{formatInline(cell)}</td>
+            if (head) {
+              out.push(
+                <div key={key} className="overflow-x-auto my-4 -mx-4 sm:mx-0 rounded-lg border border-slate-200 dark:border-slate-700 max-w-full">
+                  <table className="min-w-full text-xs sm:text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 dark:bg-slate-800">
+                        {head.map((cell, ci) => (
+                          <th key={ci} style={{ textAlign: align[ci] || 'left' }} className="px-3 sm:px-4 py-2 sm:py-2.5 font-semibold text-slate-900 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700">{formatInline(cell)}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {body.map((cells, ri) => (
+                        <tr key={ri} className="even:bg-slate-50 dark:even:bg-slate-800/40">
+                          {cells.map((cell, ci) => (
+                            <td key={ci} style={{ textAlign: align[ci] || 'left' }} className="px-3 sm:px-4 py-2 sm:py-2.5 align-top text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">{formatInline(cell)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+              lineIndex = j - 1
+              continue
+            }
+          }
+
+          // Horizontal rule: --- *** ___ (must come before list/paragraph handling)
+          if (/^\s*([-*_])\s*\1\s*\1[\s\-*_]*$/.test(line)) {
+            out.push(<hr key={key} className="my-6 border-slate-200 dark:border-slate-700" />)
+            continue
+          }
+
+          // Blockquote: group consecutive "> " lines into one block
+          if (/^\s*>\s?/.test(line)) {
+            const quoted = []
+            let j = lineIndex
+            while (j < lines.length && /^\s*>\s?/.test(lines[j])) {
+              quoted.push(lines[j].replace(/^\s*>\s?/, ''))
+              j++
+            }
+            out.push(
+              <blockquote key={key} className="border-l-4 border-blue-500 pl-4 py-1 my-3 text-slate-700 dark:text-slate-300 bg-blue-50/50 dark:bg-blue-900/10 rounded-r">
+                {quoted.map((q, qi) => (
+                  q.trim()
+                    ? <p key={qi} className="my-1 leading-relaxed">{formatInline(q)}</p>
+                    : <br key={qi} />
+                ))}
+              </blockquote>
+            )
+            lineIndex = j - 1
+            continue
+          }
+
+          // Lists: group consecutive items into a real <ul>/<ol>, supporting nesting
+          const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/)
+          if (listMatch) {
+            const ordered = /\d+\./.test(listMatch[2])
+            const items = []
+            let j = lineIndex
+            while (j < lines.length) {
+              const m = lines[j].match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/)
+              if (!m) {
+                // A blank line followed by another item keeps the same list going
+                if (lines[j].trim() === '' && lines[j + 1] && /^(\s*)([-*+]|\d+\.)\s+/.test(lines[j + 1])) { j++; continue }
+                break
+              }
+              if (/\d+\./.test(m[2]) !== ordered) break   // switching list type ends this list
+              items.push({ indent: Math.floor(m[1].length / 2), content: m[3] })
+              j++
+            }
+            const ListTag = ordered ? 'ol' : 'ul'
+            const start = ordered ? parseInt(listMatch[2], 10) || 1 : undefined
+            out.push(
+              <ListTag
+                key={key}
+                start={start}
+                className={`my-2 ml-6 space-y-1 ${ordered ? 'list-decimal' : 'list-disc'}`}
+              >
+                {items.map((it, ii) => (
+                  <li
+                    key={ii}
+                    style={it.indent ? { marginLeft: `${it.indent * 1.25}rem` } : undefined}
+                    className="text-slate-700 dark:text-slate-300 leading-relaxed"
+                  >
+                    {formatInline(it.content)}
+                  </li>
+                ))}
+              </ListTag>
             )
             lineIndex = j - 1
             continue
           }
 
           if (line.trim() === '```') continue // orphan/empty code fence from source data
-          if (!line.trim()) { out.push(<br key={key} />); continue }
-          if (line.startsWith('### ')) { out.push(<h3 key={key} className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2">{line.slice(4)}</h3>); continue }
-          if (line.startsWith('## ')) { out.push(<h2 key={key} className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-3">{line.slice(3)}</h2>); continue }
-          if (line.startsWith('# ')) { out.push(<h1 key={key} className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-6 mb-4">{line.slice(2)}</h1>); continue }
-          if (line.startsWith('> ')) { out.push(<blockquote key={key} className="border-l-4 border-blue-500 pl-4 italic text-slate-700 dark:text-slate-300 my-3">{line.slice(2)}</blockquote>); continue }
-          if (line.startsWith('- ') || line.startsWith('* ')) { out.push(<li key={key} className="ml-6 list-disc text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.slice(2))}</li>); continue }
-          if (line.match(/^\d+\.\s/)) { out.push(<li key={key} className="ml-6 list-decimal text-slate-700 dark:text-slate-300 leading-relaxed">{formatInline(line.replace(/^\d+\.\s/, ''))}</li>); continue }
+          // A blank line separates blocks in Markdown; it is not a line break.
+          // Block margins already provide the spacing, so emitting <br> here
+          // stacked extra gaps around code blocks, tables and diagrams.
+          if (!line.trim()) continue
+
+          // Headings h1-h6, with an id so in-page anchor links work
+          const h = line.match(/^(#{1,6})\s+(.*)$/)
+          if (h) {
+            const level = h[1].length
+            const content = h[2]
+            const Tag = `h${level}`
+            out.push(
+              <Tag key={key} id={slugifyHeading(content)} className={HEADING_STYLES[level]}>
+                {formatInline(content)}
+              </Tag>
+            )
+            continue
+          }
+
           out.push(<p key={key} className="text-slate-700 dark:text-slate-300 leading-relaxed my-2">{formatInline(line)}</p>)
         }
         return out
