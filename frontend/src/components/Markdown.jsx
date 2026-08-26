@@ -69,7 +69,8 @@ function formatInline(line) {
 }
 
 // GitHub-style heading id so in-page [links](#anchor) actually jump.
-function slugifyHeading(text) {
+// Exported so the on-this-page outline derives identical ids.
+export function slugifyHeading(text) {
   return String(text)
     .toLowerCase()
     .replace(/[`*_~]/g, '')
