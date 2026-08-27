@@ -1,0 +1,9 @@
+# https://interviewreader.up.railway.app
+User-agent: *
+Allow: /
+
+# Application routes with no standalone content
+Disallow: /admin
+Disallow: /profile
+
+Sitemap: https://interviewreader.up.railway.app/sitemap.xml

@@ -23,6 +23,8 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
     Page<Question> findByTech(String tech, Pageable pageable);
 
     @Query("SELECT q FROM Question q WHERE " +
+           // when :restrict is true only the allowed (free) techs are visible
+           "(:restrict = false OR q.tech IN :allowedTechs) AND " +
            "(:tech IS NULL OR q.tech = :tech) AND " +
            "(:category IS NULL OR q.category = :category) AND " +
            "(:difficulty IS NULL OR q.difficulty = :difficulty) AND " +
@@ -33,6 +35,8 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
            "  (:status = 'unsolved' AND q.id NOT IN :readIds)" +
            ")")
     Page<Question> searchQuestions(
+            @Param("restrict") boolean restrict,
+            @Param("allowedTechs") List<String> allowedTechs,
             @Param("tech") String tech,
             @Param("category") String category,
             @Param("difficulty") String difficulty,

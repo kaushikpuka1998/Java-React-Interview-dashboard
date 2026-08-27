@@ -53,6 +53,9 @@ app:
   # back via {public-base-url}/api/images/file/**, so the S3 bucket can stay private.
   # On Railway set APP_PUBLIC_BASE_URL to the backend's public URL (https://...up.railway.app).
   public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8082}
+  # Topics readable without an account; everything else requires sign-up.
+  # These stay crawlable so search engines still index a sample of the content.
+  free-techs: ${FREE_TECHS:microservices,design-patterns}
   s3:
     # LocalStack for local dev; override with real AWS/Railway values in prod.
 #    endpoint: ${AWS_S3_ENDPOINT:http://localhost:4566}

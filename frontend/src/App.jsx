@@ -5,8 +5,10 @@ import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
+import SignupGate from './components/SignupGate.jsx'
 import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote } from './lib/auth.js'
 import { trackView } from './lib/analytics.js'
+import { setQuestionSeo, setDefaultSeo } from './lib/seo.js'
 
 function App({ path = '/', onPathChange = () => {} }) {
   const [questionsData, setQuestionsData] = useState([])
@@ -41,6 +43,8 @@ function App({ path = '/', onPathChange = () => {} }) {
   // Auth state
   const [user, setUser] = useState(() => getUser())
   const [authOpen, setAuthOpen] = useState(false)
+  const [freeTechs, setFreeTechs] = useState([])
+  const [gate, setGate] = useState(null)   // { message, tech } when a locked topic is requested
 
   // On login: merge any status the user clicked this session (pre-login) into the
   // account, then load the account's authoritative progress.
@@ -91,6 +95,7 @@ function App({ path = '/', onPathChange = () => {} }) {
   const loadQuestionsFromAPI = useCallback(async (pageToLoad, append) => {
     loadingRef.current = true
     setIsLoading(true)
+    setGate(null)
     try {
       const data = await fetchQuestions({
         tech: tech === 'all' ? undefined : tech,
@@ -111,7 +116,12 @@ function App({ path = '/', onPathChange = () => {} }) {
       setTotalCount(data.totalElements)
       setHasMore(hasMoreRef.current)
     } catch (err) {
-      console.error('Failed to load questions:', err)
+      if (err.signupRequired) {
+        setGate({ message: err.message, tech: err.tech })
+        setQuestionsData([]); setTotalCount(0); setHasMore(false)
+      } else {
+        console.error('Failed to load questions:', err)
+      }
     } finally {
       loadingRef.current = false
       setIsLoading(false)
@@ -137,9 +147,9 @@ function App({ path = '/', onPathChange = () => {} }) {
   // Load stats
   useEffect(() => {
     fetchStats().then(stats => {
-      // Stats available if needed
+      if (Array.isArray(stats?.freeTechs)) setFreeTechs(stats.freeTechs)
     }).catch(() => {})
-  }, [])
+  }, [user])
 
   // Load more (pagination) — stable identity; reads fresh state from refs to avoid
   // stale-closure double-loads. Guards against concurrent loads.
@@ -174,6 +184,12 @@ function App({ path = '/', onPathChange = () => {} }) {
     if (next !== window.location.pathname) window.history.pushState({}, '', next)
     // Record the view for the admin analytics dashboard.
     trackView({ path: next, questionId: selected.id })
+    // Per-question title/description/canonical + QAPage structured data.
+    // Only claim paywalled when we actually know the free list; if the backend has
+    // not reported it, fail open — marking free content as paywalled would suppress it.
+    setQuestionSeo(selected, {
+      gated: !user && freeTechs.length > 0 && !freeTechs.includes(selected.tech),
+    })
   }, [selected?.id])
 
   const toggleDarkMode = useCallback(() => {
@@ -297,6 +313,8 @@ function App({ path = '/', onPathChange = () => {} }) {
     onLoginClick: () => setAuthOpen(true),
     onLogout: handleLogout,
     onAdminClick: () => { window.location.href = '/admin' },
+    freeTechs,
+    onLockedTech: () => setAuthOpen(true),
   }
 
   return (
@@ -327,6 +345,15 @@ function App({ path = '/', onPathChange = () => {} }) {
         }}
       />
 
+      {gate ? (
+        <SignupGate
+          tech={gate.tech}
+          message={gate.message}
+          freeTechs={freeTechs}
+          onSignup={() => setAuthOpen(true)}
+          onBrowseFree={(t) => setTech(t)}
+        />
+      ) : (
       <ReaderPane
         question={selected}
         questions={filtered}
@@ -335,6 +362,7 @@ function App({ path = '/', onPathChange = () => {} }) {
         read={read}
         onMarkRead={handleMarkRead}
       />
+      )}
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
     </div>

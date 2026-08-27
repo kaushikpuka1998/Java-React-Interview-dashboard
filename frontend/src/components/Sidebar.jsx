@@ -5,7 +5,7 @@ import { SearchInput, TechFilter, CategorySelect, StatusSelect, DifficultySelect
 /**
  * Sidebar component
  */
-export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, user, onLoginClick, onLogout, onAdminClick }) {
+export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
@@ -124,7 +124,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
           </button>
           <div id="mobile-filters" className={`${filtersOpen ? 'block' : 'hidden'}`}>
             <div className="p-4 space-y-4">
-              <TechFilter value={tech} onChange={setTech} />
+              <TechFilter value={tech} onChange={setTech} locked={!user} freeTechs={freeTechs} onLockedClick={onLockedTech} />
               <CategorySelect
                 value={category}
                 onChange={setCategory}
@@ -144,7 +144,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
         </div>
       ) : (
         <div className="p-4 space-y-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <TechFilter value={tech} onChange={setTech} />
+          <TechFilter value={tech} onChange={setTech} locked={!user} freeTechs={freeTechs} onLockedClick={onLockedTech} />
           <CategorySelect
             value={category}
             onChange={setCategory}

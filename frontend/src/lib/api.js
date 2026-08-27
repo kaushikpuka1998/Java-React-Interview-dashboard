@@ -17,7 +17,17 @@ export async function fetchQuestions({ tech, category, difficulty, search, statu
   if (shouldSendIds && readIds && readIds.length > 0) params.set('readIds', readIds.join(','))
   params.set('page', page)
   params.set('size', size)
-  const res = await fetch(`${API_BASE}/questions?${params}`)
+  const token = localStorage.getItem('ir_token')
+  const res = await fetch(`${API_BASE}/questions?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (res.status === 401) {
+    const body = await res.json().catch(() => ({}))
+    const err = new Error(body.message || 'Create a free account to view this topic')
+    err.signupRequired = true          // App shows the sign-up prompt instead of an error
+    err.tech = body.tech
+    throw err
+  }
   if (!res.ok) throw new Error('Failed to fetch questions')
   return res.json()
 }

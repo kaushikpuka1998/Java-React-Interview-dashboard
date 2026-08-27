@@ -1,12 +1,14 @@
 package com.interview.backend.controller;
 
 import com.interview.backend.entity.Question;
+import com.interview.backend.service.AccessService;
 import com.interview.backend.service.QuestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,16 +22,22 @@ import java.util.Map;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final AccessService access;
 
     @GetMapping("/{id}")
-    public ResponseEntity<Question> getQuestion(@PathVariable String id) {
+    public ResponseEntity<?> getQuestion(@PathVariable String id) {
         return questionService.getById(id)
-                .map(ResponseEntity::ok)
+                .<ResponseEntity<?>>map(q -> access.canRead(q.getTech())
+                        ? ResponseEntity.ok(q)
+                        : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                                "error", "signup_required",
+                                "message", "Create a free account to read " + q.getTech() + " questions",
+                                "tech", q.getTech())))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<Page<Question>> searchQuestions(
+    public ResponseEntity<?> searchQuestions(
             @RequestParam(required = false) String tech,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String difficulty,
@@ -45,7 +53,18 @@ public class QuestionController {
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
 
-        Page<Question> result = questionService.searchQuestions(tech, category, difficulty, search, status, visitedIds, readIds, pageable);
+        boolean restrict = access.isRestricted();
+        if (restrict && tech != null && !access.canRead(tech)) {
+            // Asking for a locked topic while signed out: say so explicitly so the
+            // UI can prompt for sign-up instead of silently showing nothing.
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "signup_required",
+                    "message", "Create a free account to browse " + tech + " questions",
+                    "tech", tech));
+        }
+
+        Page<Question> result = questionService.searchQuestions(
+                restrict, access.allowedTechs(), tech, category, difficulty, search, status, visitedIds, readIds, pageable);
         return ResponseEntity.ok(result);
     }
 
@@ -57,6 +76,9 @@ public class QuestionController {
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(Map.of(
+                // Topics readable without an account — the UI locks the rest.
+                "freeTechs", access.freeTechs(),
+                "authenticated", access.isAuthenticated(),
                 "total", questionService.getTotalCount(),
                 "byTech", Map.of(
                         "java", questionService.getCountByTech("java"),

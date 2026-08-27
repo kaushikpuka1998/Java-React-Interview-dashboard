@@ -35,7 +35,7 @@ export function SearchInput({ value, onChange, placeholder }) {
 /**
  * Tech filter segmented control - colorful icons per technology
  */
-export function TechFilter({ value, onChange }) {
+export function TechFilter({ value, onChange, locked = false, freeTechs = [], onLockedClick }) {
   const options = [
     {
       value: 'all', label: 'All',
@@ -100,22 +100,32 @@ export function TechFilter({ value, onChange }) {
 
   return (
     <div className="segmented grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-lg" role="group" aria-label="Filter by technology">
-      {options.map(opt => (
+      {options.map(opt => {
+        // Signed out: everything except the free sample needs an account.
+        const isLocked = locked && opt.value !== 'all' && !freeTechs.includes(opt.value)
+        return (
         <button
           key={opt.value}
-          className={`w-full min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
+          className={`relative w-full min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
             value === opt.value
               ? opt.active
+              : isLocked
+              ? 'bg-white/60 text-slate-400 border border-slate-200 hover:border-blue-300 hover:text-blue-500 dark:bg-slate-900/20 dark:text-slate-500 dark:border-slate-700/60'
               : 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-900/40 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
           }`}
-          onClick={() => onChange(opt.value)}
+          onClick={() => (isLocked ? onLockedClick?.(opt.value) : onChange(opt.value))}
           aria-pressed={value === opt.value}
-          title={opt.label}
+          title={isLocked ? `${opt.label} — sign up free to unlock` : opt.label}
         >
           {opt.icon}
           <span>{opt.label}</span>
+          {isLocked && (
+            <svg className="w-3 h-3 flex-shrink-0 opacity-70" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+          )}
         </button>
-      ))}
+      )})}
     </div>
   )
 }
