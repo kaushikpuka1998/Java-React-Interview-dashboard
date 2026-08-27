@@ -68,6 +68,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/questions/**").hasRole("ADMIN")
                         // Image upload is admin-only
                         .requestMatchers(HttpMethod.POST, "/images/**").hasRole("ADMIN")
+                        // Anyone may record a view; only admins may read the reports.
+                        .requestMatchers(HttpMethod.POST, "/analytics/track").permitAll()
+                        .requestMatchers("/analytics/**").hasRole("ADMIN")
                         // Public: auth + read-only question browsing
                         .requestMatchers("/auth/**", "/health", "/questions/**").permitAll()
                         // Progress + profile require a logged-in user

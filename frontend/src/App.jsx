@@ -6,6 +6,7 @@ import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote } from './lib/auth.js'
+import { trackView } from './lib/analytics.js'
 
 function App({ path = '/', onPathChange = () => {} }) {
   const [questionsData, setQuestionsData] = useState([])
@@ -43,8 +44,11 @@ function App({ path = '/', onPathChange = () => {} }) {
 
   // On login: merge any status the user clicked this session (pre-login) into the
   // account, then load the account's authoritative progress.
-  const handleAuthSuccess = useCallback(async (u) => {
-    setUser({ email: u.email, name: u.name })
+  const handleAuthSuccess = useCallback(async () => {
+    // Read back the stored session rather than rebuilding it from the response:
+    // hand-picking fields here previously dropped `admin`, so the admin controls
+    // stayed hidden until the next page load.
+    setUser(getUser())
     setAuthOpen(false)
     try {
       await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
@@ -168,6 +172,8 @@ function App({ path = '/', onPathChange = () => {} }) {
     if (!selected) return
     const next = `/${slugify(selected.question || selected.title)}`
     if (next !== window.location.pathname) window.history.pushState({}, '', next)
+    // Record the view for the admin analytics dashboard.
+    trackView({ path: next, questionId: selected.id })
   }, [selected?.id])
 
   const toggleDarkMode = useCallback(() => {

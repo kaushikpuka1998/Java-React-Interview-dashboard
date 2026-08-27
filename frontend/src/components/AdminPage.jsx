@@ -4,6 +4,7 @@ import { createQuestion, createQuestionsBulk, updateQuestion, deleteQuestion, up
 import { fetchQuestions } from '../lib/api.js'
 import AuthModal from './AuthModal.jsx'
 import Markdown from './Markdown.jsx'
+import AnalyticsPanel from './AnalyticsPanel.jsx'
 
 const TECHS = ['java', 'react', 'node', 'sql', 'hld', 'kafka','golang']
 const DIFFICULTIES = ['Basic', 'Intermediate', 'Advanced', 'Experienced']
@@ -283,7 +284,7 @@ export default function AdminPage() {
     return (
       <Shell>
         <p className="text-slate-600 dark:text-slate-300 mb-4">Log in with an admin account to manage questions.</p>
-        <AuthModal onClose={() => { window.location.href = '/' }} onSuccess={(u) => setUser({ email: u.email, name: u.name, admin: u.admin })} />
+        <AuthModal onClose={() => { window.location.href = '/' }} onSuccess={() => setUser(getUser())} />
       </Shell>
     )
   }
@@ -297,9 +298,9 @@ export default function AdminPage() {
   }
 
   return (
-    <Shell>
+    <Shell tabWide={tab === "analytics"}>
       <div className="flex gap-2 mb-5">
-        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage']].map(([t, label]) => (
+        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['analytics', 'Analytics']].map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
             {label}
@@ -348,6 +349,8 @@ export default function AdminPage() {
           </button>
         </form>
       )}
+
+      {tab === 'analytics' && <AnalyticsPanel />}
 
       {tab === 'manage' && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-5 items-start">
@@ -411,12 +414,12 @@ export default function AdminPage() {
   )
 }
 
-function Shell({ children }) {
+function Shell({ children, tabWide }) {
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className={tabWide ? "max-w-6xl mx-auto" : "max-w-5xl mx-auto"}>
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Admin · Questions</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
           <a href="/" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Back to app</a>
         </div>
         <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">

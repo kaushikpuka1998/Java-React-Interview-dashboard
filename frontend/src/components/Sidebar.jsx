@@ -71,8 +71,15 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
               </a>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {user.admin && (
-                  <button onClick={onAdminClick} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                    + Publish
+                  <button
+                    onClick={onAdminClick}
+                    title="Open the admin dashboard"
+                    className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6zM4 17a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1v-2z" />
+                    </svg>
+                    Admin
                   </button>
                 )}
                 <button onClick={onLogout} className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400">
