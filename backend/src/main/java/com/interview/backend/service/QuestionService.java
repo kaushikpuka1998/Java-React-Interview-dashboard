@@ -99,6 +99,10 @@ public class QuestionService {
         int sortKey = questionRepository.maxSortKey();
         // Track the running max number per tech so a bulk push assigns sequential numbers.
         java.util.Map<String, Integer> nextNumber = new java.util.HashMap<>();
+        // Ids are tracked separately from numbers: imported rows have ids whose suffix
+        // does not match their `number`, so deriving one from the other collides.
+        java.util.Map<String, Integer> nextIdSuffix = new java.util.HashMap<>();
+        java.util.Set<String> takenInBatch = new java.util.HashSet<>();
         List<Question> toSave = new java.util.ArrayList<>();
 
         for (com.interview.backend.dto.QuestionInput in : inputs) {
@@ -114,9 +118,25 @@ public class QuestionService {
             nextNumber.put(tech, number);
             sortKey++;
 
-            String id = (in.id() == null || in.id().isBlank()) ? tech + "-" + number : in.id().trim();
-            if (questionRepository.existsById(id))
-                throw new IllegalArgumentException("Question id already exists: " + id);
+            final String id;
+            if (in.id() != null && !in.id().isBlank()) {
+                // Explicit id from the caller: a clash is their mistake, so report it.
+                id = in.id().trim();
+                if (takenInBatch.contains(id) || questionRepository.existsById(id))
+                    throw new IllegalArgumentException("Question id already exists: " + id);
+            } else {
+                // Auto id: start past the highest suffix already in use, then step
+                // forward until a free one is found (gaps and odd imports are common).
+                int suffix = nextIdSuffix.computeIfAbsent(tech, questionRepository::maxIdSuffixByTech);
+                String candidate;
+                do {
+                    suffix++;
+                    candidate = tech + "-" + suffix;
+                } while (takenInBatch.contains(candidate) || questionRepository.existsById(candidate));
+                nextIdSuffix.put(tech, suffix);
+                id = candidate;
+            }
+            takenInBatch.add(id);
 
             String questionText = (in.question() == null || in.question().isBlank()) ? in.title() : in.question();
 

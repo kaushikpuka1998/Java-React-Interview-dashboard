@@ -58,6 +58,17 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
     @Query("SELECT COALESCE(MAX(q.number), 0) FROM Question q WHERE q.tech = :tech")
     int maxNumberByTech(@Param("tech") String tech);
 
+    /**
+     * Highest numeric suffix actually used by an id for this tech, e.g. "java-695" -> 695.
+     *
+     * Imported data has ids and `number` values that do not line up (java's MAX(number)
+     * is 575 while ids run past 695), so a new id must be derived from the ids
+     * themselves or it collides with an existing row.
+     */
+    @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM '[0-9]+$') AS INTEGER)), 0) " +
+                   "FROM questions WHERE tech = :tech AND id ~ '-[0-9]+$'", nativeQuery = true)
+    int maxIdSuffixByTech(@Param("tech") String tech);
+
     @Query("SELECT COALESCE(MAX(q.sortKey), 0) FROM Question q")
     int maxSortKey();
 
