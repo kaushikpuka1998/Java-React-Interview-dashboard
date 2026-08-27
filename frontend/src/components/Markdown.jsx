@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import Mermaid from './Mermaid.jsx'
+import ImageLightbox from './ImageLightbox.jsx'
 
 // ponytail: regex tokenizer, covers Java/JS/TS/Go well enough; swap for Shiki if more langs needed
 const KEYWORDS = new Set('abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while var let function async await yield typeof of in delete null true false undefined NaN chan defer fallthrough func go map range select struct type nil iota make append copy panic recover len cap string error any rune uint int64 int32 float64 bool def elif except raise lambda pass None True False self'.split(' '))
@@ -123,6 +125,7 @@ const HEADING_STYLES = {
  * - Horizontal rules
  */
 export default function Markdown({ text }) {
+  const [lightbox, setLightbox] = useState(null)   // { src, alt } while an image is open
   const parts = String(text || '').split(/```(\w+)?\n([\s\S]*?)```/g)
 
   // Precomputed deduplicated ids, consumed in document order as headings render.
@@ -131,6 +134,9 @@ export default function Markdown({ text }) {
 
   return (
     <div className="markdown prose prose-slate dark:prose-invert max-w-none">
+      {lightbox && (
+        <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
+      )}
       {parts.map((part, index) => {
         if (index % 3 === 2) {
           const lang = (parts[index - 1] || '').toLowerCase()
@@ -169,7 +175,20 @@ export default function Markdown({ text }) {
             const [, alt, src, title] = imgMatch
             out.push(
               <div key={key} className="my-4">
-                <img src={src} alt={alt} title={title} className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700" loading="lazy" />
+                <button
+                  type="button"
+                  onClick={() => setLightbox({ src, alt })}
+                  title="Click to enlarge"
+                  className="block w-full cursor-zoom-in group"
+                >
+                  <img
+                    src={src}
+                    alt={alt}
+                    title={title}
+                    className="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 transition-shadow group-hover:shadow-lg"
+                    loading="lazy"
+                  />
+                </button>
                 {alt && <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1">{alt}</p>}
               </div>
             )
