@@ -62,6 +62,13 @@ public class SecurityConfig {
                                 org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Company reports: any signed-in user may add/remove their own.
+                        // MUST precede the admin-only /questions/** rules below, since
+                        // the first matching rule wins.
+                        .requestMatchers(HttpMethod.GET, "/questions/*/companies").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/questions/*/companies").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/questions/*/companies/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/companies").authenticated()
                         // Publishing questions is admin-only
                         .requestMatchers(HttpMethod.POST, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/questions/**").hasRole("ADMIN")

@@ -88,6 +88,43 @@ export async function fetchProfileQuestions(kind) {
   return res.json()
 }
 
+// --- "was this asked in an interview?" company reports ---
+
+/** Companies this question has been reported at, with report counts. Public. */
+export async function fetchQuestionCompanies(questionId) {
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/companies`)
+  if (!res.ok) return []
+  return res.json()
+}
+
+/** Typeahead over companies already in the database. */
+export async function searchCompanies(q) {
+  const res = await fetch(`${API_BASE}/companies?q=${encodeURIComponent(q || '')}`, { headers: authHeaders() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+/** Report this question as asked at a company (creates the company if new). */
+export async function reportCompany(questionId, company, askedOn) {
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/companies`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ company, askedOn }),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not save that')
+  return res.json()
+}
+
+/** Withdraw this user's own report. */
+export async function unreportCompany(questionId, company) {
+  const res = await fetch(
+    `${API_BASE}/questions/${encodeURIComponent(questionId)}/companies/${encodeURIComponent(company)}`,
+    { method: 'DELETE', headers: authHeaders() }
+  )
+  if (!res.ok) throw new Error('Could not remove that')
+  return res.json()
+}
+
 // --- admin: publish questions ---
 
 export async function createQuestion(input) {

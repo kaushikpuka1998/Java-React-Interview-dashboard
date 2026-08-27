@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import Markdown from './Markdown.jsx'
 import NotFound from './NotFound.jsx'
 import OnThisPage from './OnThisPage.jsx'
+import AskedAt from './AskedAt.jsx'
+import { isLoggedIn } from '../lib/auth.js'
+import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 
 /**
  * Inline-editable question position: click the number, type a new one, press Enter to jump.
@@ -124,33 +127,13 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
 
         <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="badges flex items-center justify-between mb-4 px-0.5">
-            <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
-              question.tech === 'hld'
-                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-                : question.tech === 'java'
-                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
-                : question.tech === 'node'
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                : question.tech === 'sql'
-                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                : question.tech === 'microservices'
-                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
-                : question.tech === 'design-patterns'
-                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                : question.tech === 'kafka'
-                ? 'bg-slate-200 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200'
-                : 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300'
-            }`}>
-              {question.tech === 'design-patterns' ? 'Design Patterns' : question.tech === 'hld' ? 'HLD' : question.tech.charAt(0).toUpperCase() + question.tech.slice(1)}
+            <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${techBadge(question.tech)}`}>
+              {techLabel(question.tech)}
             </span>
             <span className="badge px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {question.category}
             </span>
-            <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${
-              question.difficulty === 'Basic' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-              question.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
-              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-            }`}>
+            <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${difficultyBadge(question.difficulty)}`}>
               {question.difficulty}
             </span>
           </div>
@@ -158,8 +141,8 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
             Q{question.displayNumber}. {question.question}
           </h2>
 
-          {/* Read status and Mark as Read button */}
-          <div className="mt-4 flex items-center justify-between gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+          {/* Read status and Mark as Read button — signed-in only */}
+          {isLoggedIn() && <div className="mt-4 flex items-center justify-between gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3 text-sm">
               {read.has(question.id) && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
@@ -200,7 +183,10 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                 </span>
               )}
             </div>
-          </div>
+          </div>}
+
+          {/* Which companies have asked this question */}
+          <AskedAt questionId={question.id} />
         </header>
 
         <div className="answer-content">

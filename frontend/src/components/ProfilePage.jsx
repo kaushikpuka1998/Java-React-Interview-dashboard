@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { isLoggedIn, logout, fetchProfile, fetchProfileQuestions } from '../lib/auth.js'
 import { slugify } from '../lib/slug.js'
+import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
 
 const TECH_COLOR = {
@@ -26,7 +27,7 @@ function ProgressBar({ label, total, solved, color }) {
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="font-medium text-slate-700 dark:text-slate-200 capitalize">{label}</span>
+        <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
         <span className="text-slate-500 dark:text-slate-400">{solved}/{total} · {pct}%</span>
       </div>
       <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
@@ -46,9 +47,20 @@ function QuestionList({ title, items, emptyText }) {
         <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
           {items.map((q) => (
             <li key={q.id} className="py-2">
-              <a href={`/${slugify(q.question || q.title)}`} className="block hover:text-blue-600 dark:hover:text-blue-400">
-                <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{q.title}</p>
-                <p className="text-xs text-slate-400">{q.tech} · {q.difficulty}</p>
+              <a href={`/${slugify(q.question || q.title)}`} className="block group">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                  {q.title}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${techBadge(q.tech)}`}>
+                    {techLabel(q.tech)}
+                  </span>
+                  {q.difficulty && (
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${difficultyBadge(q.difficulty)}`}>
+                      {q.difficulty}
+                    </span>
+                  )}
+                </div>
               </a>
             </li>
           ))}
@@ -128,7 +140,7 @@ export default function ProfilePage() {
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
             <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Progress by technology</h3>
             <div className="space-y-4">
-              {byTech.map((t) => <ProgressBar key={t.tech} label={t.tech} total={t.total} solved={t.solved} color={TECH_COLOR[t.tech]} />)}
+              {byTech.map((t) => <ProgressBar key={t.tech} label={techLabel(t.tech)} total={t.total} solved={t.solved} color={TECH_COLOR[t.tech]} />)}
             </div>
           </div>
         )}

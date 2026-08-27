@@ -137,7 +137,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
                 questions={questions}
                 tech={tech}
               />
-              <StatusSelect value={status} onChange={setStatus} />
+              {user && <StatusSelect value={status} onChange={setStatus} />}
               <QuestionCount count={filtered.length} total={questions.length} />
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
             questions={questions}
             tech={tech}
           />
-          <StatusSelect value={status} onChange={setStatus} />
+          {user && <StatusSelect value={status} onChange={setStatus} />}
           <QuestionCount count={filtered.length} total={questions.length} />
         </div>
       )}
