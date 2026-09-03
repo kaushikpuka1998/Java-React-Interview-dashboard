@@ -11,6 +11,7 @@ const TECH_BADGE = {
   kafka: 'bg-slate-200 text-slate-800 dark:bg-slate-700/50 dark:text-slate-200',
   microservices: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
   'design-patterns': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  misc: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
 }
 
 const DIFFICULTY_BADGE = {
@@ -31,5 +32,6 @@ export function techLabel(tech) {
   if (tech === 'hld') return 'HLD'
   if (tech === 'sql') return 'SQL'
   if (tech === 'golang') return 'Go'
+  if (tech === 'misc') return 'Miscellaneous'
   return tech.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
