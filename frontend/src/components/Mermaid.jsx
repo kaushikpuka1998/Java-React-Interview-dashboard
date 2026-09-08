@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import ImageLightbox from './ImageLightbox.jsx'
 
 // ponytail: mermaid is ~500KB, so it is dynamically imported — Vite splits it into
 // its own chunk that only downloads when a question actually contains a diagram.
@@ -47,6 +48,7 @@ export default function Mermaid({ code }) {
   const ref = useRef(null)
   const [svg, setSvg] = useState('')
   const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -74,8 +76,9 @@ export default function Mermaid({ code }) {
   if (error) {
     return (
       <div className="my-4 -mx-4 sm:mx-0">
-        <div className="px-3 sm:px-4 py-1 text-[11px] font-mono uppercase tracking-wide text-amber-400 bg-slate-800 border border-b-0 border-slate-700/50 rounded-t-lg">
-          mermaid — {error}
+        {/* Full parser output would be a wall of text; keep it on hover. */}
+        <div title={error} className="px-3 sm:px-4 py-1 text-[11px] font-mono uppercase tracking-wide text-amber-400 bg-slate-800 border border-b-0 border-slate-700/50 rounded-t-lg">
+          diagram source (unrenderable)
         </div>
         <pre className="bg-slate-900 rounded-b-lg p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full border border-slate-700/50">
           <code className="text-slate-100 leading-relaxed font-mono whitespace-pre">{code}</code>
@@ -92,14 +95,23 @@ export default function Mermaid({ code }) {
     )
   }
 
+  // ponytail: reuse ImageLightbox for zoom / pan / Esc instead of a second viewer.
   return (
+    <>
+    {open && <ImageLightbox html={svg} alt="Diagram" onClose={() => setOpen(false)} />}
     <div
       ref={ref}
+      role="button"
+      tabIndex={0}
+      title="Click to zoom"
+      onClick={() => setOpen(true)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true) } }}
       // The SVG scales to fit the container width (never cut off) and keeps its
       // aspect ratio, so the box hugs the diagram instead of leaving dead space.
-      className="mermaid-diagram my-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-2 sm:p-3 [&>svg]:mx-auto [&>svg]:block [&>svg]:h-auto [&>svg]:max-w-full"
+      className="mermaid-diagram my-3 cursor-zoom-in overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-2 sm:p-3 [&>svg]:mx-auto [&>svg]:block [&>svg]:h-auto [&>svg]:max-w-full"
       // mermaid output is generated from the diagram source with securityLevel: 'strict'
       dangerouslySetInnerHTML={{ __html: svg }}
     />
+    </>
   )
 }

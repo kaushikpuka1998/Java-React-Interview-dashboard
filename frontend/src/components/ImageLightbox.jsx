@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * Full-screen image viewer.
@@ -7,9 +8,13 @@ import { useEffect, useRef, useState, useCallback } from 'react'
  * the overlay is fixed, and wheel/touch events over it are swallowed rather than
  * the background being locked with `overflow: hidden` (which resets scroll on
  * close). Closing therefore leaves the reader exactly where it was.
+ *
+ * `html` renders inline markup (a mermaid SVG) instead of an <img>; mermaid's
+ * foreignObject labels are not valid standalone XML, so it cannot be a data: URL.
  */
-export default function ImageLightbox({ src, alt, onClose }) {
+export default function ImageLightbox({ src, alt, html, onClose }) {
   const [zoomed, setZoomed] = useState(false)
+  const [failed, setFailed] = useState(false)   // a broken src would otherwise be a blank black screen
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const dragRef = useRef(null)
   const overlayRef = useRef(null)
@@ -53,7 +58,10 @@ export default function ImageLightbox({ src, alt, onClose }) {
 
   const endDrag = useCallback(() => { dragRef.current = null }, [])
 
-  return (
+  // Portalled to <body>: any ancestor with a transform/filter/contain makes
+  // `position: fixed` resolve against *that* box, which clipped the overlay to
+  // the article column instead of the viewport.
+  return createPortal(
     <div
       ref={overlayRef}
       role="dialog"
@@ -63,7 +71,7 @@ export default function ImageLightbox({ src, alt, onClose }) {
       className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 overscroll-contain animate-[fadeIn_120ms_ease-out]"
     >
       {/* Toolbar */}
-      <div className="absolute top-3 right-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => setZoomed(z => !z)}
           title={zoomed ? 'Fit to screen' : 'Zoom to full size'}
@@ -75,7 +83,7 @@ export default function ImageLightbox({ src, alt, onClose }) {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" /></svg>
           )}
         </button>
-        <a
+        {src && <a
           href={src}
           target="_blank"
           rel="noopener noreferrer"
@@ -83,7 +91,7 @@ export default function ImageLightbox({ src, alt, onClose }) {
           className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-        </a>
+        </a>}
         <button
           onClick={onClose}
           title="Close (Esc)"
@@ -93,26 +101,44 @@ export default function ImageLightbox({ src, alt, onClose }) {
         </button>
       </div>
 
+      {html ? (
+        <div
+          onClick={(e) => { e.stopPropagation(); setZoomed(z => !z) }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomed ? 2.5 : 1})` }}
+          className={`max-w-[92vw] max-h-[88vh] select-none rounded bg-white dark:bg-slate-900 p-3 [&>svg]:h-auto [&>svg]:max-w-full ${zoomed ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : failed ? (
+        <div onClick={(e) => e.stopPropagation()} className="max-w-[90vw] rounded-lg bg-slate-800 px-5 py-4 text-center text-sm text-slate-200">
+          <p className="font-medium">This image could not be loaded.</p>
+          <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{src}</p>
+        </div>
+      ) : (
       <img
         src={src}
         alt={alt || ''}
         draggable={false}
+        onError={() => setFailed(true)}
         onClick={(e) => { e.stopPropagation(); setZoomed(z => !z) }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        style={zoomed ? { transform: `translate(${pan.x}px, ${pan.y}px)` } : undefined}
-        className={
-          zoomed
-            ? 'max-w-none cursor-grab active:cursor-grabbing select-none'
-            : 'max-w-full max-h-[88vh] object-contain cursor-zoom-in select-none rounded'
-        }
+        // Scale the *fitted* image rather than switching to max-w-none: natural size
+        // on a large screenshot filled the viewport (and hid the toolbar) as a blank wall.
+        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomed ? 2.5 : 1})` }}
+        className={`max-w-full max-h-[88vh] object-contain select-none rounded ${zoomed ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'}`}
       />
+      )}
 
       <p className="absolute bottom-3 left-0 right-0 text-center text-xs text-white/50 pointer-events-none">
         {zoomed ? 'Drag to pan · click to fit' : 'Click to zoom · Esc to close'}
       </p>
-    </div>
+    </div>,
+    document.body
   )
 }
