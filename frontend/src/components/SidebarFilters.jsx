@@ -164,6 +164,34 @@ export function CategorySelect({ value, onChange, options, disabled }) {
 }
 
 /**
+ * Company filter — questions readers reported as asked at that company.
+ * Options come from the companies already reported, most-reported first.
+ */
+export function CompanySelect({ value, onChange, options }) {
+  if (options.length === 0) return null
+
+  return (
+    <div className="relative">
+      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <select
+        className="select w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer appearance-none"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        aria-label="Filter by company"
+      >
+        <option value="all">All companies</option>
+        {options.map(c => <option key={c} value={c}>{c}</option>)}
+      </select>
+      <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 8l4 4 4-4" />
+      </svg>
+    </div>
+  )
+}
+
+/**
  * Status filter - All / Visited / Solved / Unread
  */
 export function StatusSelect({ value, onChange }) {

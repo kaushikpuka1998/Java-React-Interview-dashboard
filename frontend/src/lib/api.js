@@ -3,7 +3,7 @@
 export const PAGE = 50
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
-export async function fetchQuestions({ tech, category, difficulty, search, status, visitedIds, readIds, page = 0, size = PAGE }) {
+export async function fetchQuestions({ tech, category, difficulty, company, search, status, visitedIds, readIds, page = 0, size = PAGE }) {
   // Always send IDs when status filter is active for correct pagination
   const shouldSendIds = status && status !== 'all'
 
@@ -11,6 +11,7 @@ export async function fetchQuestions({ tech, category, difficulty, search, statu
   if (tech && tech !== 'all') params.set('tech', tech)
   if (category && category !== 'all') params.set('category', category)
   if (difficulty && difficulty !== 'all') params.set('difficulty', difficulty)
+  if (company && company !== 'all') params.set('company', company)
   if (search) params.set('search', search)
   if (status && status !== 'all') params.set('status', status)
   if (shouldSendIds && visitedIds && visitedIds.length > 0) params.set('visitedIds', visitedIds.join(','))

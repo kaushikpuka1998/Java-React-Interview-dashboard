@@ -28,6 +28,9 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
            "(:tech IS NULL OR q.tech = :tech) AND " +
            "(:category IS NULL OR q.category = :category) AND " +
            "(:difficulty IS NULL OR q.difficulty = :difficulty) AND " +
+           // :company is a Company.slug — questions readers reported as asked there
+           "(:company IS NULL OR q.id IN (SELECT qc.questionId FROM QuestionCompany qc, Company c " +
+           "                              WHERE c.id = qc.companyId AND c.slug = :company)) AND " +
            "(:search IS NULL OR LOWER(q.title) LIKE %:search% OR LOWER(q.question) LIKE %:search% OR LOWER(q.answer) LIKE %:search% OR LOWER(q.category) LIKE %:search%) AND " +
            "(:status IS NULL OR " +
            "  (:status = 'visited' AND q.id IN :visitedIds) OR " +
@@ -40,6 +43,7 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
             @Param("tech") String tech,
             @Param("category") String category,
             @Param("difficulty") String difficulty,
+            @Param("company") String company,
             @Param("search") String search,
             @Param("status") String status,
             @Param("visitedIds") List<String> visitedIds,

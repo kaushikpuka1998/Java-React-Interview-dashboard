@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import QuestionLink from './QuestionLink.jsx'
-import { SearchInput, TechFilter, CategorySelect, StatusSelect, DifficultySelect, QuestionCount } from './SidebarFilters.jsx'
+import { SearchInput, TechFilter, CategorySelect, CompanySelect, StatusSelect, DifficultySelect, QuestionCount } from './SidebarFilters.jsx'
 import Notifications from './Notifications.jsx'
 
 /**
  * Sidebar component
  */
-export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech }) {
+export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, company, setCompany, companies = [], user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
@@ -139,6 +139,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
                 questions={questions}
                 tech={tech}
               />
+              {user && <CompanySelect value={company} onChange={setCompany} options={companies} />}
               {user && <StatusSelect value={status} onChange={setStatus} />}
               <QuestionCount count={filtered.length} total={questions.length} />
             </div>
@@ -159,6 +160,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
             questions={questions}
             tech={tech}
           />
+          {user && <CompanySelect value={company} onChange={setCompany} options={companies} />}
           {user && <StatusSelect value={status} onChange={setStatus} />}
           <QuestionCount count={filtered.length} total={questions.length} />
         </div>

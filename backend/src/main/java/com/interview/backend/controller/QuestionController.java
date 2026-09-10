@@ -41,6 +41,7 @@ public class QuestionController {
             @RequestParam(required = false) String tech,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String difficulty,
+            @RequestParam(required = false) String company,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) List<String> visitedIds,
@@ -63,8 +64,12 @@ public class QuestionController {
                     "tech", tech));
         }
 
+        // The filter accepts either the display name or the slug; normalise to the slug.
+        String companySlug = (company == null || company.isBlank())
+                ? null : com.interview.backend.entity.Company.toSlug(company);
+
         Page<Question> result = questionService.searchQuestions(
-                restrict, access.allowedTechs(), tech, category, difficulty, search, status, visitedIds, readIds, pageable);
+                restrict, access.allowedTechs(), tech, category, difficulty, companySlug, search, status, visitedIds, readIds, pageable);
         return ResponseEntity.ok(result);
     }
 

@@ -6,7 +6,7 @@ import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import SignupGate from './components/SignupGate.jsx'
-import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote } from './lib/auth.js'
+import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, searchCompanies } from './lib/auth.js'
 import { trackView } from './lib/analytics.js'
 import { setQuestionSeo, setDefaultSeo } from './lib/seo.js'
 
@@ -20,6 +20,8 @@ function App({ path = '/', onPathChange = () => {} }) {
   const [category, setCategory] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
   const [status, setStatus] = useState('all')
+  const [company, setCompany] = useState('all')
+  const [companies, setCompanies] = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -101,6 +103,7 @@ function App({ path = '/', onPathChange = () => {} }) {
         tech: tech === 'all' ? undefined : tech,
         category: category === 'all' ? undefined : category,
         difficulty: difficulty === 'all' ? undefined : difficulty,
+        company: company === 'all' ? undefined : company,
         search: query || undefined,
         status: status === 'all' ? undefined : status,
         visitedIds: Array.from(visitedRef.current),
@@ -127,12 +130,12 @@ function App({ path = '/', onPathChange = () => {} }) {
       setIsLoading(false)
       setLoaded(true)
     }
-  }, [tech, category, difficulty, query, status])
+  }, [tech, category, difficulty, company, query, status])
 
   // Load page 0 fresh whenever filters change
   useEffect(() => {
     loadQuestionsFromAPI(0, false)
-  }, [tech, category, difficulty, query, status])
+  }, [tech, category, difficulty, company, query, status])
 
 
   // Load categories when tech changes
@@ -143,6 +146,12 @@ function App({ path = '/', onPathChange = () => {} }) {
       setCategories([])
     }
   }, [tech])
+
+  // Companies to filter by — the most-reported ones. Needs a login (like reporting).
+  useEffect(() => {
+    if (!user) { setCompanies([]); return }
+    searchCompanies('').then(setCompanies).catch(() => setCompanies([]))
+  }, [user])
 
   // Load stats
   useEffect(() => {
@@ -303,6 +312,9 @@ function App({ path = '/', onPathChange = () => {} }) {
     setDifficulty,
     status,
     setStatus,
+    company,
+    setCompany,
+    companies,
     onSelect: handleSelect,
     onToggleDark: toggleDarkMode,
     isDark,
