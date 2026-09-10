@@ -20,7 +20,8 @@ public class ImageController {
 
     private final ImageService imageService;
 
-    // Admin-only (locked in SecurityConfig). Returns { "url": "..." }.
+    // Any signed-in user (locked in SecurityConfig) — readers need it for the images
+    // in a suggested edit. Returns { "url": "..." }.
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file) {
         if (file == null || file.isEmpty()) {

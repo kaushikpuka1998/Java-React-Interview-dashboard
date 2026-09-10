@@ -78,8 +78,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/questions/**").hasRole("ADMIN")
-                        // Image upload is admin-only
-                        .requestMatchers(HttpMethod.POST, "/images/**").hasRole("ADMIN")
+                        // Any signed-in user may upload: suggested edits can include
+                        // images. Type and 5 MB size are enforced in ImageService.
+                        .requestMatchers(HttpMethod.POST, "/images/**").authenticated()
                         // Anyone may record a view; only admins may read the reports.
                         .requestMatchers(HttpMethod.POST, "/analytics/track").permitAll()
                         .requestMatchers("/analytics/**").hasRole("ADMIN")

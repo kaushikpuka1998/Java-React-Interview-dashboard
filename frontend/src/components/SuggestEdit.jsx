@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
-import { suggestEdit, isLoggedIn } from '../lib/auth.js'
+import { useState, useEffect, useRef } from 'react'
+import { suggestEdit, uploadImage, isLoggedIn } from '../lib/auth.js'
 import Markdown from './Markdown.jsx'
+import DiffView from './DiffView.jsx'
 
 /**
  * "Suggest an edit" — a reader proposes a better answer; it goes to the admin
@@ -12,8 +13,10 @@ export default function SuggestEdit({ question }) {
   const [answer, setAnswer] = useState('')
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
-  const [preview, setPreview] = useState(true)
+  const [pane, setPane] = useState('preview')   // preview | diff | off
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
   const [sent, setSent] = useState('')
   const [error, setError] = useState('')
 
@@ -24,6 +27,19 @@ export default function SuggestEdit({ question }) {
     setTitle(question.question || question.title || '')
     setNote('')
   }, [question.id])
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''   // allow re-picking the same file
+    if (!file) return
+    setUploading(true); setError('')
+    try {
+      const url = await uploadImage(file)
+      setAnswer((a) => (a ? a.replace(/\s*$/, '') + '\n\n' : '') + `![image](${url})\n`)
+    } catch (err) {
+      setError(err.message)
+    } finally { setUploading(false) }
+  }
 
   if (!isLoggedIn()) return null
 
@@ -88,11 +104,29 @@ export default function SuggestEdit({ question }) {
             </p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 select-none">
-              <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)}
-                className="rounded border-slate-300 dark:border-slate-600" />
-              Live view
-            </label>
+            {/* Upload an image and drop it into the answer as Markdown. */}
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              title="Upload an image and insert it into the answer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" />
+              </svg>
+              {uploading ? 'Uploading…' : 'Image'}
+            </button>
+
+            <div className="flex gap-1">
+              {[['preview', 'Live view'], ['diff', 'Changes'], ['off', 'Hide']].map(([m, label]) => (
+                <button key={m} type="button" onClick={() => setPane(m)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-semibold ${pane === m ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <button type="button" onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:underline">Cancel</button>
           </div>
         </div>
@@ -100,16 +134,22 @@ export default function SuggestEdit({ question }) {
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Question" className={inputCls} />
 
         {/* The editor grows to fill the dialog; both panes scroll on their own. */}
-        <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${preview ? 'lg:grid-cols-2' : ''}`}>
+        <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${pane === 'off' ? '' : 'lg:grid-cols-2'}`}>
           <textarea value={answer} onChange={(e) => setAnswer(e.target.value)}
             placeholder="Answer (Markdown)"
             className={`${inputCls} font-mono text-xs h-full min-h-[16rem] resize-none`} />
-          {preview && (
+          {pane === 'preview' && (
             <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-3 overflow-y-auto min-h-[16rem]">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Live view</p>
               {answer.trim()
                 ? <Markdown text={answer} />
                 : <p className="text-sm italic text-slate-400">Your answer renders here as you type…</p>}
+            </div>
+          )}
+          {pane === 'diff' && (
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-3 overflow-y-auto min-h-[16rem]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Your changes</p>
+              <DiffView before={question.answer || ''} after={answer} />
             </div>
           )}
         </div>

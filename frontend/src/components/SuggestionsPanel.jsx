@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchSuggestions, fetchSuggestionCounts, reviewSuggestion } from '../lib/auth.js'
 import Markdown from './Markdown.jsx'
+import DiffView from './DiffView.jsx'
 
 const TABS = [
   ['PENDING', 'Pending'],
@@ -17,6 +18,7 @@ export default function SuggestionsPanel() {
   const [items, setItems] = useState([])
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0 })
   const [openId, setOpenId] = useState(null)
+  const [mode, setMode] = useState('diff')   // diff | rendered
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
@@ -88,16 +90,33 @@ export default function SuggestionsPanel() {
                   </p>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 max-h-80 overflow-y-auto">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Current</p>
-                    <Markdown text={s.currentAnswer || ''} />
-                  </div>
-                  <div className="rounded-lg border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50/40 dark:bg-emerald-900/10 p-3 max-h-80 overflow-y-auto">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-2">Proposed</p>
-                    <Markdown text={s.proposedAnswer || s.currentAnswer || ''} />
-                  </div>
+                <div className="flex gap-2">
+                  {[['diff', 'Changes'], ['rendered', 'Side by side']].map(([m, label]) => (
+                    <button key={m} type="button" onClick={() => setMode(m)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold ${mode === m ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
+
+                {mode === 'diff' ? (
+                  <DiffView
+                    before={s.currentAnswer || ''}
+                    after={s.proposedAnswer || s.currentAnswer || ''}
+                    className="max-h-96 overflow-y-auto"
+                  />
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 max-h-80 overflow-y-auto">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Current</p>
+                      <Markdown text={s.currentAnswer || ''} />
+                    </div>
+                    <div className="rounded-lg border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50/40 dark:bg-emerald-900/10 p-3 max-h-80 overflow-y-auto">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-2">Proposed</p>
+                      <Markdown text={s.proposedAnswer || s.currentAnswer || ''} />
+                    </div>
+                  </div>
+                )}
 
                 {s.status === 'PENDING' ? (
                   <>
