@@ -3,6 +3,7 @@ import Markdown from './Markdown.jsx'
 import NotFound from './NotFound.jsx'
 import OnThisPage from './OnThisPage.jsx'
 import AskedAt from './AskedAt.jsx'
+import SuggestEdit from './SuggestEdit.jsx'
 import { isLoggedIn } from '../lib/auth.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 
@@ -94,7 +95,7 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
     <main className="reader flex-1 h-screen overflow-hidden bg-white dark:bg-slate-800 flex flex-col min-w-0">
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-6 lg:px-8 min-w-0">
       {/* Article plus the section rail; the rail only appears on xl and wider. */}
-      <div className="mx-auto w-full max-w-3xl xl:max-w-[56rem] flex gap-6 items-start min-w-0">
+      <div className="mx-auto w-full max-w-5xl xl:max-w-[76rem] 2xl:max-w-[88rem] flex gap-6 items-start min-w-0">
       <article className="paper flex-1 min-w-0 bg-white dark:bg-slate-800 rounded-2xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15),0_0_20px_rgba(0,0,0,0.06)] dark:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5),0_0_20px_rgba(0,0,0,0.3)] p-4 sm:p-6 lg:p-8">
         {/* Mobile top navigation - Previous/Next at top on mobile */}
         <div className="lg:hidden mb-4 flex items-center justify-between px-2">
@@ -192,6 +193,9 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
         <div className="answer-content">
           <Markdown text={question.answer} />
         </div>
+
+        {/* Readers can propose a better answer; an admin approves before it goes live */}
+        <SuggestEdit question={question} />
       </article>
 
       <OnThisPage text={question.answer} scrollRef={scrollRef} />
@@ -200,7 +204,8 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
 
       {/* Desktop bottom navigation */}
       <footer className="hidden lg:block pager flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-        <div className="max-w-3xl mx-auto w-full px-6 lg:px-8 py-4 flex items-center justify-between">
+        {/* Matches the article column above so the pager lines up with the text. */}
+        <div className="max-w-5xl xl:max-w-[76rem] 2xl:max-w-[88rem] mx-auto w-full px-6 lg:px-8 py-4 flex items-center justify-between">
           <button
             disabled={!prev}
             onClick={() => onNavigate(prev.id)}

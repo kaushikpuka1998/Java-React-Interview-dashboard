@@ -69,6 +69,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/questions/*/companies").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/questions/*/companies/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/companies").authenticated()
+                        // Suggested edits: any signed-in user may propose one and see their
+                        // own; the review queue is admin-only. Must precede /questions/**.
+                        .requestMatchers(HttpMethod.POST, "/questions/*/suggestions").authenticated()
+                        .requestMatchers("/suggestions/mine", "/suggestions/mine/seen").authenticated()
+                        .requestMatchers("/suggestions/**").hasRole("ADMIN")
                         // Publishing questions is admin-only
                         .requestMatchers(HttpMethod.POST, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/questions/**").hasRole("ADMIN")

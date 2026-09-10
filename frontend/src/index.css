@@ -204,10 +204,11 @@
     }
   }
 
-  /* Desktop large */
+  /* Desktop large — width comes from the reader's own column, not a cap here:
+     this max-w used to clamp the article to 4xl and undo any wider layout. */
   @media (min-width: 1536px) {
     .paper {
-      @apply max-w-4xl p-10;
+      @apply p-10;
     }
   }
 }

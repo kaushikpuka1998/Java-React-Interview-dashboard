@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import QuestionLink from './QuestionLink.jsx'
 import { SearchInput, TechFilter, CategorySelect, StatusSelect, DifficultySelect, QuestionCount } from './SidebarFilters.jsx'
+import Notifications from './Notifications.jsx'
 
 /**
  * Sidebar component
@@ -70,6 +71,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
                 <span className="text-sm text-slate-600 dark:text-slate-300 truncate hover:underline">{user.name || user.email}</span>
               </a>
               <div className="flex items-center gap-2 flex-shrink-0">
+                <Notifications />
                 {user.admin && (
                   <button
                     onClick={onAdminClick}

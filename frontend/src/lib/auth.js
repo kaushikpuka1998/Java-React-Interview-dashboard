@@ -125,6 +125,56 @@ export async function unreportCompany(questionId, company) {
   return res.json()
 }
 
+// --- suggested edits (reader proposes, admin approves/rejects) ---
+
+/** Propose an edit to a question. Body fields are optional; send what changed. */
+export async function suggestEdit(questionId, { title, question, answer, note }) {
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/suggestions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ title, question, answer, note }),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not send that suggestion')
+  return res.json()
+}
+
+/** This user's suggestions + how many decisions they haven't seen. */
+export async function fetchMySuggestions() {
+  const res = await fetch(`${API_BASE}/suggestions/mine`, { headers: authHeaders() })
+  if (!res.ok) return { unseen: 0, items: [] }
+  return res.json()
+}
+
+export function markSuggestionsSeen() {
+  return fetch(`${API_BASE}/suggestions/mine/seen`, { method: 'POST', headers: authHeaders() })
+}
+
+// --- admin: review queue ---
+
+// status: 'PENDING' | 'APPROVED' | 'REJECTED'
+export async function fetchSuggestions(status = 'PENDING') {
+  const res = await fetch(`${API_BASE}/suggestions?status=${status}`, { headers: authHeaders() })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function fetchSuggestionCounts() {
+  const res = await fetch(`${API_BASE}/suggestions/counts`, { headers: authHeaders() })
+  if (!res.ok) return { pending: 0, approved: 0, rejected: 0 }
+  return res.json()
+}
+
+// decision: 'approve' | 'reject'
+export async function reviewSuggestion(id, decision, adminNote) {
+  const res = await fetch(`${API_BASE}/suggestions/${id}/${decision}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ adminNote }),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
+  return res.json()
+}
+
 // --- admin: publish questions ---
 
 export async function createQuestion(input) {
