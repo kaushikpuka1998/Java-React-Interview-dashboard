@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { suggestEdit, uploadImage, isLoggedIn } from '../lib/auth.js'
 import Markdown from './Markdown.jsx'
 import DiffView from './DiffView.jsx'
@@ -89,7 +90,11 @@ export default function SuggestEdit({ question }) {
 
   // Editing happens in a full-screen dialog: the article column is only ~3xl wide,
   // which leaves the Markdown box and its live view too narrow to work in.
-  return (
+  //
+  // Portalled to <body>: the enclosing .paper has backdrop-blur, which makes it the
+  // containing block for position:fixed, so inset-0 would cover the article instead
+  // of the viewport and the dialog would sit wherever that article happened to be.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm"
          onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}>
       <form
@@ -164,6 +169,7 @@ export default function SuggestEdit({ question }) {
           {busy ? 'Sending…' : changed ? 'Send for review' : 'Make a change first'}
         </button>
       </form>
-    </div>
+    </div>,
+    document.body
   )
 }
