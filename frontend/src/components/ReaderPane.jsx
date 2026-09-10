@@ -188,14 +188,14 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
 
           {/* Which companies have asked this question */}
           <AskedAt questionId={question.id} />
+
+          {/* Readers can propose a better answer; an admin approves before it goes live */}
+          <SuggestEdit question={question} />
         </header>
 
         <div className="answer-content">
           <Markdown text={question.answer} />
         </div>
-
-        {/* Readers can propose a better answer; an admin approves before it goes live */}
-        <SuggestEdit question={question} />
       </article>
 
       <OnThisPage text={question.answer} scrollRef={scrollRef} />

@@ -63,7 +63,7 @@ export default function SuggestEdit({ question }) {
 
   if (sent) {
     return (
-      <div className="mt-6 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+      <div className="mt-3 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
         {sent}
       </div>
     )
@@ -71,7 +71,7 @@ export default function SuggestEdit({ question }) {
 
   if (!open) {
     return (
-      <div className="mt-6 flex justify-end">
+      <div className="mt-3 flex justify-end">
         <button
           onClick={() => setOpen(true)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
