@@ -146,24 +146,49 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
           </div>
         </div>
       ) : (
-        <div className="p-4 space-y-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <TechFilter value={tech} onChange={setTech} locked={!user} freeTechs={freeTechs} onLockedClick={onLockedTech} />
-          <CategorySelect
-            value={category}
-            onChange={setCategory}
-            options={categories}
-            disabled={tech === 'all' && categories.length > 50}
-          />
-          <DifficultySelect
-            value={difficulty}
-            onChange={setDifficulty}
-            questions={questions}
-            tech={tech}
-          />
-          {user && <CompanySelect value={company} onChange={setCompany} options={companies} />}
-          {user && <StatusSelect value={status} onChange={setStatus} />}
-          <QuestionCount count={filtered.length} total={questions.length} />
-        </div>
+        <>
+          <div className="border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <button
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              aria-expanded={filtersOpen}
+              aria-controls="desktop-filters"
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+              </span>
+              <svg className={`w-4 h-4 text-slate-500 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div id="desktop-filters" className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${filtersOpen ? 'max-h-[520px]' : 'max-h-0'}`}>
+              <div className="p-4 space-y-4">
+                <TechFilter value={tech} onChange={setTech} locked={!user} freeTechs={freeTechs} onLockedClick={onLockedTech} />
+                <CategorySelect
+                  value={category}
+                  onChange={setCategory}
+                  options={categories}
+                  disabled={tech === 'all' && categories.length > 50}
+                />
+                <DifficultySelect
+                  value={difficulty}
+                  onChange={setDifficulty}
+                  questions={questions}
+                  tech={tech}
+                />
+                {user && <CompanySelect value={company} onChange={setCompany} options={companies} />}
+                {user && <StatusSelect value={status} onChange={setStatus} />}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+            <QuestionCount count={filtered.length} total={questions.length} />
+          </div>
+        </>
       )}
 
       <nav ref={listRef} className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
