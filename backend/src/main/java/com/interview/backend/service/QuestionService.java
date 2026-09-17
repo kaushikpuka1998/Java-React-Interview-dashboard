@@ -42,7 +42,13 @@ public class QuestionService {
         // Provide empty lists if null to avoid JPQL IN clause issues
         List<String> v = visitedIds != null ? visitedIds : List.of();
         List<String> r = readIds != null ? readIds : List.of();
-        Page<Question> page = questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, search, status, v, r, pageable);
+        // Extract numeric search for exact displayNumber match (e.g., "169" or "Q169")
+        Integer searchNumber = null;
+        if (search != null) {
+            String numPart = search.replaceAll("^[Qq]", "");
+            try { searchNumber = Integer.parseInt(numPart); } catch (NumberFormatException ignored) {}
+        }
+        Page<Question> page = questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, search, searchNumber, status, v, r, pageable);
         // Wrap so the cached value serializes to / from JSON cleanly.
         return CachedPage.of(page);
     }
