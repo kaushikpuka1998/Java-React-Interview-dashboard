@@ -2,6 +2,11 @@ server:
   port: ${PORT:8082}
   servlet:
     context-path: /api
+  # Serve static resources (CSS, JS, images) from classpath:/static/
+  # This makes /assets/* serve from static/assets/, etc.
+  error:
+    whitelabel:
+      enabled: false
 
 spring:
   application:
