@@ -228,7 +228,7 @@ export default function AdminPage() {
 
   const loadList = useCallback(async () => {
     try {
-      const data = await fetchQuestions({ tech, search: search || undefined, page: 0, size: 100 })
+      const data = await fetchQuestions({ tech, search: search || undefined, page: 0, size: 10000 })
       setList(data.content || [])
     } catch { setList([]) }
   }, [tech, search])
