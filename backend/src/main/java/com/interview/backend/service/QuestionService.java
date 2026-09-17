@@ -43,12 +43,13 @@ public class QuestionService {
         List<String> v = visitedIds != null ? visitedIds : List.of();
         List<String> r = readIds != null ? readIds : List.of();
         // Extract numeric search for exact displayNumber match (e.g., "169" or "Q169")
+        String normalizedSearch = search == null || search.isBlank() ? null : search.trim().toLowerCase();
         Integer searchNumber = null;
-        if (search != null) {
-            String numPart = search.replaceAll("^[Qq]", "");
+        if (normalizedSearch != null) {
+            String numPart = normalizedSearch.replaceAll("^q", "");
             try { searchNumber = Integer.parseInt(numPart); } catch (NumberFormatException ignored) {}
         }
-        Page<Question> page = questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, search, searchNumber, status, v, r, pageable);
+        Page<Question> page = questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, normalizedSearch, searchNumber, status, v, r, pageable);
         // Wrap so the cached value serializes to / from JSON cleanly.
         return CachedPage.of(page);
     }
