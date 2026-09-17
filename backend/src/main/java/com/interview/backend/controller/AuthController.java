@@ -3,6 +3,7 @@ package com.interview.backend.controller;
 import com.interview.backend.dto.AuthDtos.*;
 import com.interview.backend.entity.User;
 import com.interview.backend.repository.UserRepository;
+import com.interview.backend.service.EmailService;
 import com.interview.backend.service.ProgressService;
 import com.interview.backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -27,6 +30,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final ProgressService progressService;
+    private final EmailService emailService;
 
     @Value("${app.admin.emails:}")
     private String adminEmailsCsv;
@@ -68,5 +72,55 @@ public class AuthController {
         User user = userRepository.findByEmail(email).orElseThrow();
         String token = jwtUtil.generateToken(email);
         return ResponseEntity.ok(new AuthResponse(token, email, user.getName(), isAdmin(email)));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
+        email = email.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        // ponytail: always return success even if email not found (security best practice - don't leak account existence)
+        if (user == null) {
+            return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent"));
+        }
+
+        String resetToken = UUID.randomUUID().toString();
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(Instant.now().plusSeconds(3600)); // 1 hour
+        userRepository.save(user);
+
+        emailService.sendPasswordResetEmail(email, resetToken);
+
+        return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> req) {
+        String token = req.get("token");
+        String newPassword = req.get("password");
+
+        if (token == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid token and password (min 6 chars) required"));
+        }
+
+        User user = userRepository.findAll().stream()
+                .filter(u -> token.equals(u.getResetToken()))
+                .findFirst()
+                .orElse(null);
+
+        if (user == null || user.getResetTokenExpiry() == null || Instant.now().isAfter(user.getResetTokenExpiry())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired reset token"));
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of("message", "Password reset successful"));
     }
 }

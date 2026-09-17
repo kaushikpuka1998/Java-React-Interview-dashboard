@@ -476,7 +476,15 @@ function Shell({ children, tabWide }) {
       <div className={tabWide ? "max-w-6xl mx-auto" : "max-w-5xl mx-auto"}>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
-          <a href="/" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Back to app</a>
+          <button
+            onClick={() => {
+              window.history.pushState({}, '', '/');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+          >
+            ← Back to app
+          </button>
         </div>
         <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           {children}

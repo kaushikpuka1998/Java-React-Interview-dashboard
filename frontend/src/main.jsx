@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import AdminPage from './components/AdminPage.jsx'
 import ProfilePage from './components/ProfilePage.jsx'
+import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import './index.css'
 
 // ponytail: raw pathname check at the entry point — avoids adding react-router just for a wildcard
@@ -20,6 +21,9 @@ function Router() {
 
   // User profile / progress dashboard.
   if (path === '/profile' || path.startsWith('/profile/')) return <ProfilePage />
+
+  // Password reset page.
+  if (path === '/reset-password' || path.startsWith('/reset-password')) return <ResetPasswordPage />
 
   // Pass the live pathname; App resolves it to a question slug (or shows the in-reader 404).
   return <App path={path} onPathChange={setPath} />

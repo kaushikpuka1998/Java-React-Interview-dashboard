@@ -26,6 +26,10 @@ public class User {
 
     private String name;
 
+    private String resetToken;
+
+    private Instant resetTokenExpiry;
+
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 }

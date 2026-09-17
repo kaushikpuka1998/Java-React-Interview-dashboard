@@ -40,6 +40,21 @@ spring:
     show-sql: false
   flyway:
     enabled: false
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 logging:
   level:
@@ -81,6 +96,10 @@ app:
     expiration-ms: ${APP_JWT_EXPIRATION_MS:604800000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:5174, http://localhost:5174, http://localhost:3000,http://127.0.0.1:3000}
+  mail:
+    from: ${MAIL_FROM:info@meetly.co.in}
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
   migration:
     json-path: ${MIGRATION_JSON_PATH:../frontend/public/questions.json}
     batch-size: 100
