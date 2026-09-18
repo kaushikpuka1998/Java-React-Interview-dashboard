@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { isLoggedIn, logout, fetchProfile, fetchProfileQuestions } from '../lib/auth.js'
+import { isLoggedIn, logout, fetchProfile, fetchProfileQuestions, fetchProgress } from '../lib/auth.js'
+import { fetchQuestions } from '../lib/api.js'
 import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
@@ -74,13 +75,20 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null)
   const [solved, setSolved] = useState([])
   const [visited, setVisited] = useState([])
+  const [flagged, setFlagged] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
-    Promise.all([fetchProfile(), fetchProfileQuestions('solved'), fetchProfileQuestions('visited')])
-      .then(([p, s, v]) => { setProfile(p); setSolved(s); setVisited(v) })
+    Promise.all([fetchProfile(), fetchProfileQuestions('solved'), fetchProfileQuestions('visited'), fetchProgress()])
+      .then(async ([p, s, v, progress]) => {
+        const ids = progress.flagged || []
+        const f = ids.length
+          ? (await fetchQuestions({ status: 'flagged', flaggedIds: ids, size: ids.length })).content
+          : []
+        setProfile(p); setSolved(s); setVisited(v); setFlagged(f)
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -116,9 +124,10 @@ export default function ProfilePage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatCard label="Solved" value={solvedCount} sub={`${solvedPct}% of all`} accent="text-green-600 dark:text-green-400" />
         <StatCard label="Visited" value={visitedCount} accent="text-blue-600 dark:text-blue-400" />
+        <StatCard label="Flagged" value={flagged.length} accent="text-amber-600 dark:text-amber-400" />
         <StatCard label="Total questions" value={totalQuestions} />
         <StatCard label="Remaining" value={Math.max(totalQuestions - solvedCount, 0)} />
       </div>
@@ -155,9 +164,10 @@ export default function ProfilePage() {
       </div>
 
       {/* Question lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
         <QuestionList title="Visited questions" items={visited} emptyText="No visited questions yet." />
+        <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
       </div>
     </Shell>
   )

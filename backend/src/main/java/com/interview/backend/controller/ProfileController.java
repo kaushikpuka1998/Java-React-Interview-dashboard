@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 // Current-user profile: identity + progress. Auth required (locked in SecurityConfig).
 // Context-path is already /api, so this maps to /api/profile/*.
@@ -42,6 +43,7 @@ public class ProfileController {
 
         List<String> visitedIds = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
         List<String> solvedIds = rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList();
+        long flaggedCount = rows.stream().filter(UserProgress::isFlagged).count();
 
         long total = questionRepository.count();
 
@@ -77,6 +79,7 @@ public class ProfileController {
         body.put("totalQuestions", total);
         body.put("visitedCount", visitedIds.size());
         body.put("solvedCount", solvedIds.size());
+        body.put("flaggedCount", flaggedCount);
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
         return ResponseEntity.ok(body);
@@ -84,19 +87,24 @@ public class ProfileController {
 
     @GetMapping("/questions/solved")
     public ResponseEntity<List<Question>> solvedQuestions() {
-        return ResponseEntity.ok(questionsFor(true));
+        return ResponseEntity.ok(questionsFor(UserProgress::isRead));
     }
 
     @GetMapping("/questions/visited")
     public ResponseEntity<List<Question>> visitedQuestions() {
-        return ResponseEntity.ok(questionsFor(false));
+        return ResponseEntity.ok(questionsFor(UserProgress::isVisited));
     }
 
-    // read=true -> solved; read=false -> visited. Fetches the full Question objects for the user's ids.
-    private List<Question> questionsFor(boolean read) {
+    @GetMapping("/questions/flagged")
+    public ResponseEntity<List<Question>> flaggedQuestions() {
+        return ResponseEntity.ok(questionsFor(UserProgress::isFlagged));
+    }
+
+    // Fetches full Question objects for progress rows belonging to the current user.
+    private List<Question> questionsFor(Predicate<UserProgress> include) {
         Long userId = currentUser().getId();
         List<String> ids = progressRepository.findByUserId(userId).stream()
-                .filter(p -> read ? p.isRead() : p.isVisited())
+                .filter(include)
                 .map(UserProgress::getQuestionId)
                 .toList();
         return questionRepository.findAllById(ids);

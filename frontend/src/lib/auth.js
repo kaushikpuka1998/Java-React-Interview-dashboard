@@ -54,7 +54,7 @@ export async function login({ email, password }) {
 
 export async function fetchProgress() {
   const res = await fetch(`${API_BASE}/progress`, { headers: authHeaders() })
-  if (!res.ok) return { visited: [], read: [] }
+  if (!res.ok) return { visited: [], read: [], flagged: [] }
   return res.json()
 }
 
@@ -63,6 +63,11 @@ export function markVisitedRemote(id) {
 }
 export function markReadRemote(id) {
   return fetch(`${API_BASE}/progress/read/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders() })
+}
+export async function toggleFlaggedRemote(id) {
+  const res = await fetch(`${API_BASE}/progress/flagged/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders() })
+  if (!res.ok) throw new Error('Could not update flag')
+  return res.json()
 }
 
 // Push guest localStorage progress into the account after login.
@@ -81,7 +86,7 @@ export async function fetchProfile() {
   return res.json()
 }
 
-// kind: 'solved' | 'visited'
+// kind: 'solved' | 'visited' | 'flagged'
 export async function fetchProfileQuestions(kind) {
   const res = await fetch(`${API_BASE}/profile/questions/${kind}`, { headers: authHeaders() })
   if (!res.ok) return []

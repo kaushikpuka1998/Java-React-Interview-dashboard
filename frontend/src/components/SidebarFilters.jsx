@@ -199,6 +199,7 @@ export function StatusSelect({ value, onChange }) {
     { value: 'all', label: 'All' },
     { value: 'visited', label: 'Visited' },
     { value: 'solved', label: 'Solved' },
+    { value: 'flagged', label: 'Flagged' },
     { value: 'unsolved', label: 'Unsolved' },
   ]
 

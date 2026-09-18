@@ -33,7 +33,8 @@ public class ProgressController {
         List<UserProgress> rows = progressRepository.findByUserId(currentUserId());
         return ResponseEntity.ok(Map.of(
                 "visited", rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList(),
-                "read", rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList()));
+                "read", rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList(),
+                "flagged", rows.stream().filter(UserProgress::isFlagged).map(UserProgress::getQuestionId).toList()));
     }
 
     @PostMapping("/visited/{questionId}")
@@ -46,6 +47,11 @@ public class ProgressController {
     public ResponseEntity<Void> markRead(@PathVariable String questionId) {
         progressService.markRead(currentUserId(), questionId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/flagged/{questionId}")
+    public ResponseEntity<Map<String, Boolean>> toggleFlagged(@PathVariable String questionId) {
+        return ResponseEntity.ok(Map.of("flagged", progressService.toggleFlagged(currentUserId(), questionId)));
     }
 
     // Merge guest localStorage progress into the account (called once after login).

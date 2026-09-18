@@ -1,6 +1,5 @@
 package com.interview.backend.service;
 
-import com.interview.backend.config.CachedPage;
 import com.interview.backend.entity.Question;
 import com.interview.backend.repository.QuestionRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,19 +28,13 @@ public class QuestionService {
         return questionRepository.findById(id);
     }
 
-    // Cache only user-independent browses (status == null). Status filters depend on
-    // per-user visited/read ids, which would pollute the cache, so those skip it.
-    // `restrict` is part of the cache key: a signed-out result set must never be
-    // served to a signed-in caller, or vice versa.
-    @Cacheable(value = "questionSearch",
-            key = "#restrict + '|' + #tech + '|' + #category + '|' + #difficulty + '|' + #company + '|' + #search + '|' + #pageable.pageNumber + '|' + #pageable.pageSize + '|' + #pageable.sort",
-            condition = "#status == null")
     public Page<Question> searchQuestions(boolean restrict, List<String> allowedTechs,
                                           String tech, String category, String difficulty, String company,
-                                          String search, String status, List<String> visitedIds, List<String> readIds, Pageable pageable) {
+                                          String search, String status, List<String> visitedIds, List<String> readIds, List<String> flaggedIds, Pageable pageable) {
         // Provide empty lists if null to avoid JPQL IN clause issues
         List<String> v = visitedIds != null ? visitedIds : List.of();
         List<String> r = readIds != null ? readIds : List.of();
+        List<String> f = flaggedIds != null ? flaggedIds : List.of();
         // Extract numeric search for exact displayNumber match (e.g., "169" or "Q169")
         String normalizedSearch = search == null || search.isBlank() ? null : search.trim().toLowerCase();
         Integer searchNumber = null;
@@ -49,9 +42,7 @@ public class QuestionService {
             String numPart = normalizedSearch.replaceAll("^q", "");
             try { searchNumber = Integer.parseInt(numPart); } catch (NumberFormatException ignored) {}
         }
-        Page<Question> page = questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, normalizedSearch, searchNumber, status, v, r, pageable);
-        // Wrap so the cached value serializes to / from JSON cleanly.
-        return CachedPage.of(page);
+        return questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, normalizedSearch, searchNumber, status, v, r, f, pageable);
     }
 
     @Cacheable("categories")

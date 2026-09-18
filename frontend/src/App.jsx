@@ -6,7 +6,7 @@ import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import SignupGate from './components/SignupGate.jsx'
-import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, searchCompanies } from './lib/auth.js'
+import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, toggleFlaggedRemote, searchCompanies } from './lib/auth.js'
 import { trackView } from './lib/analytics.js'
 import { setQuestionSeo, setDefaultSeo } from './lib/seo.js'
 
@@ -41,6 +41,8 @@ function App({ path = '/', onPathChange = () => {} }) {
   // progress loads; guests (not logged in) have no persisted status.
   const [visited, setVisited] = useState(() => new Set())
   const [read, setRead] = useState(() => new Set())
+  const [flagged, setFlagged] = useState(() => new Set())
+  const [flagging, setFlagging] = useState(() => new Set())
 
   // Auth state
   const [user, setUser] = useState(() => getUser())
@@ -58,22 +60,22 @@ function App({ path = '/', onPathChange = () => {} }) {
     setAuthOpen(false)
     try {
       await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
-      const { visited: v, read: r } = await fetchProgress()
-      setVisited(new Set(v)); setRead(new Set(r))
+      const { visited: v, read: r, flagged: f = [] } = await fetchProgress()
+      setVisited(new Set(v)); setRead(new Set(r)); setFlagged(new Set(f))
     } catch (e) { console.error('Failed to sync progress:', e) }
   }, [])
 
   const handleLogout = useCallback(() => {
     authLogout()
     setUser(null)
-    setVisited(new Set()); setRead(new Set())
+    setVisited(new Set()); setRead(new Set()); setFlagged(new Set())
   }, [])
 
   // If already logged in on load, pull the account's progress from the server.
   useEffect(() => {
     if (isLoggedIn()) {
-      fetchProgress().then(({ visited: v, read: r }) => {
-        setVisited(new Set(v)); setRead(new Set(r))
+      fetchProgress().then(({ visited: v, read: r, flagged: f = [] }) => {
+        setVisited(new Set(v)); setRead(new Set(r)); setFlagged(new Set(f))
       }).catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,6 +110,7 @@ function App({ path = '/', onPathChange = () => {} }) {
         status: status === 'all' ? undefined : status,
         visitedIds: Array.from(visitedRef.current),
         readIds: Array.from(readRef.current),
+        flaggedIds: Array.from(flagged),
         page: pageToLoad,
         size: PAGE
       })
@@ -130,12 +133,12 @@ function App({ path = '/', onPathChange = () => {} }) {
       setIsLoading(false)
       setLoaded(true)
     }
-  }, [tech, category, difficulty, company, query, status])
+  }, [tech, category, difficulty, company, query, status, flagged])
 
-  // Load page 0 fresh whenever filters change
+  // Load page 0 fresh whenever filters or per-user status change.
   useEffect(() => {
     loadQuestionsFromAPI(0, false)
-  }, [tech, category, difficulty, company, query, status])
+  }, [loadQuestionsFromAPI])
 
 
   // Load categories when tech changes
@@ -264,6 +267,29 @@ function App({ path = '/', onPathChange = () => {} }) {
     })
   }, [])
 
+  const handleToggleFlag = useCallback(async (id) => {
+    if (flagging.has(id)) return
+    setFlagging(prev => new Set(prev).add(id))
+    try {
+      const { flagged: isFlagged } = await toggleFlaggedRemote(id)
+      setFlagged(prev => {
+        const next = new Set(prev)
+        if (isFlagged) next.add(id)
+        else next.delete(id)
+        return next
+      })
+    } catch (error) {
+      console.error('Failed to update flag:', error)
+      window.alert('The flag could not be saved. Please try again.')
+    } finally {
+      setFlagging(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
+  }, [flagging])
+
   const handleTechChange = useCallback((value) => {
     setTech(value)
     setCategory('all')
@@ -372,7 +398,10 @@ function App({ path = '/', onPathChange = () => {} }) {
         onNavigate={handleNavigate}
         visited={visited}
         read={read}
+        flagged={flagged}
+        flagging={flagging}
         onMarkRead={handleMarkRead}
+        onToggleFlag={handleToggleFlag}
       />
       )}
 

@@ -30,4 +30,7 @@ public class UserProgress {
 
     @Column(nullable = false)
     private boolean read = false;
+
+    @Column(nullable = false)
+    private boolean flagged = false;
 }

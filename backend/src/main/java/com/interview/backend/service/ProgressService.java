@@ -38,6 +38,14 @@ public class ProgressService {
         repo.save(p);
     }
 
+    @Transactional
+    public boolean toggleFlagged(Long userId, String questionId) {
+        UserProgress p = row(userId, questionId);
+        p.setFlagged(!p.isFlagged());
+        repo.save(p);
+        return p.isFlagged();
+    }
+
     // Merge guest ids from localStorage; never downgrades existing flags.
     @Transactional
     public void merge(Long userId, Collection<String> visited, Collection<String> read) {

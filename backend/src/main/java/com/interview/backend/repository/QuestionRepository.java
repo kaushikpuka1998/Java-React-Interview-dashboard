@@ -35,6 +35,7 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
            "(:status IS NULL OR " +
            "  (:status = 'visited' AND q.id IN :visitedIds) OR " +
            "  (:status = 'solved' AND q.id IN :readIds) OR " +
+           "  (:status = 'flagged' AND q.id IN :flaggedIds) OR " +
            "  (:status = 'unsolved' AND q.id NOT IN :readIds)" +
            ")")
     Page<Question> searchQuestions(
@@ -49,6 +50,7 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
             @Param("status") String status,
             @Param("visitedIds") List<String> visitedIds,
             @Param("readIds") List<String> readIds,
+            @Param("flaggedIds") List<String> flaggedIds,
             Pageable pageable);
 
     @Query("SELECT DISTINCT q.category FROM Question q WHERE q.tech = :tech ORDER BY q.category")

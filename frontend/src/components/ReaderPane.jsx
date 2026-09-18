@@ -76,7 +76,7 @@ function JumpToQuestion({ current, total, onJump }) {
 /**
  * Reader pane component
  */
-export default function ReaderPane({ question, questions, onNavigate, visited, read, onMarkRead }) {
+export default function ReaderPane({ question, questions, onNavigate, visited, read, flagged, flagging, onMarkRead, onToggleFlag }) {
   const scrollRef = useRef(null)   // the scrolling column; the section rail reads it
 
   if (!question) {
@@ -143,7 +143,7 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
           </h2>
 
           {/* Read status and Mark as Read button — signed-in only */}
-          {isLoggedIn() && <div className="mt-4 flex items-center justify-between gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+          {isLoggedIn() && <div className="mt-5 flex flex-col gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 text-sm">
               {read.has(question.id) && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
@@ -163,11 +163,26 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                 </span>
               )}
             </div>
-            <div className="flex-shrink-0 ml-auto">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => onToggleFlag(question.id)}
+                disabled={flagging.has(question.id)}
+                className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70 ${flagged.has(question.id) ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60' : 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-200'}`}
+                aria-label={flagged.has(question.id) ? 'Remove flag' : 'Flag question'}
+                aria-pressed={flagged.has(question.id)}
+                title={flagged.has(question.id) ? 'Remove flag' : 'Flag question'}
+              >
+                <svg className="w-5 h-5" fill={flagged.has(question.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v18l7-4 7 4V3H5z" />
+                </svg>
+                {flagging.has(question.id) ? 'Saving…' : flagged.has(question.id) ? 'Flagged' : 'Flag'}
+              </button>
               {!read.has(question.id) && (
                 <button
+                  type="button"
                   onClick={() => onMarkRead(question.id)}
-                  className="btn-read p-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  className="btn-read inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
                   aria-label="Mark as read"
                   title="Mark as read"
                 >
