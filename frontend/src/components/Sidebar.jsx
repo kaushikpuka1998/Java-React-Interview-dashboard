@@ -84,7 +84,15 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
                     Admin
                   </button>
                 )}
-                <button onClick={onLogout} className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400">
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-colors hover:bg-red-700 hover:shadow-md hover:shadow-red-600/40 dark:bg-red-600 dark:hover:bg-red-500"
+                  title="Log out of your account"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3m12 0l-4-4m4 4l-4 4m-1 5h7a2 2 0 002-2V5a2 2 0 00-2-2h-7" />
+                  </svg>
                   Log out
                 </button>
               </div>

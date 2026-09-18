@@ -181,7 +181,7 @@ function Shell({ children }) {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Your Profile</h1>
           <div className="flex items-center gap-4">
             <a href="/" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Back to app</a>
-            {isLoggedIn() && <button onClick={() => { logout(); window.location.href = '/' }} className="text-sm text-slate-500 hover:text-red-600 dark:hover:text-red-400">Log out</button>}
+            {isLoggedIn() && <button onClick={() => { logout(); window.location.href = '/' }} className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-colors hover:bg-red-700 hover:shadow-md hover:shadow-red-600/40 dark:bg-red-600 dark:hover:bg-red-500">Log out</button>}
           </div>
         </div>
         {children}
