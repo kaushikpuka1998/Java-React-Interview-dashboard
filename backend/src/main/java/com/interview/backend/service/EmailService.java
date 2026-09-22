@@ -49,6 +49,18 @@ public class EmailService {
         }
     }
 
+    
+    public void sendExportCodeEmail(String toEmail, String code) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("Dashboard Export Unlock Code");
+        message.setText("Your daily unlock code for exporting data is: " + code + "\n\n" +
+            "This code is valid for 24 hours (UTC timezone).");
+        mailSender.send(message);
+        log.info("Export code email sent to {}", toEmail);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
 

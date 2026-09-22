@@ -98,6 +98,47 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent"));
     }
 
+    private String getDailyExportCode() {
+        String today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+        // deterministic code for the day
+        int codeInt = Math.abs((today + "-interview-export-secret").hashCode()) % 1000000;
+        return String.format("%06d", codeInt);
+    }
+
+    @PostMapping("/export-code/request")
+    public ResponseEntity<?> requestExportCode(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        String code = getDailyExportCode();
+        emailService.sendExportCodeEmail(email, code);
+        return ResponseEntity.ok(Map.of("message", "Export code sent to your email"));
+    }
+
+    @PostMapping("/export-code/verify")
+    public ResponseEntity<?> verifyExportCode(@RequestBody Map<String, String> req, @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        if (!isAdmin(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        String provided = req.get("code");
+        String expected = getDailyExportCode();
+        if (expected.equals(provided)) {
+            return ResponseEntity.ok(Map.of("valid", true));
+        } else {
+            return ResponseEntity.ok(Map.of("valid", false));
+        }
+    }
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> req) {
         String token = req.get("token");

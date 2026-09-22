@@ -313,7 +313,7 @@ export default function AdminPage() {
   return (
     <Shell tabWide={tab === "analytics"}>
       <div className="flex gap-2 mb-5">
-        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['analytics', 'Analytics']].map(([t, label]) => (
+        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['analytics', 'Analytics'], ['export', 'Export JSON']].map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
             {label}
@@ -367,12 +367,15 @@ export default function AdminPage() {
 
       {tab === 'suggestions' && <SuggestionsPanel />}
 
+      {tab === 'export' && <ExportPanel tech={tech} setTech={setTech} search={search} setSearch={setSearch} />}
+
       {tab === 'manage' && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-5 items-start">
           {/* Left: search + question list */}
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
               <select value={tech} onChange={(e) => setTech(e.target.value)} className={inputCls}>
+                <option value="all">All Techs</option>
                 {TECHS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className={`${inputCls} col-span-2`} />
@@ -481,14 +484,186 @@ function Shell({ children, tabWide }) {
               window.history.pushState({}, '', '/');
               window.dispatchEvent(new PopStateEvent('popstate'));
             }}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
           >
-            ← Back to app
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to app
           </button>
         </div>
         <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           {children}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ExportPanel({ tech, setTech, search, setSearch }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  
+  // Extra security layer for Export Panel
+  const [unlocked, setUnlocked] = useState(false)
+  const [passInput, setPassInput] = useState('')
+  const [passError, setPassError] = useState('')
+
+  const handleUnlock = async (e) => {
+    e.preventDefault()
+    setPassError('')
+    try {
+      const res = await fetch((import.meta.env.VITE_API_BASE || 'http://localhost:8082/api') + '/auth/export-code/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('ir_token')}`
+        },
+        body: JSON.stringify({ code: passInput })
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setUnlocked(true)
+      } else {
+        setPassError('Incorrect code')
+      }
+    } catch (err) {
+      setPassError('Failed to verify code')
+    }
+  }
+
+  const requestCode = async () => {
+    try {
+      setPassError('Requesting code...')
+      await fetch((import.meta.env.VITE_API_BASE || 'http://localhost:8082/api') + '/auth/export-code/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('ir_token')}`
+        }
+      })
+      setPassError('Code sent to your email!')
+    } catch (err) {
+      setPassError('Failed to request code')
+    }
+  }
+
+  const loadData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetchQuestions({ tech: tech === 'all' ? undefined : tech, search: search || undefined, page: 0, size: 100000 })
+      setData(res.content || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (unlocked) {
+      loadData()
+    }
+  }, [tech, search, unlocked])
+
+  const handleDownload = () => {
+    if (!data) return
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'exported_questions.json'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  if (!unlocked) {
+    return (
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Security Check</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Please enter the daily unlock code sent to your email to access bulk data export.</p>
+        <form onSubmit={handleUnlock} className="space-y-4">
+          <div>
+            <input 
+              type="text" 
+              value={passInput} 
+              onChange={(e) => setPassInput(e.target.value)} 
+              placeholder="Enter daily code..." 
+              className={inputCls}
+              autoFocus
+            />
+          </div>
+          {passError && <p className={`text-sm ${passError.includes('sent') ? 'text-green-500' : 'text-red-500'}`}>{passError}</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={requestCode} className="flex-1 py-2.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+              Send Code to Email
+            </button>
+            <button type="submit" className="flex-1 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors">
+              Unlock Export
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Export Questions</h2>
+        <div className="flex gap-2">
+          <button 
+            onClick={loadData}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button 
+            onClick={handleDownload}
+            disabled={loading || !data || data.length === 0}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+          >
+            Download JSON
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2">
+        <select value={tech} onChange={(e) => setTech(e.target.value)} className={inputCls}>
+          <option value="all">All Techs</option>
+          {TECHS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className={`${inputCls} col-span-2`} />
+      </div>
+      
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden h-[600px] flex flex-col">
+        {loading && !data ? (
+          <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading questions...</div>
+        ) : (
+          <textarea 
+            readOnly 
+            value={data ? JSON.stringify(data, null, 2) : ''} 
+            className="w-full h-full p-4 font-mono text-xs bg-transparent border-none focus:ring-0 text-slate-800 dark:text-slate-300 resize-none"
+          />
+        )}
+      </div>
+      <div className="flex items-center justify-between">
+        <button 
+          onClick={() => setUnlocked(false)} 
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          Lock Export
+        </button>
+        <span className="text-xs text-slate-500">{data ? `Total questions: ${data.length}` : ''}</span>
       </div>
     </div>
   )
