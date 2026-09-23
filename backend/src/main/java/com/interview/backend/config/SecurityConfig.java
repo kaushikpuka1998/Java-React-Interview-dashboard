@@ -65,7 +65,7 @@ public class SecurityConfig {
                         // Company reports: any signed-in user may add/remove their own.
                         // MUST precede the admin-only /questions/** rules below, since
                         // the first matching rule wins.
-                        .requestMatchers(HttpMethod.GET, "/questions/*/companies").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/questions/*/companies").authenticated()
                         .requestMatchers(HttpMethod.POST, "/questions/*/companies").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/questions/*/companies/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/companies").authenticated()
@@ -82,10 +82,12 @@ public class SecurityConfig {
                         // images. Type and 5 MB size are enforced in ImageService.
                         .requestMatchers(HttpMethod.POST, "/images/**").authenticated()
                         // Anyone may record a view; only admins may read the reports.
-                        .requestMatchers(HttpMethod.POST, "/analytics/track").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/analytics/track").authenticated()
                         .requestMatchers("/analytics/**").hasRole("ADMIN")
-                        // Public: auth + read-only question browsing
-                        .requestMatchers("/auth/**", "/health", "/questions/**").permitAll()
+                        // Public: auth
+                        .requestMatchers("/auth/**", "/health").permitAll()
+                        // questions read-only but authenticated
+                        .requestMatchers(HttpMethod.GET, "/questions/**").authenticated()
                         // Progress + profile require a logged-in user
                         .requestMatchers("/progress/**", "/profile/**").authenticated()
                         .anyRequest().permitAll())

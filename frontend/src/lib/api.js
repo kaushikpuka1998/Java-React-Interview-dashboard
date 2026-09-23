@@ -35,13 +35,19 @@ export async function fetchQuestions({ tech, category, difficulty, company, sear
 }
 
 export async function fetchCategories(tech) {
-  const res = await fetch(`${API_BASE}/questions/categories?tech=${tech}`)
+  const token = localStorage.getItem('ir_token')
+  const res = await fetch(`${API_BASE}/questions/categories?tech=${tech}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
   if (!res.ok) return []
   return res.json()
 }
 
 export async function fetchStats() {
-  const res = await fetch(`${API_BASE}/questions/stats`)
+  const token = localStorage.getItem('ir_token')
+  const res = await fetch(`${API_BASE}/questions/stats`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
   if (!res.ok) return { total: 0, byTech: {} }
   return res.json()
 }

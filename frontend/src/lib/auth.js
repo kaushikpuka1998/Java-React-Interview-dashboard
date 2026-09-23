@@ -97,7 +97,9 @@ export async function fetchProfileQuestions(kind) {
 
 /** Companies this question has been reported at, with report counts. Public. */
 export async function fetchQuestionCompanies(questionId) {
-  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/companies`)
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/companies`, {
+    headers: authHeaders()
+  })
   if (!res.ok) return []
   return res.json()
 }
