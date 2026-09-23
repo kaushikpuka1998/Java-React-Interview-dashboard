@@ -183,17 +183,17 @@ take load off Postgres. Implemented with Spring's cache abstraction
 | `categories`     | `getCategoriesByTech` | `tech`                                               |
 | `stats`          | `getTotalCount` / `getCountByTech` | `total` / `tech`                        |
 
-Design notes:
+Design notes & Eviction Policy:
 
-- **TTL 10 min, `ir:` key prefix.** Writes (`save` / `saveAll`) evict the caches so
-  re-seeds/edits show through.
+- **TTL 10 min, `ir:` key prefix.** Keys automatically expire after 10 minutes to prevent indefinitely stale data.
+- **Immediate Eviction on Writes.** Strong consistency is enforced across the architecture. Whenever a write occurs (via `save`, `saveAll`, `update`, or `delete` in `QuestionService`), the application uses `@CacheEvict(value = {...}, allEntries = true)`. This completely wipes the `questionSearch`, `categories`, `stats`, and `questionById` caches. While wiping everything on a single write might seem aggressive, it is optimal here because this is a heavily read-optimized application where content changes are extremely rare compared to reads. 
 - **Search caches only anonymous browses** (`condition = "#status == null"`). Status
   filters (Visited / Solved / Unsolved) depend on per-user `visitedIds`/`readIds`, so
   they skip the cache to avoid cross-user leakage.
 - **Human-readable JSON values.** Values serialize as JSON via
   `GenericJackson2JsonRedisSerializer`; paginated results use a small `CachedPage`
   wrapper so Spring's `Page` can round-trip through JSON.
-- **Fail-open.** A `CacheErrorHandler` logs and falls back to Postgres if Redis is
+- **Fail-open architecture.** A `CacheErrorHandler` logs and falls back to Postgres if Redis is
   unavailable — requests never fail because of the cache.
 
 **Verify it's working locally** — hit the same endpoint twice and watch the backend
