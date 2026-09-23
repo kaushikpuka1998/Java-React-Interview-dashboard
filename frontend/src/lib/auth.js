@@ -1,27 +1,31 @@
-// Auth + per-user progress against the backend. Token kept in localStorage.
+// Auth + per-user progress against the backend. 
+// Uses HttpOnly cookies for authentication.
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
-const TOKEN_KEY = 'ir_token'
 const USER_KEY = 'ir_user'
 
-export function getToken() { return localStorage.getItem(TOKEN_KEY) }
 export function getUser() {
   try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null') } catch { return null }
 }
-export function isLoggedIn() { return !!getToken() }
+export function isLoggedIn() { return !!getUser() }
 
-function setSession({ token, email, name, admin }) {
-  localStorage.setItem(TOKEN_KEY, token)
+function setSession({ email, name, admin }) {
   localStorage.setItem(USER_KEY, JSON.stringify({ email, name, admin: !!admin }))
 }
-export function logout() {
-  localStorage.removeItem(TOKEN_KEY)
+
+export async function logout() {
+  try {
+    await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
+  } catch (e) {
+    console.error('Logout request failed', e)
+  }
   localStorage.removeItem(USER_KEY)
+  window.location.reload()
 }
 
 function authHeaders() {
-  const t = getToken()
-  return t ? { Authorization: `Bearer ${t}` } : {}
+  // Authorization header no longer used, using cookies.
+  return {}
 }
 
 async function parseError(res) {
@@ -32,6 +36,7 @@ export async function register({ email, password, name }) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name }),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Registration failed')
   const data = await res.json()
@@ -43,6 +48,7 @@ export async function login({ email, password }) {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Login failed')
   const data = await res.json()
@@ -53,19 +59,19 @@ export async function login({ email, password }) {
 // --- per-user progress ---
 
 export async function fetchProgress() {
-  const res = await fetch(`${API_BASE}/progress`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/progress`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return { visited: [], read: [], flagged: [] }
   return res.json()
 }
 
 export function markVisitedRemote(id) {
-  return fetch(`${API_BASE}/progress/visited/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders() })
+  return fetch(`${API_BASE}/progress/visited/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
 }
 export function markReadRemote(id) {
-  return fetch(`${API_BASE}/progress/read/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders() })
+  return fetch(`${API_BASE}/progress/read/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
 }
 export async function toggleFlaggedRemote(id) {
-  const res = await fetch(`${API_BASE}/progress/flagged/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/progress/flagged/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
   if (!res.ok) throw new Error('Could not update flag')
   return res.json()
 }
@@ -75,108 +81,104 @@ export function mergeProgress({ visited, read }) {
   return fetch(`${API_BASE}/progress/merge`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ visited, read }),
+    credentials: 'include'
   })
 }
 
 // --- user profile ---
 
 export async function fetchProfile() {
-  const res = await fetch(`${API_BASE}/profile/me`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/profile/me`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) throw new Error(await parseError(res) || 'Failed to load profile')
   return res.json()
 }
 
 // kind: 'solved' | 'visited' | 'flagged'
 export async function fetchProfileQuestions(kind) {
-  const res = await fetch(`${API_BASE}/profile/questions/${kind}`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/profile/questions/${kind}`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return []
   return res.json()
 }
 
 // --- "was this asked in an interview?" company reports ---
 
-/** Companies this question has been reported at, with report counts. Public. */
 export async function fetchQuestionCompanies(questionId) {
   const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/companies`, {
-    headers: authHeaders()
+    headers: authHeaders(), credentials: 'include'
   })
   if (!res.ok) return []
   return res.json()
 }
 
-/** Typeahead over companies already in the database. */
 export async function searchCompanies(q) {
-  const res = await fetch(`${API_BASE}/companies?q=${encodeURIComponent(q || '')}`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/companies?q=${encodeURIComponent(q || '')}`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return []
   return res.json()
 }
 
-/** Report this question as asked at a company (creates the company if new). */
 export async function reportCompany(questionId, company, askedOn) {
   const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/companies`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ company, askedOn }),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Could not save that')
   return res.json()
 }
 
-/** Withdraw this user's own report. */
 export async function unreportCompany(questionId, company) {
   const res = await fetch(
     `${API_BASE}/questions/${encodeURIComponent(questionId)}/companies/${encodeURIComponent(company)}`,
-    { method: 'DELETE', headers: authHeaders() }
+    { method: 'DELETE', headers: authHeaders(), credentials: 'include' }
   )
   if (!res.ok) throw new Error('Could not remove that')
   return res.json()
 }
 
-// --- suggested edits (reader proposes, admin approves/rejects) ---
+// --- suggested edits ---
 
-/** Propose an edit to a question. Body fields are optional; send what changed. */
 export async function suggestEdit(questionId, { title, question, answer, note }) {
   const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/suggestions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ title, question, answer, note }),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Could not send that suggestion')
   return res.json()
 }
 
-/** This user's suggestions + how many decisions they haven't seen. */
 export async function fetchMySuggestions() {
-  const res = await fetch(`${API_BASE}/suggestions/mine`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/suggestions/mine`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return { unseen: 0, items: [] }
   return res.json()
 }
 
 export function markSuggestionsSeen() {
-  return fetch(`${API_BASE}/suggestions/mine/seen`, { method: 'POST', headers: authHeaders() })
+  return fetch(`${API_BASE}/suggestions/mine/seen`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
 }
 
 // --- admin: review queue ---
 
-// status: 'PENDING' | 'APPROVED' | 'REJECTED'
 export async function fetchSuggestions(status = 'PENDING') {
-  const res = await fetch(`${API_BASE}/suggestions?status=${status}`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/suggestions?status=${status}`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return []
   return res.json()
 }
 
 export async function fetchSuggestionCounts() {
-  const res = await fetch(`${API_BASE}/suggestions/counts`, { headers: authHeaders() })
+  const res = await fetch(`${API_BASE}/suggestions/counts`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return { pending: 0, approved: 0, rejected: 0 }
   return res.json()
 }
 
-// decision: 'approve' | 'reject'
 export async function reviewSuggestion(id, decision, adminNote) {
   const res = await fetch(`${API_BASE}/suggestions/${id}/${decision}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ adminNote }),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
   return res.json()
@@ -188,16 +190,17 @@ export async function createQuestion(input) {
   const res = await fetch(`${API_BASE}/questions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(input),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
   return res.json()
 }
 
-// inputs: array of question objects. Returns { created: n }.
 export async function createQuestionsBulk(inputs) {
   const res = await fetch(`${API_BASE}/questions/bulk`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(inputs),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
   return res.json()
@@ -207,6 +210,7 @@ export async function updateQuestion(id, input) {
   const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(id)}`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(input),
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
   return res.json()
@@ -215,16 +219,17 @@ export async function updateQuestion(id, input) {
 export async function deleteQuestion(id) {
   const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(id)}`, {
     method: 'DELETE', headers: { ...authHeaders() },
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || `Failed (${res.status})`)
 }
 
-// Upload an image (to S3/LocalStack via the backend). Returns the public URL.
 export async function uploadImage(file) {
   const body = new FormData()
   body.append('file', file)
   const res = await fetch(`${API_BASE}/images`, {
-    method: 'POST', headers: { ...authHeaders() }, body, // no Content-Type: browser sets multipart boundary
+    method: 'POST', headers: { ...authHeaders() }, body,
+    credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || `Upload failed (${res.status})`)
   return (await res.json()).url

@@ -6,6 +6,7 @@ import com.interview.backend.repository.UserRepository;
 import com.interview.backend.service.EmailService;
 import com.interview.backend.service.ProgressService;
 import com.interview.backend.util.JwtUtil;
+import com.interview.backend.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletResponse;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -31,6 +34,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final ProgressService progressService;
     private final EmailService emailService;
+    private final CookieUtil cookieUtil;
 
     @Value("${app.admin.emails:}")
     private String adminEmailsCsv;
@@ -43,7 +47,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletResponse response) {
         if (req.email() == null || req.password() == null || req.email().isBlank() || req.password().length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email and a password of at least 6 characters are required"));
         }
@@ -58,11 +62,12 @@ public class AuthController {
         user = userRepository.save(user);
 
         String token = jwtUtil.generateToken(email);
+        cookieUtil.setTokenCookie(response, token);
         return ResponseEntity.ok(new AuthResponse(token, email, user.getName(), isAdmin(email)));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletResponse response) {
         String email = req.email() == null ? "" : req.email().trim().toLowerCase();
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, req.password()));
@@ -71,7 +76,14 @@ public class AuthController {
         }
         User user = userRepository.findByEmail(email).orElseThrow();
         String token = jwtUtil.generateToken(email);
+        cookieUtil.setTokenCookie(response, token);
         return ResponseEntity.ok(new AuthResponse(token, email, user.getName(), isAdmin(email)));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        cookieUtil.clearTokenCookie(response);
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
     @PostMapping("/forgot-password")
@@ -83,7 +95,6 @@ public class AuthController {
         email = email.trim().toLowerCase();
 
         User user = userRepository.findByEmail(email).orElse(null);
-        // ponytail: always return success even if email not found (security best practice - don't leak account existence)
         if (user == null) {
             return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent"));
         }
@@ -100,17 +111,16 @@ public class AuthController {
 
     private String getDailyExportCode() {
         String today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
-        // deterministic code for the day
         int codeInt = Math.abs((today + "-interview-export-secret").hashCode()) % 1000000;
         return String.format("%06d", codeInt);
     }
 
     @PostMapping("/export-code/request")
-    public ResponseEntity<?> requestExportCode(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    public ResponseEntity<?> requestExportCode(Principal principal) {
+        if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        String email = principal.getName();
         if (!isAdmin(email)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -121,11 +131,11 @@ public class AuthController {
     }
 
     @PostMapping("/export-code/verify")
-    public ResponseEntity<?> verifyExportCode(@RequestBody Map<String, String> req, @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    public ResponseEntity<?> verifyExportCode(@RequestBody Map<String, String> req, Principal principal) {
+        if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String email = jwtUtil.extractEmail(authHeader.substring(7));
+        String email = principal.getName();
         if (!isAdmin(email)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }

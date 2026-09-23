@@ -6,6 +6,19 @@ import ProfilePage from './components/ProfilePage.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import './index.css'
 
+// Patch fetch to always include credentials for API_BASE requests
+const originalFetch = window.fetch;
+window.fetch = function() {
+  let [resource, config] = arguments;
+  const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api';
+  if (typeof resource === 'string' && resource.startsWith(apiBase)) {
+    config = config || {};
+    config.credentials = 'include';
+    arguments[1] = config;
+  }
+  return originalFetch.apply(this, arguments);
+};
+
 // ponytail: raw pathname check at the entry point — avoids adding react-router just for a wildcard
 function Router() {
   const [path, setPath] = useState(() => typeof window !== 'undefined' ? window.location.pathname : '/')

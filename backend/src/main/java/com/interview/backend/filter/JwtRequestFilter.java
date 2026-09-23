@@ -1,6 +1,7 @@
 package com.interview.backend.filter;
 
 import com.interview.backend.util.JwtUtil;
+import com.interview.backend.util.CookieUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,10 +25,12 @@ import java.util.stream.Collectors;
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final CookieUtil cookieUtil;
     private final Set<String> adminEmails;
 
-    public JwtRequestFilter(JwtUtil jwtUtil, @Value("${app.admin.emails:}") String adminEmailsCsv) {
+    public JwtRequestFilter(JwtUtil jwtUtil, CookieUtil cookieUtil, @Value("${app.admin.emails:}") String adminEmailsCsv) {
         this.jwtUtil = jwtUtil;
+        this.cookieUtil = cookieUtil;
         this.adminEmails = Arrays.stream(adminEmailsCsv.split(","))
                 .map(s -> s.trim().toLowerCase())
                 .filter(s -> !s.isEmpty())
@@ -38,19 +41,31 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        final String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            String email = jwtUtil.extractEmail(header.substring(7));
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                List<SimpleGrantedAuthority> authorities = adminEmails.contains(email.toLowerCase())
-                        ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
-                        : List.of();
-                UserDetails details = new org.springframework.security.core.userdetails.User(
-                        email, "", authorities);
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        details, null, details.getAuthorities());
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
+        String token = cookieUtil.getTokenFromCookie(request);
+
+        if (token == null) {
+            final String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                token = header.substring(7);
+            }
+        }
+
+        if (token != null) {
+            try {
+                String email = jwtUtil.extractEmail(token);
+                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    List<SimpleGrantedAuthority> authorities = adminEmails.contains(email.toLowerCase())
+                            ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                            : List.of();
+                    UserDetails details = new org.springframework.security.core.userdetails.User(
+                            email, "", authorities);
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            details, null, details.getAuthorities());
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
+            } catch (Exception e) {
+                // Invalid token
             }
         }
         chain.doFilter(request, response);
