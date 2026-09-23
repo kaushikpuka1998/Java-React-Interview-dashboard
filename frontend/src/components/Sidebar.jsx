@@ -6,7 +6,7 @@ import Notifications from './Notifications.jsx'
 /**
  * Sidebar component
  */
-export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, company, setCompany, companies = [], user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech }) {
+export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, company, setCompany, companies = [], user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech, stats, totalCount }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
@@ -26,6 +26,32 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
     return () => el.removeEventListener('scroll', onScroll)
   }, [hasMore, onLoadMore, listRef])
 
+  const getBannerText = () => {
+    const techMap = { java: 'Java', react: 'React', node: 'Node', sql: 'SQL', hld: 'HLD' }
+    
+    if (tech === 'all') {
+      let techsStr = "Java, React, Node & SQL"
+      if (stats?.byTech && Object.keys(stats.byTech).length > 0) {
+         const keys = Object.keys(stats.byTech).map(k => techMap[k.toLowerCase()] || k.charAt(0).toUpperCase() + k.slice(1))
+         if (keys.length === 1) techsStr = keys[0]
+         else if (keys.length === 2) techsStr = keys.join(' & ')
+         else techsStr = keys.slice(0, -1).join(', ') + ' & ' + keys[keys.length - 1]
+      }
+      return `${stats?.total ?? questions.length} ${techsStr} questions`
+    }
+    
+    const techName = techMap[tech.toLowerCase()] || tech.charAt(0).toUpperCase() + tech.slice(1)
+    
+    let count = questions.length
+    if (stats?.byTech) {
+      const key = Object.keys(stats.byTech).find(k => k.toLowerCase() === tech.toLowerCase())
+      if (key) {
+        count = stats.byTech[key]
+      }
+    }
+    return `${count} ${techName} questions`
+  }
+
   return (
     <aside
       className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'}`}
@@ -39,7 +65,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">Interview Reader</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{questions.length} Java, React, Node & SQL questions</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{getBannerText()}</p>
             </div>
           </div>
           <button
@@ -149,7 +175,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
               />
               {user && <CompanySelect value={company} onChange={setCompany} options={companies} />}
               {user && <StatusSelect value={status} onChange={setStatus} />}
-              <QuestionCount count={filtered.length} total={questions.length} />
+              <QuestionCount count={filtered.length} total={totalCount !== undefined ? totalCount : questions.length} />
             </div>
           </div>
         </div>
@@ -194,7 +220,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
           </div>
 
           <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-            <QuestionCount count={filtered.length} total={questions.length} />
+            <QuestionCount count={filtered.length} total={totalCount !== undefined ? totalCount : questions.length} />
           </div>
         </>
       )}

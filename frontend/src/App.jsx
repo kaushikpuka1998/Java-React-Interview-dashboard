@@ -36,6 +36,7 @@ function App({ path = '/', onPathChange = () => {} }) {
   const [isLoading, setIsLoading] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
   const [hasMore, setHasMore] = useState(false)
+  const [stats, setStats] = useState(null)
 
   // Visited/read are per-user and server-authoritative. Empty until the account's
   // progress loads; guests (not logged in) have no persisted status.
@@ -159,6 +160,7 @@ function App({ path = '/', onPathChange = () => {} }) {
   // Load stats
   useEffect(() => {
     fetchStats().then(stats => {
+      setStats(stats)
       if (Array.isArray(stats?.freeTechs)) setFreeTechs(stats.freeTechs)
     }).catch(() => {})
   }, [user])
@@ -353,6 +355,8 @@ function App({ path = '/', onPathChange = () => {} }) {
     onAdminClick: () => { window.location.href = '/admin' },
     freeTechs,
     onLockedTech: () => setAuthOpen(true),
+    stats,
+    totalCount,
   }
 
   return (
