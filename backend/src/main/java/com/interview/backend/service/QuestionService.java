@@ -186,4 +186,13 @@ public class QuestionService {
             throw new IllegalArgumentException("Question not found: " + id);
         questionRepository.deleteById(id);
     }
+
+    public java.util.Map<String, Long> getAllTechCounts() {
+        java.util.List<String> techs = questionRepository.findDistinctTechs();
+        java.util.Map<String, Long> counts = new java.util.HashMap<>();
+        for (String tech : techs) {
+            counts.put(tech, getCountByTech(tech));
+        }
+        return counts;
+    }
 }

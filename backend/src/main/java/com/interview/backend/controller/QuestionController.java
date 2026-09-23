@@ -86,13 +86,7 @@ public class QuestionController {
                 "freeTechs", access.freeTechs(),
                 "authenticated", access.isAuthenticated(),
                 "total", questionService.getTotalCount(),
-                "byTech", Map.of(
-                        "java", questionService.getCountByTech("java"),
-                        "react", questionService.getCountByTech("react"),
-                        "hld", questionService.getCountByTech("hld"),
-                        "sql", questionService.getCountByTech("sql"),
-                        "kafka", questionService.getCountByTech("kafka")
-                )
+                "byTech", questionService.getAllTechCounts()
         ));
     }
 
