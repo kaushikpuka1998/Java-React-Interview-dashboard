@@ -120,7 +120,13 @@ function App({ path = '/', onPathChange = () => {} }) {
         if (!append && initialId) {
           const existing = prev.find(q => q.id === initialId)
           if (existing && !next.some(q => q.id === initialId)) {
-            next = [existing, ...next]
+            const matchesTech = tech === 'all' || existing.tech === tech
+            const matchesCategory = category === 'all' || existing.category === category
+            const matchesDifficulty = difficulty === 'all' || existing.difficulty === difficulty
+            
+            if (matchesTech && matchesCategory && matchesDifficulty) {
+              next = [existing, ...next]
+            }
           }
         }
         return next
@@ -190,24 +196,41 @@ function App({ path = '/', onPathChange = () => {} }) {
 
   // Keep track of the very first ID we loaded with so we don't overwrite it while fetching
   const [pendingUrlId, setPendingUrlId] = useState(initialId)
+  const lastUrlId = useRef(initialId)
+
+  // If the URL changes (e.g. popstate or pushState), update our tracking.
+  if (initialId !== lastUrlId.current) {
+    lastUrlId.current = initialId
+    if (initialId && !questionsData.some(q => q.id === initialId)) {
+      setPendingUrlId(initialId)
+    }
+  }
 
   useEffect(() => {
-    if (initialId && !questionsData.some(q => q.id === initialId)) {
-      fetchQuestion(initialId)
-        .then(q => {
-          if (q.id && !questionsData.some(existing => existing.id === q.id)) {
-            setQuestionsData(prev => [q, ...prev])
-            setTech(q.tech)
-          }
-        })
-        .catch(console.error)
-        .finally(() => {
-          if (pendingUrlId === initialId) setPendingUrlId(null)
-        })
-    } else if (initialId && questionsData.some(q => q.id === initialId)) {
-       if (pendingUrlId === initialId) setPendingUrlId(null)
+    if (!pendingUrlId) return
+    
+    // Check if it's already loaded
+    if (questionsData.some(q => q.id === pendingUrlId)) {
+      setPendingUrlId(null)
+      return
     }
-  }, [initialId, questionsData, pendingUrlId])
+
+    fetchQuestion(pendingUrlId)
+      .then(q => {
+        if (!q.id) return
+        setQuestionsData(prev => {
+          if (prev.some(existing => existing.id === q.id)) return prev
+          return [q, ...prev]
+        })
+        setTech(q.tech)
+      })
+      .catch(console.error)
+      .finally(() => {
+        setPendingUrlId(null)
+      })
+    // Explicitly leaving questionsData out of dependencies so this doesn't re-run on filter changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingUrlId])
 
   // URL routing: the path is a question slug. Resolve it against loaded questions.
   const slug = path === '/' ? '' : decodeURIComponent(path.replace(/^\/+/, ''))
