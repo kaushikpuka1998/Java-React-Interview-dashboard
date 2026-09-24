@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { PAGE, fetchQuestions, fetchCategories, fetchStats } from './lib/api.js'
+import { PAGE, fetchQuestions, fetchQuestion, fetchCategories, fetchStats } from './lib/api.js'
 import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
@@ -115,7 +115,16 @@ function App({ path = '/', onPathChange = () => {} }) {
         page: pageToLoad,
         size: PAGE
       })
-      setQuestionsData(prev => append ? [...prev, ...data.content] : data.content)
+      setQuestionsData(prev => {
+        let next = append ? [...prev, ...data.content] : data.content
+        if (!append && initialId) {
+          const existing = prev.find(q => q.id === initialId)
+          if (existing && !next.some(q => q.id === initialId)) {
+            next = [existing, ...next]
+          }
+        }
+        return next
+      })
       // Update refs synchronously so a scroll firing before re-render sees the new page
       pageRef.current = data.number
       hasMoreRef.current = data.totalPages > data.number + 1
@@ -176,13 +185,39 @@ function App({ path = '/', onPathChange = () => {} }) {
   const filtered = questionsData
   const effectiveHasMore = hasMore
 
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const initialId = searchParams.get('id')
+
+  // Keep track of the very first ID we loaded with so we don't overwrite it while fetching
+  const [pendingUrlId, setPendingUrlId] = useState(initialId)
+
+  useEffect(() => {
+    if (initialId && !questionsData.some(q => q.id === initialId)) {
+      fetchQuestion(initialId)
+        .then(q => {
+          if (q.id && !questionsData.some(existing => existing.id === q.id)) {
+            setQuestionsData(prev => [q, ...prev])
+            setTech(q.tech)
+          }
+        })
+        .catch(console.error)
+        .finally(() => {
+          if (pendingUrlId === initialId) setPendingUrlId(null)
+        })
+    } else if (initialId && questionsData.some(q => q.id === initialId)) {
+       if (pendingUrlId === initialId) setPendingUrlId(null)
+    }
+  }, [initialId, questionsData, pendingUrlId])
+
   // URL routing: the path is a question slug. Resolve it against loaded questions.
   const slug = path === '/' ? '' : decodeURIComponent(path.replace(/^\/+/, ''))
-  const byId = filtered.find(q => q.id === selectedId)
+  const byId = filtered.find(q => q.id === selectedId) || filtered.find(q => q.id === initialId)
   const bySlug = slug ? questionsData.find(q => slugify(q.question || q.title) === slug) : null
+  
   // Prefer the current selection, then the URL slug, then default to the first result.
-  // Only null (=> reader 404) when there are genuinely no questions to show.
-  const selected = byId || bySlug || filtered[0] || questionsData[0] || null
+  // ONLY fallback to first result if we aren't waiting for the URL ID to load!
+  const isPending = pendingUrlId && initialId === pendingUrlId && !byId && !bySlug
+  const selected = byId || bySlug || (isPending ? null : (filtered[0] || questionsData[0] || null))
 
   // Keep selectedId in sync with what's actually shown — covers deep links (slug) and
   // filter changes (stale id -> first result), so the sidebar highlights the right item.
@@ -194,8 +229,9 @@ function App({ path = '/', onPathChange = () => {} }) {
   // (in main.jsx) handles back/forward, so we never feed `path` back and loop.
   useEffect(() => {
     if (!selected) return
-    const next = `/${slugify(selected.question || selected.title)}`
-    if (next !== window.location.pathname) window.history.pushState({}, '', next)
+    const next = `/${slugify(selected.question || selected.title)}?id=${selected.id}`
+    const current = window.location.pathname + window.location.search
+    if (next !== current) window.history.pushState({}, '', next)
     // Record the view for the admin analytics dashboard.
     trackView({ path: next, questionId: selected.id })
     // Per-question title/description/canonical + QAPage structured data.

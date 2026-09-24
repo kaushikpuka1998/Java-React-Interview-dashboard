@@ -16,6 +16,8 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
 
     Optional<Question> findById(String id);
 
+    long countByIdIn(List<String> ids);
+
     List<Question> findByTech(String tech);
 
     List<Question> findByTechAndNumber(String tech, Integer number);

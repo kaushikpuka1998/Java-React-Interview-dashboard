@@ -3,6 +3,15 @@
 export const PAGE = 50
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
+export async function fetchQuestion(id) {
+  const token = localStorage.getItem('ir_token')
+  const res = await fetch(`${API_BASE}/questions/${id}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new Error('Failed to fetch question')
+  return res.json()
+}
+
 export async function fetchQuestions({ tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, page = 0, size = PAGE }) {
   // Always send IDs when status filter is active for correct pagination
   const shouldSendIds = status && status !== 'all'

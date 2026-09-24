@@ -48,7 +48,7 @@ function QuestionList({ title, items, emptyText }) {
         <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
           {items.map((q) => (
             <li key={q.id} className="py-2">
-              <a href={`/${slugify(q.question || q.title)}`} className="block group">
+              <a href={`/${slugify(q.question || q.title)}?id=${q.id}`} className="block group">
                 <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
                   {q.title}
                 </p>

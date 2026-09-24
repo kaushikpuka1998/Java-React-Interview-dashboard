@@ -43,7 +43,7 @@ public class ProfileController {
 
         List<String> visitedIds = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
         List<String> solvedIds = rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList();
-        long flaggedCount = rows.stream().filter(UserProgress::isFlagged).count();
+        List<String> flaggedIds = rows.stream().filter(UserProgress::isFlagged).map(UserProgress::getQuestionId).toList();
 
         long total = questionRepository.count();
 
@@ -79,7 +79,7 @@ public class ProfileController {
         body.put("totalQuestions", total);
         body.put("visitedCount", visitedIds.size());
         body.put("solvedCount", solvedIds.size());
-        body.put("flaggedCount", flaggedCount);
+        body.put("flaggedCount", flaggedIds.size());
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
         return ResponseEntity.ok(body);
@@ -107,6 +107,19 @@ public class ProfileController {
                 .filter(include)
                 .map(UserProgress::getQuestionId)
                 .toList();
-        return questionRepository.findAllById(ids);
+        List<Question> found = new ArrayList<>(questionRepository.findAllById(ids));
+        if (found.size() < ids.size()) {
+            List<String> foundIds = found.stream().map(Question::getId).toList();
+            for (String id : ids) {
+                if (!foundIds.contains(id)) {
+                    Question q = new Question();
+                    q.setId(id);
+                    q.setTitle("Deleted Question");
+                    q.setTech("unknown");
+                    found.add(q);
+                }
+            }
+        }
+        return found;
     }
 }
