@@ -4,11 +4,11 @@ spring:
       # Set REDIS_URL on Railway to the Redis plugin's ${{Redis.REDIS_URL}}
       url: ${REDIS_URL:redis://localhost:6379}
   datasource:
-    # DBURL must be a JDBC url. On Railway set it to:
-    #   jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}?sslmode=require
-    url: ${DBURL}
-    username: ${DATABASE_USER}
-    password: ${DATABASE_PASSWORD}
+    # Built from Railway's individual Postgres variables so the URL always has the jdbc: prefix
+    # (the JDBC driver rejects the raw postgresql:// DATABASE_URL) and requires SSL.
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}?sslmode=require
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
