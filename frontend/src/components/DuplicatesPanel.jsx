@@ -43,6 +43,18 @@ export default function DuplicatesPanel() {
     } catch (e) { setMsg({ ok: false, text: e.message }) } finally { setBusyId(null) }
   }
 
+  async function deleteAll() {
+    if (!window.confirm(`Delete all ${items.length} reported question(s)? This can't be undone.`)) return
+    setBusyId('all'); setMsg(null)
+    let ok = 0, failed = 0
+    for (const r of items) {
+      try { await deleteQuestionForDuplicate(r.id); ok++ } catch { failed++ }
+    }
+    setMsg({ ok: failed === 0, text: `Deleted ${ok} question(s)${failed ? `, ${failed} failed` : ''}` })
+    setBusyId(null)
+    load()
+  }
+
   async function handleDismiss(r) {
     setBusyId(r.id); setMsg(null)
     try {
@@ -56,13 +68,21 @@ export default function DuplicatesPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        {TABS.map(([s, label]) => (
-          <button key={s} onClick={() => { setStatus(s); setMsg(null) }}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${status === s ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
-            {label} <span className="tabular-nums opacity-70">{count[s]}</span>
+      <div className="flex gap-2 flex-wrap items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          {TABS.map(([s, label]) => (
+            <button key={s} onClick={() => { setStatus(s); setMsg(null) }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${status === s ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+              {label} <span className="tabular-nums opacity-70">{count[s]}</span>
+            </button>
+          ))}
+        </div>
+        {status === 'PENDING' && items.length > 0 && (
+          <button disabled={busyId !== null} onClick={deleteAll}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-600 text-white hover:opacity-95 disabled:opacity-60">
+            {busyId === 'all' ? 'Working…' : `Delete all (${items.length})`}
           </button>
-        ))}
+        )}
       </div>
 
       {msg && <p className={`text-sm ${msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{msg.text}</p>}
@@ -86,11 +106,11 @@ export default function DuplicatesPanel() {
               </div>
               {r.status === 'PENDING' && (
                 <div className="flex gap-2 flex-shrink-0">
-                  <button disabled={busyId === r.id} onClick={() => handleDelete(r)}
+                  <button disabled={busyId !== null} onClick={() => handleDelete(r)}
                     className="px-3 py-1.5 text-xs font-semibold rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50">
                     Delete question
                   </button>
-                  <button disabled={busyId === r.id} onClick={() => handleDismiss(r)}
+                  <button disabled={busyId !== null} onClick={() => handleDismiss(r)}
                     className="px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50">
                     Not a duplicate
                   </button>
