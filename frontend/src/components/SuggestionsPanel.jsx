@@ -30,6 +30,15 @@ export default function SuggestionsPanel() {
 
   useEffect(() => { load() }, [load])
 
+  // Keep the queue (and its counts) current without a manual refresh — a new
+  // suggestion from a reader shouldn't need a page reload to show up.
+  useEffect(() => {
+    const interval = setInterval(load, 15000)
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => { clearInterval(interval); window.removeEventListener('focus', onFocus) }
+  }, [load])
+
   async function decide(s, decision) {
     if (decision === 'reject' && !note.trim()
         && !window.confirm('Reject without a reason? The reader only sees "not accepted".')) return
