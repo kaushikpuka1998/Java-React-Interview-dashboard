@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { PAGE, fetchQuestions, fetchQuestion, fetchCategories, fetchStats } from './lib/api.js'
 import { saveAllQuestions, getLastSyncedAt } from './lib/offlineStore.js'
+import { initOfflineSync, sendOrQueue } from './lib/offlineSync.js'
 import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
@@ -198,9 +199,11 @@ function App({ path = '/', onPathChange = () => {} }) {
     }).catch(() => {})
   }, [user])
 
-  // Surface an offline banner and let the user know browsing (but not saving) still works.
+  // Surface an offline banner, and replay any visited/read/flag actions queued
+  // while offline as soon as the connection (or just the tab) comes back.
   const [online, setOnline] = useState(() => navigator.onLine)
   useEffect(() => {
+    initOfflineSync()
     const on = () => setOnline(true), off = () => setOnline(false)
     window.addEventListener('online', on)
     window.addEventListener('offline', off)
@@ -323,7 +326,7 @@ function App({ path = '/', onPathChange = () => {} }) {
       if (!prev.has(id)) {
         const next = new Set(prev)
         next.add(id)
-        if (isLoggedIn()) markVisitedRemote(id).catch(() => {})
+        if (isLoggedIn()) sendOrQueue('visited', id, () => markVisitedRemote(id)).catch(() => {})
         return next
       }
       return prev
@@ -341,7 +344,7 @@ function App({ path = '/', onPathChange = () => {} }) {
     setRead(prev => {
       const next = new Set(prev)
       next.add(id)
-      if (isLoggedIn()) markReadRemote(id).catch(() => {})
+      if (isLoggedIn()) sendOrQueue('read', id, () => markReadRemote(id)).catch(() => {})
       return next
     })
     // Also mark as visited if not already (markRead on the server already implies visited)
@@ -359,13 +362,24 @@ function App({ path = '/', onPathChange = () => {} }) {
     if (flagging.has(id)) return
     setFlagging(prev => new Set(prev).add(id))
     try {
-      const { flagged: isFlagged } = await toggleFlaggedRemote(id)
-      setFlagged(prev => {
-        const next = new Set(prev)
-        if (isFlagged) next.add(id)
-        else next.delete(id)
-        return next
-      })
+      if (!navigator.onLine) {
+        // Can't know the server's resulting state without a round-trip — flip
+        // locally and queue the same toggle call for when the connection returns.
+        await sendOrQueue('flag', id, () => toggleFlaggedRemote(id))
+        setFlagged(prev => {
+          const next = new Set(prev)
+          if (next.has(id)) next.delete(id); else next.add(id)
+          return next
+        })
+      } else {
+        const { flagged: isFlagged } = await toggleFlaggedRemote(id)
+        setFlagged(prev => {
+          const next = new Set(prev)
+          if (isFlagged) next.add(id)
+          else next.delete(id)
+          return next
+        })
+      }
     } catch (error) {
       console.error('Failed to update flag:', error)
       window.alert('The flag could not be saved. Please try again.')
@@ -449,7 +463,7 @@ function App({ path = '/', onPathChange = () => {} }) {
     <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
       {!online && (
         <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-amber-950 text-xs font-semibold text-center py-1">
-          You're offline — showing cached questions. Marking read, suggestions, and login won't work until you're back online.
+          You're offline — showing cached questions. Marking read/visited and flags are saved now and will sync automatically when you're back online. Suggestions and login still need a connection.
         </div>
       )}
       <Sidebar {...sidebarProps} sidebarWidth={sidebarWidth} questionListRef={questionListRef} />

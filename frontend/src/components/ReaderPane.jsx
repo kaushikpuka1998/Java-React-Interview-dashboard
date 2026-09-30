@@ -232,8 +232,8 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                 <Markdown text={question.answer} />
               </div>
 
-              {/* Bottom Navigation stays pinned at the bottom of the card */}
-              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
+              {/* Bottom Navigation stays pinned at the bottom of the card — desktop only, mobile has its own top nav */}
+              <div className="hidden lg:flex mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 items-center justify-between flex-shrink-0">
                 <button
                     disabled={!prev}
                     onClick={() => onNavigate(prev.id)}
