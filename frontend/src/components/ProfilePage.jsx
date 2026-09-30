@@ -81,16 +81,23 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
+    let cancelled = false
     Promise.all([fetchProfile(), fetchProfileQuestions('solved'), fetchProfileQuestions('visited'), fetchProgress()])
-      .then(async ([p, s, v, progress]) => {
+      .then(([p, s, v, progress]) => {
+        if (cancelled) return
+        setProfile(p); setSolved(s); setVisited(v)
+        setLoading(false)
+        // Flagged questions need a second request keyed off `progress` — don't make the
+        // whole page wait on it, fill it in once it arrives.
         const ids = progress.flagged || []
-        const f = ids.length
-          ? (await fetchQuestions({ status: 'flagged', flaggedIds: ids, size: ids.length })).content
-          : []
-        setProfile(p); setSolved(s); setVisited(v); setFlagged(f)
+        if (ids.length) {
+          fetchQuestions({ status: 'flagged', flaggedIds: ids, size: ids.length })
+            .then((res) => !cancelled && setFlagged(res.content))
+            .catch(() => {})
+        }
       })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
+      .catch((e) => { if (!cancelled) { setError(e.message); setLoading(false) } })
+    return () => { cancelled = true }
   }, [])
 
   if (!isLoggedIn()) {
@@ -102,7 +109,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (loading) return <Shell><p className="text-slate-500">Loading profile…</p></Shell>
+  if (loading) return <Shell><ProfileSkeleton /></Shell>
   if (error) return <Shell><p className="text-red-500">{error}</p></Shell>
   if (!profile) return <Shell><p className="text-slate-500">No profile data.</p></Shell>
 
@@ -170,6 +177,36 @@ export default function ProfilePage() {
         <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
       </div>
     </Shell>
+  )
+}
+
+// Mirrors the real layout's sizes so something substantial paints immediately,
+// instead of the page's biggest content waiting on the network (hurts LCP).
+function ProfileSkeleton() {
+  const block = 'animate-pulse rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60'
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        <div className="space-y-2">
+          <div className="h-6 w-40 rounded bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          <div className="h-4 w-56 rounded bg-slate-200 dark:bg-slate-800 animate-pulse" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {Array.from({ length: 5 }).map((_, i) => <div key={i} className={`${block} h-24`} />)}
+      </div>
+      <div className={`${block} h-16 mb-8`} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <div className={`${block} h-48`} />
+        <div className={`${block} h-48`} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className={`${block} h-64`} />
+        <div className={`${block} h-64`} />
+        <div className={`${block} h-64`} />
+      </div>
+    </div>
   )
 }
 
