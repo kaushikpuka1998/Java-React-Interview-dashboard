@@ -112,8 +112,7 @@ public class QuestionController {
         if (inputs == null || inputs.isEmpty())
             return ResponseEntity.badRequest().body(Map.of("error", "No questions provided"));
         try {
-            List<Question> saved = questionService.createFromInputs(inputs);
-            return ResponseEntity.status(201).body(Map.of("created", saved.size()));
+            return ResponseEntity.ok(questionService.upsertFromInputs(inputs));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

@@ -260,7 +260,7 @@ export default function AdminPage() {
     } catch (err) { setBusy(false); return setMsg({ ok: false, text: 'Invalid JSON: ' + err.message }) }
     try {
       const res = await createQuestionsBulk(parsed)
-      setMsg({ ok: true, text: `Created ${res.created} question(s)` })
+      setMsg({ ok: true, text: `Created ${res.created}, updated ${res.updated} question(s)` })
       setBulk('')
     } catch (err) { setMsg({ ok: false, text: err.message }) } finally { setBusy(false) }
   }
@@ -355,12 +355,12 @@ export default function AdminPage() {
 
       {tab === 'bulk' && (
         <form onSubmit={submitBulk} className="space-y-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Paste a JSON array. Each item needs <code>tech</code>, <code>title</code>, <code>answer</code>; optional <code>question</code>, <code>difficulty</code>, <code>category</code>, <code>id</code>.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Paste a JSON array. Each item needs <code>tech</code>, <code>title</code>, <code>answer</code>; optional <code>question</code>, <code>difficulty</code>, <code>category</code>, <code>id</code>. Items whose <code>id</code> already exists are updated (only the fields you include); the rest are inserted.</p>
           <textarea required value={bulk} onChange={(e) => setBulk(e.target.value)} rows={16}
             placeholder={'[\n  { "tech": "java", "title": "What is JVM?", "answer": "..." }\n]'}
             className={`${inputCls} font-mono text-xs`} />
           <button type="submit" disabled={busy} className="w-full py-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold shadow-lg hover:opacity-95 disabled:opacity-60">
-            {busy ? 'Uploading…' : 'Bulk publish'}
+            {busy ? 'Uploading…' : 'Bulk upsert'}
           </button>
         </form>
       )}

@@ -154,6 +154,34 @@ public class QuestionService {
         return questionRepository.saveAll(toSave);
     }
 
+    /**
+     * Bulk upsert: items whose id already exists are updated (only supplied fields),
+     * everything else is inserted. All-or-nothing in one transaction.
+     * Returns {created, updated}.
+     */
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "questionSearch", allEntries = true),
+            @CacheEvict(value = "categories", allEntries = true),
+            @CacheEvict(value = "stats", allEntries = true),
+            @CacheEvict(value = "questionById", allEntries = true)
+    })
+    public java.util.Map<String, Integer> upsertFromInputs(List<com.interview.backend.dto.QuestionInput> inputs) {
+        List<com.interview.backend.dto.QuestionInput> toCreate = new java.util.ArrayList<>();
+        int updated = 0;
+        for (com.interview.backend.dto.QuestionInput in : inputs) {
+            String id = in.id() == null ? null : in.id().trim();
+            if (id != null && !id.isEmpty() && questionRepository.existsById(id)) {
+                update(id, in);
+                updated++;
+            } else {
+                toCreate.add(in);
+            }
+        }
+        int created = toCreate.isEmpty() ? 0 : createFromInputs(toCreate).size();
+        return java.util.Map.of("created", created, "updated", updated);
+    }
+
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "questionSearch", allEntries = true),
