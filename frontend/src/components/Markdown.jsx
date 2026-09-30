@@ -35,7 +35,7 @@ function highlightCode(code) {
 
 function formatInline(line) {
   // Order matters: images before links, links before emphasis.
-  const chunks = String(line).split(/(!?\[[^\]]*\]\([^)]*\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g)
+  const chunks = String(line).split(/(!?\[[^\]]*\]\([^)]*\)|`+[^`]+`+|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g)
   return chunks.map((chunk, index) => {
     if (!chunk) return null
     // Inline image: ![alt](src)
@@ -62,7 +62,8 @@ function formatInline(line) {
         )
       }
     }
-    if (chunk.startsWith('`') && chunk.endsWith('`')) return <code key={index} className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-slate-900 dark:text-slate-100 break-words">{chunk.slice(1, -1)}</code>
+    // Any run of backticks opens/closes inline code (``` inline, or unbalanced ```` from source data).
+    if (chunk.startsWith('`') && chunk.endsWith('`')) return <code key={index} className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-sm font-mono text-slate-900 dark:text-slate-100 break-words">{chunk.replace(/^`+|`+$/g, '').trim()}</code>
     if (chunk.startsWith('**') && chunk.endsWith('**')) return <strong key={index} className="font-semibold text-slate-900 dark:text-slate-100">{chunk.slice(2, -2)}</strong>
     if (chunk.startsWith('*') && chunk.endsWith('*')) return <em key={index} className="italic text-slate-700 dark:text-slate-300">{chunk.slice(1, -1)}</em>
     if (chunk.startsWith('~~') && chunk.endsWith('~~')) return <del key={index} className="line-through text-slate-500 dark:text-slate-400">{chunk.slice(2, -2)}</del>
@@ -195,10 +196,12 @@ export default function Markdown({ text }) {
             continue
           }
 
-          // Group consecutive pipe lines into one table (skip the |---| separator)
+          // Group consecutive pipe lines into one table (skip the |---| separator).
+          // Like GFM, a table only starts when a |---| line follows the header, so
+          // pipes in prose or inline code (`{ |li| ... }`) don't become a table.
           const isRow = (l) => l && l.includes('|') && l.split('|').map(c => c.trim()).filter(Boolean).length > 1
           const isSep = (l) => l && /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && l.includes('-')
-          if (isRow(line) && !isSep(line)) {
+          if (isRow(line) && !isSep(line) && isSep(lines[lineIndex + 1])) {
             const rows = []
             let align = []
             let j = lineIndex
