@@ -6,6 +6,7 @@ import AuthModal from './AuthModal.jsx'
 import Markdown from './Markdown.jsx'
 import AnalyticsPanel from './AnalyticsPanel.jsx'
 import SuggestionsPanel from './SuggestionsPanel.jsx'
+import DuplicatesPanel from './DuplicatesPanel.jsx'
 
 const TECHS = ['java', 'react', 'node', 'sql', 'hld', 'kafka', 'golang', 'misc', 'angular', 'rails']
 const DIFFICULTIES = ['Basic', 'Intermediate', 'Advanced', 'Experienced']
@@ -279,6 +280,7 @@ export default function AdminPage() {
     setDeleteConfirm({ id: q.id, title: q.title })
   }
 
+
   async function confirmDelete() {
     if (!deleteConfirm) return
     try {
@@ -313,7 +315,7 @@ export default function AdminPage() {
   return (
     <Shell tabWide={tab === "analytics"}>
       <div className="flex gap-2 mb-5">
-        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['analytics', 'Analytics'], ['export', 'Export JSON']].map(([t, label]) => (
+        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['duplicates', 'Duplicates'], ['analytics', 'Analytics'], ['export', 'Export JSON']].map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null) }}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
             {label}
@@ -366,6 +368,8 @@ export default function AdminPage() {
       {tab === 'analytics' && <AnalyticsPanel />}
 
       {tab === 'suggestions' && <SuggestionsPanel />}
+
+      {tab === 'duplicates' && <DuplicatesPanel />}
 
       {tab === 'export' && <ExportPanel tech={tech} setTech={setTech} search={search} setSearch={setSearch} />}
 

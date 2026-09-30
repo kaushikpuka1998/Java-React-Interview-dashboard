@@ -4,6 +4,7 @@ import NotFound from './NotFound.jsx'
 import OnThisPage from './OnThisPage.jsx'
 import AskedAt from './AskedAt.jsx'
 import SuggestEdit from './SuggestEdit.jsx'
+import MarkDuplicate from './MarkDuplicate.jsx'
 import { isLoggedIn } from '../lib/auth.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 
@@ -225,6 +226,7 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
 
                 <AskedAt questionId={question.id} />
                 <SuggestEdit question={question} />
+                <MarkDuplicate question={question} />
               </header>
 
               {/* ONLY this answer content area scrolls (scrollRef is attached here) */}

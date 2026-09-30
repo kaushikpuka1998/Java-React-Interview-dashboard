@@ -149,6 +149,43 @@ export async function suggestEdit(questionId, { title, question, answer, note })
   return res.json()
 }
 
+export async function reportDuplicate(questionId, note) {
+  const res = await fetch(`${API_BASE}/questions/${encodeURIComponent(questionId)}/duplicate-report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ note }),
+    credentials: 'include'
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not send that report')
+  return res.json()
+}
+
+// --- admin: duplicate report queue ---
+
+export async function fetchDuplicateReports(status = 'PENDING') {
+  const res = await fetch(`${API_BASE}/duplicate-reports?status=${status}`, { headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function fetchDuplicateReportCounts() {
+  const res = await fetch(`${API_BASE}/duplicate-reports/counts`, { headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) return { pending: 0, dismissed: 0, resolved: 0 }
+  return res.json()
+}
+
+export async function deleteQuestionForDuplicate(reportId) {
+  const res = await fetch(`${API_BASE}/duplicate-reports/${reportId}/delete-question`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not delete the question')
+  return res.json()
+}
+
+export async function dismissDuplicateReport(reportId) {
+  const res = await fetch(`${API_BASE}/duplicate-reports/${reportId}/dismiss`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not dismiss the report')
+  return res.json()
+}
+
 export async function fetchMySuggestions() {
   const res = await fetch(`${API_BASE}/suggestions/mine`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return { unseen: 0, items: [] }

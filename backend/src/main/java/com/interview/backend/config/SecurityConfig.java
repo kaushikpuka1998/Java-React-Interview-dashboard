@@ -74,6 +74,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/questions/*/suggestions").authenticated()
                         .requestMatchers("/suggestions/mine", "/suggestions/mine/seen").authenticated()
                         .requestMatchers("/suggestions/**").hasRole("ADMIN")
+                        // Duplicate reports: any signed-in reader may flag one; the review
+                        // queue (and deleting the question) is admin-only. Must precede /questions/**.
+                        .requestMatchers(HttpMethod.POST, "/questions/*/duplicate-report").authenticated()
+                        .requestMatchers("/duplicate-reports/**").hasRole("ADMIN")
                         // Publishing questions is admin-only
                         .requestMatchers(HttpMethod.POST, "/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/questions/**").hasRole("ADMIN")
