@@ -42,17 +42,38 @@ export default function SuggestionsPanel() {
     } catch (e) { setMsg({ ok: false, text: e.message }) } finally { setBusy(false) }
   }
 
+  async function approveAll() {
+    if (!window.confirm(`Approve & publish all ${items.length} pending suggestion(s)?`)) return
+    setBusy(true); setMsg(null)
+    let ok = 0, failed = 0
+    for (const s of items) {
+      try { await reviewSuggestion(s.id, 'approve'); ok++ } catch { failed++ }
+    }
+    setMsg({ ok: failed === 0, text: `Published ${ok} suggestion(s)${failed ? `, ${failed} failed` : ''}` })
+    setOpenId(null); setNote('')
+    setBusy(false)
+    load()
+  }
+
   const count = { PENDING: counts.pending, APPROVED: counts.approved, REJECTED: counts.rejected }
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        {TABS.map(([s, label]) => (
-          <button key={s} onClick={() => { setStatus(s); setOpenId(null); setMsg(null) }}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${status === s ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
-            {label} <span className="tabular-nums opacity-70">{count[s]}</span>
+      <div className="flex gap-2 flex-wrap items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          {TABS.map(([s, label]) => (
+            <button key={s} onClick={() => { setStatus(s); setOpenId(null); setMsg(null) }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${status === s ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+              {label} <span className="tabular-nums opacity-70">{count[s]}</span>
+            </button>
+          ))}
+        </div>
+        {status === 'PENDING' && items.length > 0 && (
+          <button disabled={busy} onClick={approveAll}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:opacity-95 disabled:opacity-60">
+            {busy ? 'Working…' : `Approve all (${items.length})`}
           </button>
-        ))}
+        )}
       </div>
 
       {msg && <p className={`text-sm ${msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{msg.text}</p>}
