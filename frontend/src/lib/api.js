@@ -1,18 +1,33 @@
 // Backend API integration for the questions service.
+import { getAllCachedQuestions } from './offlineStore.js'
 
 export const PAGE = 50
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
-export async function fetchQuestion(id) {
-  const token = localStorage.getItem('ir_token')
-  const res = await fetch(`${API_BASE}/questions/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-  if (!res.ok) throw new Error('Failed to fetch question')
-  return res.json()
+// True for a dropped connection, not for a real server error (4xx/5xx) — those
+// should still surface normally rather than silently falling back to stale data.
+function isOffline(err) {
+  return !navigator.onLine || err instanceof TypeError
 }
 
-export async function fetchQuestions({ tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, page = 0, size = PAGE }) {
+export async function fetchQuestion(id) {
+  const token = localStorage.getItem('ir_token')
+  try {
+    const res = await fetch(`${API_BASE}/questions/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error('Failed to fetch question')
+    return await res.json()
+  } catch (err) {
+    if (!isOffline(err)) throw err
+    const cached = (await getAllCachedQuestions()).find(q => q.id === id)
+    if (cached) return cached
+    throw err
+  }
+}
+
+export async function fetchQuestions(opts) {
+  const { tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, page = 0, size = PAGE } = opts
   // Always send IDs when status filter is active for correct pagination
   const shouldSendIds = status && status !== 'all'
 
@@ -29,18 +44,53 @@ export async function fetchQuestions({ tech, category, difficulty, company, sear
   params.set('page', page)
   params.set('size', size)
   const token = localStorage.getItem('ir_token')
-  const res = await fetch(`${API_BASE}/questions?${params}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-  if (res.status === 401) {
-    const body = await res.json().catch(() => ({}))
-    const err = new Error(body.message || 'Create a free account to view this topic')
-    err.signupRequired = true          // App shows the sign-up prompt instead of an error
-    err.tech = body.tech
-    throw err
+  try {
+    const res = await fetch(`${API_BASE}/questions?${params}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (res.status === 401) {
+      const body = await res.json().catch(() => ({}))
+      const err = new Error(body.message || 'Create a free account to view this topic')
+      err.signupRequired = true          // App shows the sign-up prompt instead of an error
+      err.tech = body.tech
+      throw err
+    }
+    if (!res.ok) throw new Error('Failed to fetch questions')
+    return await res.json()
+  } catch (err) {
+    if (err.signupRequired || !isOffline(err)) throw err
+    return fetchQuestionsOffline(opts)
   }
-  if (!res.ok) throw new Error('Failed to fetch questions')
-  return res.json()
+}
+
+// Mirrors the backend's filter semantics over the whole IndexedDB-cached dataset,
+// so browsing (not editing) keeps working once the network drops.
+async function fetchQuestionsOffline({ tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, page = 0, size = PAGE }) {
+  const all = await getAllCachedQuestions()
+  const visited = new Set(visitedIds || []), read = new Set(readIds || []), flagged = new Set(flaggedIds || [])
+  const q = (search || '').trim().toLowerCase()
+
+  const content = all.filter(item => {
+    if (tech && tech !== 'all' && item.tech !== tech) return false
+    if (category && category !== 'all' && item.category !== category) return false
+    if (difficulty && difficulty !== 'all' && item.difficulty !== difficulty) return false
+    if (q && !(item.title?.toLowerCase().includes(q) || item.question?.toLowerCase().includes(q) || item.answer?.toLowerCase().includes(q))) return false
+    if (status === 'visited' && !visited.has(item.id)) return false
+    if (status === 'solved' && !read.has(item.id)) return false
+    if (status === 'flagged' && !flagged.has(item.id)) return false
+    if (status === 'unsolved' && read.has(item.id)) return false
+    // Company reports aren't in the offline cache — can't filter by it while offline.
+    if (company && company !== 'all') return false
+    return true
+  })
+
+  const start = page * size
+  return {
+    content: content.slice(start, start + size),
+    number: page,
+    totalElements: content.length,
+    totalPages: Math.max(1, Math.ceil(content.length / size)),
+  }
 }
 
 export async function fetchCategories(tech) {

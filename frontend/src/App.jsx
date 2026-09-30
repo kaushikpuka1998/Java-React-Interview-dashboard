@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { PAGE, fetchQuestions, fetchQuestion, fetchCategories, fetchStats } from './lib/api.js'
+import { saveAllQuestions, getLastSyncedAt } from './lib/offlineStore.js'
 import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
@@ -179,6 +180,32 @@ function App({ path = '/', onPathChange = () => {} }) {
       if (Array.isArray(stats?.freeTechs)) setFreeTechs(stats.freeTechs)
     }).catch(() => {})
   }, [user])
+
+  // Whole-dataset offline sync: quietly pull every accessible question into
+  // IndexedDB (once every 6h) so browsing keeps working with the network off.
+  // Techs the current user can't access (401) are just skipped, not an error.
+  const TECHS = ['java', 'react', 'node', 'sql', 'hld', 'kafka', 'golang', 'microservices', 'design-patterns', 'misc', 'angular', 'rails']
+  useEffect(() => {
+    if (!navigator.onLine) return
+    const SIX_HOURS = 6 * 60 * 60 * 1000
+    getLastSyncedAt().then(async (last) => {
+      if (last && Date.now() - last < SIX_HOURS) return
+      const results = await Promise.allSettled(
+        TECHS.map(t => fetchQuestions({ tech: t, page: 0, size: 100000 }))
+      )
+      const all = results.flatMap(r => r.status === 'fulfilled' ? r.value.content : [])
+      if (all.length) await saveAllQuestions(all)
+    }).catch(() => {})
+  }, [user])
+
+  // Surface an offline banner and let the user know browsing (but not saving) still works.
+  const [online, setOnline] = useState(() => navigator.onLine)
+  useEffect(() => {
+    const on = () => setOnline(true), off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [])
 
   // Load more (pagination) — stable identity; reads fresh state from refs to avoid
   // stale-closure double-loads. Guards against concurrent loads.
@@ -420,6 +447,11 @@ function App({ path = '/', onPathChange = () => {} }) {
 
   return (
     <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
+      {!online && (
+        <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-amber-950 text-xs font-semibold text-center py-1">
+          You're offline — showing cached questions. Marking read, suggestions, and login won't work until you're back online.
+        </div>
+      )}
       <Sidebar {...sidebarProps} sidebarWidth={sidebarWidth} questionListRef={questionListRef} />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
