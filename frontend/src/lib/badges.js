@@ -12,6 +12,8 @@ const TECH_BADGE = {
   microservices: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
   'design-patterns': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
   misc: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+  angular: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  rails: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
 }
 
 const DIFFICULTY_BADGE = {
@@ -33,5 +35,6 @@ export function techLabel(tech) {
   if (tech === 'sql') return 'SQL'
   if (tech === 'golang') return 'Go'
   if (tech === 'misc') return 'Miscellaneous'
+  if (tech === 'rails') return 'Ruby on Rails'
   return tech.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }

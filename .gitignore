@@ -3489,3 +3489,7 @@ node_modules*
 # Vite build output
 frontend/dist/
 dist/*
+
+*storybook.log
+storybook-static
+*stories/*

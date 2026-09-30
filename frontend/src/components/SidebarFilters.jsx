@@ -102,6 +102,18 @@ export function TechFilter({ value, onChange, locked = false, freeTechs = [], on
       // grid/collection (miscellaneous)
       icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z"/></svg>,
     },
+    {
+      value: 'angular', label: 'Angular',
+      active: 'bg-red-600 text-white shadow-sm shadow-red-600/30',
+      // Angular shield logo
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l9 3.27L19.5 18 12 22 4.5 18 3 5.27 12 2zm0 2.2L5.1 6.6l1.2 9.5L12 19.4l5.7-3.3 1.2-9.5L12 4.2zm0 2.3l4.5 10.8h-1.7l-.9-2.3H10l-.9 2.3H7.4L12 6.5zm0 3.3l-1.5 3.7h3l-1.5-3.7z"/></svg>,
+    },
+    {
+      value: 'rails', label: 'Ruby on Rails',
+      active: 'bg-pink-600 text-white shadow-sm shadow-pink-600/30',
+      // gem/ruby icon
+      icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3 4H9l3-4zM4 9l5-3-1 5-4 3v-5zm16 0v5l-4-3-1-5 5 3zM4 9l4 5-6 3 2-8zm16 0l2 8-6-3 4-5zM6 14l6 8-8-3 2-5zm12 0l2 5-8 3 6-8zM9 11h6l-3 3-3-3z"/></svg>,
+    },
   ]
 
   return (
