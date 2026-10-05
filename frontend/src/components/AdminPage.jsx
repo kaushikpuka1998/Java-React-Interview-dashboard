@@ -314,10 +314,10 @@ export default function AdminPage() {
 
   return (
     <Shell tabWide={tab === "analytics"}>
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-5 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
         {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['duplicates', 'Duplicates'], ['analytics', 'Analytics'], ['export', 'Export JSON']].map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null) }}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+            className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-sm font-medium ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
             {label}
           </button>
         ))}
@@ -479,16 +479,16 @@ export default function AdminPage() {
 
 function Shell({ children, tabWide }) {
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-6">
+    <div className="min-h-screen overflow-x-hidden bg-slate-100 dark:bg-slate-900 p-3 sm:p-6">
       <div className={tabWide ? "max-w-6xl mx-auto" : "max-w-5xl mx-auto"}>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
+        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
           <button
             onClick={() => {
               window.history.pushState({}, '', '/');
               window.dispatchEvent(new PopStateEvent('popstate'));
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
+            className="shrink-0 whitespace-nowrap inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -496,7 +496,7 @@ function Shell({ children, tabWide }) {
             Back to app
           </button>
         </div>
-        <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
           {children}
         </div>
       </div>
