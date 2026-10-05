@@ -9,7 +9,10 @@ export function getUser() {
 }
 export function isLoggedIn() { return !!getUser() }
 
-function setSession({ email, name, admin }) {
+function setSession({ token, email, name, admin }) {
+  // ponytail: Safari blocks the cross-site cookie, so keep a Bearer fallback.
+  // Drop this once the API is served from the same site as the frontend.
+  if (token) localStorage.setItem('ir_token', token)
   localStorage.setItem(USER_KEY, JSON.stringify({ email, name, admin: !!admin }))
 }
 
@@ -20,12 +23,13 @@ export async function logout() {
     console.error('Logout request failed', e)
   }
   localStorage.removeItem(USER_KEY)
+  localStorage.removeItem('ir_token')
   window.location.reload()
 }
 
 function authHeaders() {
-  // Authorization header no longer used, using cookies.
-  return {}
+  const token = localStorage.getItem('ir_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function parseError(res) {
