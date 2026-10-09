@@ -44,6 +44,7 @@ public class ProfileController {
         List<String> visitedIds = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
         List<String> solvedIds = rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList();
         List<String> flaggedIds = rows.stream().filter(UserProgress::isFlagged).map(UserProgress::getQuestionId).toList();
+        long importantCount = rows.stream().filter(UserProgress::isImportant).count();
 
         long total = questionRepository.count();
 
@@ -80,6 +81,7 @@ public class ProfileController {
         body.put("visitedCount", visitedIds.size());
         body.put("solvedCount", solvedIds.size());
         body.put("flaggedCount", flaggedIds.size());
+        body.put("importantCount", importantCount);
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
         return ResponseEntity.ok(body);
@@ -98,6 +100,11 @@ public class ProfileController {
     @GetMapping("/questions/flagged")
     public ResponseEntity<List<Question>> flaggedQuestions() {
         return ResponseEntity.ok(questionsFor(UserProgress::isFlagged));
+    }
+
+    @GetMapping("/questions/important")
+    public ResponseEntity<List<Question>> importantQuestions() {
+        return ResponseEntity.ok(questionsFor(UserProgress::isImportant));
     }
 
     // Fetches full Question objects for progress rows belonging to the current user.

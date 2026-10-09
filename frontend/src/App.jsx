@@ -8,7 +8,7 @@ import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import SignupGate from './components/SignupGate.jsx'
-import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, toggleFlaggedRemote, searchCompanies } from './lib/auth.js'
+import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, toggleFlaggedRemote, toggleImportantRemote, searchCompanies } from './lib/auth.js'
 import { trackView } from './lib/analytics.js'
 import { setQuestionSeo, setDefaultSeo } from './lib/seo.js'
 
@@ -46,6 +46,8 @@ function App({ path = '/', onPathChange = () => {} }) {
   const [read, setRead] = useState(() => new Set())
   const [flagged, setFlagged] = useState(() => new Set())
   const [flagging, setFlagging] = useState(() => new Set())
+  const [important, setImportant] = useState(() => new Set())
+  const [marking, setMarking] = useState(() => new Set())
 
   // Auth state
   const [user, setUser] = useState(() => getUser())
@@ -63,22 +65,22 @@ function App({ path = '/', onPathChange = () => {} }) {
     setAuthOpen(false)
     try {
       await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
-      const { visited: v, read: r, flagged: f = [] } = await fetchProgress()
-      setVisited(new Set(v)); setRead(new Set(r)); setFlagged(new Set(f))
+      const { visited: v, read: r, flagged: f = [], important: imp = [] } = await fetchProgress()
+      setVisited(new Set(v)); setRead(new Set(r)); setFlagged(new Set(f)); setImportant(new Set(imp))
     } catch (e) { console.error('Failed to sync progress:', e) }
   }, [])
 
   const handleLogout = useCallback(() => {
     authLogout()
     setUser(null)
-    setVisited(new Set()); setRead(new Set()); setFlagged(new Set())
+    setVisited(new Set()); setRead(new Set()); setFlagged(new Set()); setImportant(new Set())
   }, [])
 
   // If already logged in on load, pull the account's progress from the server.
   useEffect(() => {
     if (isLoggedIn()) {
-      fetchProgress().then(({ visited: v, read: r, flagged: f = [] }) => {
-        setVisited(new Set(v)); setRead(new Set(r)); setFlagged(new Set(f))
+      fetchProgress().then(({ visited: v, read: r, flagged: f = [], important: imp = [] }) => {
+        setVisited(new Set(v)); setRead(new Set(r)); setFlagged(new Set(f)); setImportant(new Set(imp))
       }).catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,6 +116,7 @@ function App({ path = '/', onPathChange = () => {} }) {
         visitedIds: Array.from(visitedRef.current),
         readIds: Array.from(readRef.current),
         flaggedIds: Array.from(flagged),
+        importantIds: Array.from(important),
         page: pageToLoad,
         size: PAGE
       })
@@ -151,7 +154,7 @@ function App({ path = '/', onPathChange = () => {} }) {
       setIsLoading(false)
       setLoaded(true)
     }
-  }, [tech, category, difficulty, company, query, status, flagged])
+  }, [tech, category, difficulty, company, query, status, flagged, important])
 
   // Load page 0 fresh whenever filters or per-user status change.
   useEffect(() => {
@@ -358,39 +361,45 @@ function App({ path = '/', onPathChange = () => {} }) {
     })
   }, [])
 
-  const handleToggleFlag = useCallback(async (id) => {
-    if (flagging.has(id)) return
-    setFlagging(prev => new Set(prev).add(id))
+  // Shared by Flag and Important: both are per-user server toggles with the same
+  // offline-queue behaviour. `key` is the boolean field the endpoint returns.
+  const toggleProgress = useCallback(async (id, { type, key, remote, setOn, setBusy, label }) => {
+    const apply = (on) => setOn(prev => {
+      const next = new Set(prev)
+      if (on ?? !next.has(id)) next.add(id); else next.delete(id)
+      return next
+    })
+    setBusy(prev => new Set(prev).add(id))
     try {
       if (!navigator.onLine) {
         // Can't know the server's resulting state without a round-trip — flip
         // locally and queue the same toggle call for when the connection returns.
-        await sendOrQueue('flag', id, () => toggleFlaggedRemote(id))
-        setFlagged(prev => {
-          const next = new Set(prev)
-          if (next.has(id)) next.delete(id); else next.add(id)
-          return next
-        })
+        await sendOrQueue(type, id, () => remote(id))
+        apply()
       } else {
-        const { flagged: isFlagged } = await toggleFlaggedRemote(id)
-        setFlagged(prev => {
-          const next = new Set(prev)
-          if (isFlagged) next.add(id)
-          else next.delete(id)
-          return next
-        })
+        apply((await remote(id))[key])
       }
     } catch (error) {
-      console.error('Failed to update flag:', error)
-      window.alert('The flag could not be saved. Please try again.')
+      console.error(`Failed to update ${label}:`, error)
+      window.alert(`The ${label} could not be saved. Please try again.`)
     } finally {
-      setFlagging(prev => {
+      setBusy(prev => {
         const next = new Set(prev)
         next.delete(id)
         return next
       })
     }
-  }, [flagging])
+  }, [])
+
+  const handleToggleFlag = useCallback((id) => {
+    if (flagging.has(id)) return
+    toggleProgress(id, { type: 'flag', key: 'flagged', remote: toggleFlaggedRemote, setOn: setFlagged, setBusy: setFlagging, label: 'flag' })
+  }, [flagging, toggleProgress])
+
+  const handleToggleImportant = useCallback((id) => {
+    if (marking.has(id)) return
+    toggleProgress(id, { type: 'important', key: 'important', remote: toggleImportantRemote, setOn: setImportant, setBusy: setMarking, label: 'important mark' })
+  }, [marking, toggleProgress])
 
   const handleTechChange = useCallback((value) => {
     setTech(value)
@@ -509,8 +518,11 @@ function App({ path = '/', onPathChange = () => {} }) {
         read={read}
         flagged={flagged}
         flagging={flagging}
+        important={important}
+        marking={marking}
         onMarkRead={handleMarkRead}
         onToggleFlag={handleToggleFlag}
+        onToggleImportant={handleToggleImportant}
       />
       )}
 

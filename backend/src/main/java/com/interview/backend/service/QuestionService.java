@@ -30,11 +30,12 @@ public class QuestionService {
 
     public Page<Question> searchQuestions(boolean restrict, List<String> allowedTechs,
                                           String tech, String category, String difficulty, String company,
-                                          String search, String status, List<String> visitedIds, List<String> readIds, List<String> flaggedIds, Pageable pageable) {
+                                          String search, String status, List<String> visitedIds, List<String> readIds, List<String> flaggedIds, List<String> importantIds, Pageable pageable) {
         // Provide empty lists if null to avoid JPQL IN clause issues
         List<String> v = visitedIds != null ? visitedIds : List.of();
         List<String> r = readIds != null ? readIds : List.of();
         List<String> f = flaggedIds != null ? flaggedIds : List.of();
+        List<String> i = importantIds != null ? importantIds : List.of();
         // Extract numeric search for exact displayNumber match (e.g., "169" or "Q169")
         String normalizedSearch = search == null || search.isBlank() ? null : search.trim().toLowerCase();
         Integer searchNumber = null;
@@ -42,7 +43,7 @@ public class QuestionService {
             String numPart = normalizedSearch.replaceAll("^q", "");
             try { searchNumber = Integer.parseInt(numPart); } catch (NumberFormatException ignored) {}
         }
-        return questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, normalizedSearch, searchNumber, status, v, r, f, pageable);
+        return questionRepository.searchQuestions(restrict, allowedTechs, tech, category, difficulty, company, normalizedSearch, searchNumber, status, v, r, f, i, pageable);
     }
 
     @Cacheable("categories")

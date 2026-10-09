@@ -27,7 +27,7 @@ export async function fetchQuestion(id) {
 }
 
 export async function fetchQuestions(opts) {
-  const { tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, page = 0, size = PAGE } = opts
+  const { tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, importantIds, page = 0, size = PAGE } = opts
   // Always send IDs when status filter is active for correct pagination
   const shouldSendIds = status && status !== 'all'
 
@@ -41,6 +41,7 @@ export async function fetchQuestions(opts) {
   if (shouldSendIds && visitedIds && visitedIds.length > 0) params.set('visitedIds', visitedIds.join(','))
   if (shouldSendIds && readIds && readIds.length > 0) params.set('readIds', readIds.join(','))
   if (shouldSendIds && flaggedIds && flaggedIds.length > 0) params.set('flaggedIds', flaggedIds.join(','))
+  if (shouldSendIds && importantIds && importantIds.length > 0) params.set('importantIds', importantIds.join(','))
   params.set('page', page)
   params.set('size', size)
   const token = localStorage.getItem('ir_token')
@@ -65,9 +66,9 @@ export async function fetchQuestions(opts) {
 
 // Mirrors the backend's filter semantics over the whole IndexedDB-cached dataset,
 // so browsing (not editing) keeps working once the network drops.
-async function fetchQuestionsOffline({ tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, page = 0, size = PAGE }) {
+async function fetchQuestionsOffline({ tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, importantIds, page = 0, size = PAGE }) {
   const all = await getAllCachedQuestions()
-  const visited = new Set(visitedIds || []), read = new Set(readIds || []), flagged = new Set(flaggedIds || [])
+  const visited = new Set(visitedIds || []), read = new Set(readIds || []), flagged = new Set(flaggedIds || []), important = new Set(importantIds || [])
   const q = (search || '').trim().toLowerCase()
 
   const content = all.filter(item => {
@@ -78,6 +79,7 @@ async function fetchQuestionsOffline({ tech, category, difficulty, company, sear
     if (status === 'visited' && !visited.has(item.id)) return false
     if (status === 'solved' && !read.has(item.id)) return false
     if (status === 'flagged' && !flagged.has(item.id)) return false
+    if (status === 'important' && !important.has(item.id)) return false
     if (status === 'unsolved' && read.has(item.id)) return false
     // Company reports aren't in the offline cache — can't filter by it while offline.
     if (company && company !== 'all') return false

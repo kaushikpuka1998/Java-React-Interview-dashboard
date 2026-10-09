@@ -64,7 +64,7 @@ export async function login({ email, password }) {
 
 export async function fetchProgress() {
   const res = await fetch(`${API_BASE}/progress`, { headers: authHeaders(), credentials: 'include' })
-  if (!res.ok) return { visited: [], read: [], flagged: [] }
+  if (!res.ok) return { visited: [], read: [], flagged: [], important: [] }
   return res.json()
 }
 
@@ -77,6 +77,12 @@ export function markReadRemote(id) {
 export async function toggleFlaggedRemote(id) {
   const res = await fetch(`${API_BASE}/progress/flagged/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
   if (!res.ok) throw new Error('Could not update flag')
+  return res.json()
+}
+
+export async function toggleImportantRemote(id) {
+  const res = await fetch(`${API_BASE}/progress/important/${encodeURIComponent(id)}`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) throw new Error('Could not update important mark')
   return res.json()
 }
 
@@ -97,7 +103,7 @@ export async function fetchProfile() {
   return res.json()
 }
 
-// kind: 'solved' | 'visited' | 'flagged'
+// kind: 'solved' | 'visited' | 'flagged' | 'important'
 export async function fetchProfileQuestions(kind) {
   const res = await fetch(`${API_BASE}/profile/questions/${kind}`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) return []

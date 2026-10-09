@@ -62,14 +62,14 @@ export default function AskedAt({ questionId }) {
   const exactExists = suggestions.some(s => s.toLowerCase() === value.trim().toLowerCase())
 
   return (
-    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
-      <div className="flex items-start gap-2 flex-wrap">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 mt-1.5">
+    <div className="mt-2 pt-2 sm:mt-4 sm:pt-3 border-t border-slate-200 dark:border-slate-800">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           Asked at
         </span>
 
         {companies.length === 0 && (
-          <span className="text-sm text-slate-400 mt-0.5">Not reported yet</span>
+          <span className="hidden sm:inline text-sm text-slate-400">Not reported yet</span>
         )}
 
         {companies.map(c => (

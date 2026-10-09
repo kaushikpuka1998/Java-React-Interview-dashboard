@@ -8,6 +8,8 @@ import com.interview.backend.service.ProgressService;
 import com.interview.backend.util.JwtUtil;
 import com.interview.backend.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.MailException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -104,7 +107,14 @@ public class AuthController {
         user.setResetTokenExpiry(Instant.now().plusSeconds(3600)); // 1 hour
         userRepository.save(user);
 
-        emailService.sendPasswordResetEmail(email, resetToken);
+        try {
+            emailService.sendPasswordResetEmail(email, resetToken);
+        } catch (MailException e) {
+            // SMTP down/misconfigured — say so instead of an opaque 500, and keep the cause in the logs.
+            log.error("Password reset email to {} failed: {}", email, e.toString());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "We couldn't send the reset email right now. Please try again later."));
+        }
 
         return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent"));
     }

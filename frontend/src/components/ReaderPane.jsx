@@ -76,7 +76,7 @@ function JumpToQuestion({ current, total, onJump }) {
 /**
  * Reader pane component
  */
-export default function ReaderPane({ question, questions, onNavigate, visited, read, flagged, flagging, onMarkRead, onToggleFlag }) {
+export default function ReaderPane({ question, questions, onNavigate, visited, read, flagged, flagging, important, marking, onMarkRead, onToggleFlag, onToggleImportant }) {
   const scrollRef = useRef(null)   // attached to the scrollable answer container
 
   const selectedIndex = questions.findIndex(q => q.id === question?.id)
@@ -148,8 +148,8 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
               </div>
 
               {/* Header stays pinned at the top */}
-              <header className="mb-6 pb-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-                <div className="badges flex items-center justify-between mb-4 px-0.5">
+              <header className="mb-3 pb-3 sm:mb-6 sm:pb-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+                <div className="badges flex items-center justify-between mb-2 sm:mb-4 px-0.5">
                 <span className={`badge px-3 py-1 text-xs font-medium rounded-full ${techBadge(question.tech)}`}>
                   {techLabel(question.tech)}
                 </span>
@@ -165,7 +165,7 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                 </h2>
 
                 {isLoggedIn() && (
-                    <div className="mt-5 flex flex-col gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mt-3 pt-3 sm:mt-5 sm:pt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800">
                       <div className="flex items-center gap-3 text-sm">
                         {read.has(question.id) && (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
@@ -185,7 +185,7 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                       </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <div className="flex flex-wrap items-center justify-end gap-2 has-[form,[role=status]]:basis-full">
                         <button
                             type="button"
                             onClick={() => onToggleFlag(question.id)}
@@ -199,6 +199,20 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v18l7-4 7 4V3H5z" />
                           </svg>
                           {flagging.has(question.id) ? 'Saving…' : flagged.has(question.id) ? 'Flagged' : 'Flag'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onToggleImportant(question.id)}
+                            disabled={marking.has(question.id)}
+                            className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70 ${important.has(question.id) ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:hover:bg-rose-900/60' : 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-rose-900/30 dark:hover:text-rose-200'}`}
+                            aria-label={important.has(question.id) ? 'Unmark important' : 'Mark as important'}
+                            aria-pressed={important.has(question.id)}
+                            title={important.has(question.id) ? 'Unmark important' : 'Mark as important'}
+                        >
+                          <svg className="w-5 h-5" fill={important.has(question.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.48 3.5a.56.56 0 011.04 0l2.13 5.11 5.52.44a.56.56 0 01.32.99l-4.2 3.6 1.28 5.38a.56.56 0 01-.84.61L12 16.77l-4.73 2.86a.56.56 0 01-.84-.61l1.28-5.38-4.2-3.6a.56.56 0 01.32-.99l5.52-.44 2.13-5.11z" />
+                          </svg>
+                          <span className="hidden sm:inline">{marking.has(question.id) ? 'Saving…' : important.has(question.id) ? 'Important' : 'Mark important'}</span>
                         </button>
                         {!read.has(question.id) && (
                             <button
@@ -220,13 +234,13 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                         </svg>
                       </span>
                         )}
+                        <SuggestEdit question={question} />
+                        <MarkDuplicate question={question} />
                       </div>
                     </div>
                 )}
 
                 <AskedAt questionId={question.id} />
-                <SuggestEdit question={question} />
-                <MarkDuplicate question={question} />
               </header>
 
               {/* ONLY this answer content area scrolls (scrollRef is attached here) */}

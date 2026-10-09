@@ -63,7 +63,7 @@ export default function SuggestEdit({ question }) {
 
   if (sent) {
     return (
-      <div className="mt-3 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+      <div role="status" className="w-full mt-3 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
         {sent}
       </div>
     )
@@ -71,16 +71,17 @@ export default function SuggestEdit({ question }) {
 
   if (!open) {
     return (
-      <div className="mt-3 flex justify-end">
+      <div className="flex">
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          aria-label="Suggest an edit"
+          className="inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           title="Propose a better answer — an admin reviews it before it goes live"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
-          Suggest an edit
+          <span className="hidden sm:inline">Suggest an edit</span>
         </button>
       </div>
     )
@@ -101,14 +102,14 @@ export default function SuggestEdit({ question }) {
         onSubmit={submit}
         className="w-full max-w-7xl max-h-full flex flex-col gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-2xl"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="min-w-0 flex-1 basis-64">
             <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Suggest an edit</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Your version goes to an admin. If it's approved it replaces the published answer and you'll be notified.
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Upload an image and drop it into the answer as Markdown. */}
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
             <button

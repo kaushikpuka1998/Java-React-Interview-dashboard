@@ -47,6 +47,7 @@ public class QuestionController {
             @RequestParam(required = false) List<String> visitedIds,
             @RequestParam(required = false) List<String> readIds,
             @RequestParam(required = false) List<String> flaggedIds,
+            @RequestParam(required = false) List<String> importantIds,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(defaultValue = "sortKey") String sort,
@@ -70,7 +71,7 @@ public class QuestionController {
                 ? null : com.interview.backend.entity.Company.toSlug(company);
 
         Page<Question> result = questionService.searchQuestions(
-                restrict, access.allowedTechs(), tech, category, difficulty, companySlug, search, status, visitedIds, readIds, flaggedIds, pageable);
+                restrict, access.allowedTechs(), tech, category, difficulty, companySlug, search, status, visitedIds, readIds, flaggedIds, importantIds, pageable);
         return ResponseEntity.ok(result);
     }
 

@@ -76,16 +76,17 @@ export default function ProfilePage() {
   const [solved, setSolved] = useState([])
   const [visited, setVisited] = useState([])
   const [flagged, setFlagged] = useState([])
+  const [important, setImportant] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
     let cancelled = false
-    Promise.all([fetchProfile(), fetchProfileQuestions('solved'), fetchProfileQuestions('visited'), fetchProgress()])
-      .then(([p, s, v, progress]) => {
+    Promise.all([fetchProfile(), fetchProfileQuestions('solved'), fetchProfileQuestions('visited'), fetchProfileQuestions('important'), fetchProgress()])
+      .then(([p, s, v, imp, progress]) => {
         if (cancelled) return
-        setProfile(p); setSolved(s); setVisited(v)
+        setProfile(p); setSolved(s); setVisited(v); setImportant(imp)
         setLoading(false)
         // Flagged questions need a second request keyed off `progress` — don't make the
         // whole page wait on it, fill it in once it arrives.
@@ -131,10 +132,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         <StatCard label="Solved" value={solvedCount} sub={`${solvedPct}% of all`} accent="text-green-600 dark:text-green-400" />
         <StatCard label="Visited" value={visitedCount} accent="text-blue-600 dark:text-blue-400" />
         <StatCard label="Flagged" value={flagged.length} accent="text-amber-600 dark:text-amber-400" />
+        <StatCard label="Important" value={important.length} accent="text-rose-600 dark:text-rose-400" />
         <StatCard label="Total questions" value={totalQuestions} />
         <StatCard label="Remaining" value={Math.max(totalQuestions - solvedCount, 0)} />
       </div>
@@ -171,10 +173,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Question lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
         <QuestionList title="Visited questions" items={visited} emptyText="No visited questions yet." />
         <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
+        <QuestionList title="Important questions" items={important} emptyText="No questions marked important yet." />
       </div>
     </Shell>
   )
@@ -193,7 +196,7 @@ function ProfileSkeleton() {
           <div className="h-4 w-56 rounded bg-slate-200 dark:bg-slate-800 animate-pulse" />
         </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         {Array.from({ length: 5 }).map((_, i) => <div key={i} className={`${block} h-24`} />)}
       </div>
       <div className={`${block} h-16 mb-8`} />
@@ -201,7 +204,7 @@ function ProfileSkeleton() {
         <div className={`${block} h-48`} />
         <div className={`${block} h-48`} />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className={`${block} h-64`} />
         <div className={`${block} h-64`} />
         <div className={`${block} h-64`} />

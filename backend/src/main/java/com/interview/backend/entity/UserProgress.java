@@ -33,4 +33,8 @@ public class UserProgress {
 
     @Column(nullable = false)
     private boolean flagged = false;
+
+    // ponytail: DB default so ddl-auto=update can add the column to a table that already has rows
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
+    private boolean important = false;
 }

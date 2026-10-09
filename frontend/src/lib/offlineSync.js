@@ -1,14 +1,15 @@
-// Replays progress mutations (visited/read/flag) made while offline, once the
+// Replays progress mutations (visited/read/flag/important) made while offline, once the
 // connection comes back. The endpoints are all "set/toggle this on the server"
 // POSTs, so replaying them in the order they happened reproduces the same result
 // a user would get clicking them live.
 import { enqueueMutation, getQueuedMutations, removeMutation } from './offlineStore.js'
-import { markVisitedRemote, markReadRemote, toggleFlaggedRemote } from './auth.js'
+import { markVisitedRemote, markReadRemote, toggleFlaggedRemote, toggleImportantRemote } from './auth.js'
 
 const RUNNERS = {
   visited: markVisitedRemote,
   read: markReadRemote,
   flag: toggleFlaggedRemote,
+  important: toggleImportantRemote,
 }
 
 // True for a dropped connection, not a real server rejection (which should just be dropped).

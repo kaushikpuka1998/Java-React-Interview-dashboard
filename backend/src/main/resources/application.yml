@@ -9,6 +9,9 @@ server:
       enabled: false
 
 spring:
+  # Local dev: load backend/.env (MAIL_*, DATABASE_*, ...) as properties. Real env vars still win.
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: interview-backend
   servlet:
