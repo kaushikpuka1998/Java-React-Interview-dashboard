@@ -187,20 +187,18 @@ function EngagementBlock({ engagement, topQuestions }) {
       <div className={card}>
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Reading depth on top questions</h3>
         {!topQuestions?.length ? <p className="text-sm text-slate-400">No question views yet.</p> : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
-              <th className="font-semibold pb-2">Question</th><th className="font-semibold pb-2 text-right">Views</th>
-              <th className="font-semibold pb-2 text-right">Scroll</th><th className="font-semibold pb-2 text-right">Time</th>
-            </tr></thead>
-            <tbody>{topQuestions.map(q => (
-              <tr key={q.id} className="border-t border-slate-100 dark:border-slate-800">
-                <td className="py-1.5 pr-3 truncate max-w-[16rem] text-slate-700 dark:text-slate-200" title={q.title}>{q.title}</td>
-                <td className="py-1.5 text-right tabular-nums">{q.views}</td>
-                <td className="py-1.5 text-right tabular-nums">{q.avgScroll == null ? '–' : `${q.avgScroll}%`}</td>
-                <td className="py-1.5 text-right tabular-nums">{fmtSecs(q.avgSeconds)}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {topQuestions.map(q => (
+              <li key={q.id} className="py-2.5">
+                <p className="text-sm text-slate-800 dark:text-slate-100 break-words" title={q.title}>{q.title}</p>
+                <p className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <span>{q.views} views</span>
+                  <span>{q.avgScroll == null ? '–' : `${q.avgScroll}%`} scroll</span>
+                  <span>{fmtSecs(q.avgSeconds)} avg time</span>
+                </p>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
