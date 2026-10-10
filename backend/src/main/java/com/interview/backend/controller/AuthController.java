@@ -18,7 +18,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.interview.backend.filter.RateLimitFilter;
+import com.interview.backend.service.GeoService;
 
 import java.security.Principal;
 import java.time.Instant;
@@ -38,6 +41,7 @@ public class AuthController {
     private final ProgressService progressService;
     private final EmailService emailService;
     private final CookieUtil cookieUtil;
+    private final GeoService geo;
 
     @Value("${app.admin.emails:}")
     private String adminEmailsCsv;
@@ -50,7 +54,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletResponse response) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletRequest http, HttpServletResponse response) {
         if (req.email() == null || req.password() == null || req.email().isBlank() || req.password().length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email and a password of at least 6 characters are required"));
         }
@@ -62,7 +66,10 @@ public class AuthController {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setName(req.name());
+        user.setLastLoginAt(Instant.now());
+        GeoService.applyUserLocation(user, req.country(), req.city());
         user = userRepository.save(user);
+        geo.resolveFromIp(user.getId(), RateLimitFilter.clientIp(http));
 
         String token = jwtUtil.generateToken(email);
         cookieUtil.setTokenCookie(response, token);
@@ -70,7 +77,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest http, HttpServletResponse response) {
         String email = req.email() == null ? "" : req.email().trim().toLowerCase();
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, req.password()));
@@ -78,9 +85,24 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email or password"));
         }
         User user = userRepository.findByEmail(email).orElseThrow();
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+        geo.resolveFromIp(user.getId(), RateLimitFilter.clientIp(http));
         String token = jwtUtil.generateToken(email);
         cookieUtil.setTokenCookie(response, token);
         return ResponseEntity.ok(new AuthResponse(token, email, user.getName(), isAdmin(email)));
+    }
+
+    /** One-click unsubscribe from new-question emails. Public: the HMAC signature is the auth. */
+    @GetMapping(value = "/unsubscribe", produces = "text/plain")
+    public ResponseEntity<String> unsubscribe(@RequestParam String email, @RequestParam String sig) {
+        if (!emailService.isValidUnsubscribe(email, sig))
+            return ResponseEntity.badRequest().body("Invalid unsubscribe link.");
+        userRepository.findByEmail(email).ifPresent(u -> {
+            u.setEmailOptOut(true);
+            userRepository.save(u);
+        });
+        return ResponseEntity.ok("You've been unsubscribed from new-question emails.");
     }
 
     @PostMapping("/logout")

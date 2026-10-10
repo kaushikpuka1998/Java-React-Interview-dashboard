@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 // Lightweight first-party analytics. No cookies and no IP: visitors are counted
 // with a random session id kept in localStorage, so the backend stores no PII.
 
@@ -62,6 +64,89 @@ export function trackView({ path, questionId } = {}) {
   } catch {
     // analytics must never break the page
   }
+}
+
+// --- engagement events: reads (scroll depth + time) and clicks ---
+
+const queue = []
+let flushTimer = null
+
+export function flushEvents() {
+  clearTimeout(flushTimer); flushTimer = null
+  if (!queue.length) return
+  const body = JSON.stringify(queue.splice(0, 50))
+  const token = localStorage.getItem('ir_token')
+  fetch(`${API_BASE}/analytics/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body,
+    keepalive: true,
+  }).catch(() => {})
+  if (queue.length) flushEvents()
+}
+
+function trackEvent(evt) {
+  try {
+    queue.push({ ...evt, sessionId: sessionId() })
+    if (!flushTimer) flushTimer = setTimeout(flushEvents, 15000)
+  } catch { /* never break the page */ }
+}
+
+// Label a click by its control: explicit data-track, then aria-label/title, then visible text.
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (e) => {
+    if (location.pathname.startsWith('/admin')) return
+    const el = e.target.closest?.('[data-track], button, a, [role="button"]')
+    if (!el) return
+    const label = (el.dataset.track || el.getAttribute('aria-label') || el.title || el.innerText || '')
+      .replace(/\s+/g, ' ').trim().slice(0, 80)
+    if (label) trackEvent({ type: 'click', label })
+  }, { capture: true })
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushEvents()
+  })
+}
+
+/**
+ * Records how long a question was actually on screen (tab visible) and how far its
+ * answer was scrolled. Emits one `read` event when the question changes, the
+ * component unmounts, or the tab is hidden (the only reliable signal before close).
+ */
+export function useReadTracking(questionId, scrollRef) {
+  useEffect(() => {
+    if (!questionId) return
+    let maxScroll = 0
+    let seconds = 0
+    let visibleSince = document.visibilityState === 'visible' ? Date.now() : null
+
+    const el = scrollRef.current
+    const onScroll = () => {
+      const max = el.scrollHeight - el.clientHeight
+      const pct = max <= 0 ? 100 : Math.round((el.scrollTop / max) * 100)
+      if (pct > maxScroll) maxScroll = pct
+    }
+    // Content shorter than the pane counts as fully seen; measure once it has rendered.
+    const measure = setTimeout(() => el && onScroll(), 500)
+    el?.addEventListener('scroll', onScroll, { passive: true })
+
+    const emit = () => {
+      if (visibleSince) { seconds += (Date.now() - visibleSince) / 1000; visibleSince = null }
+      if (seconds >= 2) trackEvent({ type: 'read', questionId, scrollPct: maxScroll, seconds: Math.round(seconds) })
+      seconds = 0
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') { emit(); flushEvents() }
+      else visibleSince = Date.now()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      clearTimeout(measure)
+      el?.removeEventListener('scroll', onScroll)
+      document.removeEventListener('visibilitychange', onVisibility)
+      emit()
+    }
+  }, [questionId])
 }
 
 // --- admin reads ---

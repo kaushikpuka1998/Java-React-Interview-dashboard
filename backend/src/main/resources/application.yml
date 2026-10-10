@@ -109,6 +109,11 @@ app:
     from: ${MAIL_FROM:info@meetly.co.in}
   frontend:
     url: ${FRONTEND_URL:http://localhost:5173}
+  digest:
+    # Daily "new questions" email: one digest per day, sent at/after this local time.
+    # Covers everything published since the previous digest.
+    time: ${DIGEST_TIME:19:00}
+    zone: ${DIGEST_ZONE:Asia/Kolkata}
   migration:
     json-path: ${MIGRATION_JSON_PATH:../frontend/public/questions.json}
     batch-size: 100

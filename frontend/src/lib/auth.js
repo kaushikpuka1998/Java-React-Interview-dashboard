@@ -36,10 +36,10 @@ async function parseError(res) {
   try { return (await res.json()).error } catch { return null }
 }
 
-export async function register({ email, password, name }) {
+export async function register({ email, password, name, country, city }) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, password, name, country, city }),
     credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Registration failed')
@@ -100,6 +100,15 @@ export function mergeProgress({ visited, read }) {
 export async function fetchProfile() {
   const res = await fetch(`${API_BASE}/profile/me`, { headers: authHeaders(), credentials: 'include' })
   if (!res.ok) throw new Error(await parseError(res) || 'Failed to load profile')
+  return res.json()
+}
+
+export async function updateLocation({ country, city }) {
+  const res = await fetch(`${API_BASE}/profile/location`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ country, city }), credentials: 'include'
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Failed to save location')
   return res.json()
 }
 

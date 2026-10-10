@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { isLoggedIn, logout, fetchProfile, fetchProfileQuestions, fetchProgress } from '../lib/auth.js'
+import { isLoggedIn, logout, fetchProfile, fetchProfileQuestions, fetchProgress, updateLocation } from '../lib/auth.js'
 import { fetchQuestions } from '../lib/api.js'
 import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
@@ -11,6 +11,41 @@ const TECH_COLOR = {
 }
 const DIFF_COLOR = {
   Basic: 'bg-green-500', Intermediate: 'bg-amber-500', Advanced: 'bg-rose-500', Experienced: 'bg-purple-500',
+}
+
+// "Where are you from?" — what the user typed wins; otherwise shows the IP-based guess.
+function LocationEditor({ profile }) {
+  const [editing, setEditing] = useState(false)
+  const [loc, setLoc] = useState({ country: profile.country || '', city: profile.city || '', locationSource: profile.locationSource || '' })
+  const [form, setForm] = useState(loc)
+  const [error, setError] = useState('')
+
+  const save = async (e) => {
+    e.preventDefault(); setError('')
+    try { const saved = await updateLocation(form); setLoc(saved); setForm(saved); setEditing(false) }
+    catch (err) { setError(err.message) }
+  }
+
+  const input = 'px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 w-28'
+  if (editing) return (
+    <form onSubmit={save} className="flex flex-wrap items-center gap-1.5 mt-1">
+      <input className={input} placeholder="Country" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} aria-label="Country" />
+      <input className={input} placeholder="City" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} aria-label="City" />
+      <button type="submit" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Save</button>
+      <button type="button" onClick={() => { setForm(loc); setEditing(false) }} className="text-xs text-slate-500 hover:underline">Cancel</button>
+      {error && <span className="text-xs text-red-500">{error}</span>}
+    </form>
+  )
+  const place = [loc.city, loc.country].filter(Boolean).join(', ')
+  return (
+    <p className="text-xs text-slate-400 mt-0.5">
+      {place ? <>📍 {place}{loc.locationSource === 'ip' && ' (detected)'}</> : 'Location not set'}
+      {' · '}
+      <button onClick={() => setEditing(true)} className="text-blue-600 dark:text-blue-400 hover:underline">
+        {place ? 'Edit' : 'Add location'}
+      </button>
+    </p>
+  )
 }
 
 function StatCard({ label, value, sub, accent }) {
@@ -128,6 +163,7 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{name || 'Learner'}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">{email}</p>
           {memberSince && <p className="text-xs text-slate-400 mt-0.5">Member since {new Date(memberSince).toLocaleDateString()}</p>}
+          <LocationEditor profile={profile} />
         </div>
       </div>
 

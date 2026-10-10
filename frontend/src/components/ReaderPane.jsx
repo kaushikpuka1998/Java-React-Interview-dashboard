@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useReadTracking } from '../lib/analytics.js'
 import Markdown from './Markdown.jsx'
 import NotFound from './NotFound.jsx'
 import OnThisPage from './OnThisPage.jsx'
@@ -78,6 +79,7 @@ function JumpToQuestion({ current, total, onJump }) {
  */
 export default function ReaderPane({ question, questions, onNavigate, visited, read, flagged, flagging, important, marking, onMarkRead, onToggleFlag, onToggleImportant }) {
   const scrollRef = useRef(null)   // attached to the scrollable answer container
+  useReadTracking(question?.id, scrollRef)
 
   const selectedIndex = questions.findIndex(q => q.id === question?.id)
   const prev = questions[selectedIndex - 1]

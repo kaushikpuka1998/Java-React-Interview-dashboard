@@ -86,7 +86,7 @@ public class SecurityConfig {
                         // images. Type and 5 MB size are enforced in ImageService.
                         .requestMatchers(HttpMethod.POST, "/images/**").authenticated()
                         // Anyone may record a view; only admins may read the reports.
-                        .requestMatchers(HttpMethod.POST, "/analytics/track").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/analytics/track", "/analytics/events").authenticated()
                         .requestMatchers("/analytics/**").hasRole("ADMIN")
                         // Public: auth
                         .requestMatchers("/auth/**", "/health").permitAll()

@@ -7,6 +7,8 @@ export default function AuthModal({ onClose, onSuccess }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [country, setCountry] = useState('')
+  const [city, setCity] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [busy, setBusy] = useState(false)
@@ -31,7 +33,7 @@ export default function AuthModal({ onClose, onSuccess }) {
         setSuccess(data.message)
       } else {
         const user = isSignup
-          ? await register({ email, password, name })
+          ? await register({ email, password, name, country, city })
           : await login({ email, password })
         onSuccess(user)
       }
@@ -69,6 +71,20 @@ export default function AuthModal({ onClose, onSuccess }) {
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          )}
+          {isSignup && (
+            <div className="flex gap-2">
+              <input
+                type="text" placeholder="Country (optional)" value={country} autoComplete="country-name"
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text" placeholder="City (optional)" value={city} autoComplete="address-level2"
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           )}
           <input
             type="email" required placeholder="Email" value={email} autoComplete="email"

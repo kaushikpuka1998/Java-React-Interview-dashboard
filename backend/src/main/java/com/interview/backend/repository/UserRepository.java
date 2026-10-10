@@ -18,4 +18,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByCreatedAtAfterOrderByCreatedAtDesc(Instant since, Pageable pageable);
 
     List<User> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    /** Subscribed members who haven't yet received the digest ending at :coveredTo. */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT u FROM User u WHERE (u.emailOptOut IS NULL OR u.emailOptOut = false) " +
+            "AND (u.lastDigestAt IS NULL OR u.lastDigestAt < :coveredTo) ORDER BY u.id")
+    List<User> findDigestRecipients(@org.springframework.data.repository.query.Param("coveredTo") java.time.LocalDateTime coveredTo);
+
+    /** Targeted update so a concurrent profile/geo save can't clobber it (and vice versa). */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE User u SET u.lastDigestAt = :at WHERE u.id = :id")
+    int markDigested(@org.springframework.data.repository.query.Param("id") Long id,
+                     @org.springframework.data.repository.query.Param("at") java.time.LocalDateTime at);
+
+    /** Members per country, unknown last. Row: country (null = unknown), members. */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT u.country, COUNT(u) FROM User u GROUP BY u.country ORDER BY COUNT(u) DESC")
+    List<Object[]> countByCountry();
 }

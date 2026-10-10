@@ -20,6 +20,10 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
 
     List<Question> findByTech(String tech);
 
+    /** Questions published in a window — feeds the daily new-questions email. */
+    List<Question> findByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByTechAscSortKeyAsc(
+            java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     List<Question> findByTechAndNumber(String tech, Integer number);
 
     Page<Question> findByTech(String tech, Pageable pageable);

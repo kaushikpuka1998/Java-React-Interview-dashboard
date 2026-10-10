@@ -32,4 +32,21 @@ public class User {
 
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
+
+    /** Last explicit sign-in; lets analytics tell "logged in only" apart from actual use. */
+    private Instant lastLoginAt;
+
+    /** Nullable on purpose: existing rows get null (= subscribed) without a column default. */
+    private Boolean emailOptOut;
+
+    /** coveredTo of the last digest this member received; a resumed run skips them. */
+    private java.time.LocalDateTime lastDigestAt;
+
+    /** Where the member is from. Typed by the user, or else resolved from their IP (the IP itself is never stored). */
+    private String country;
+    private String city;
+
+    /** "user" when they entered it — IP lookups never overwrite that — or "ip". */
+    @Column(length = 8)
+    private String locationSource;
 }

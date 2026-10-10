@@ -5,7 +5,7 @@ import java.util.List;
 // Request/response payloads for auth + progress.
 public class AuthDtos {
 
-    public record RegisterRequest(String email, String password, String name) {}
+    public record RegisterRequest(String email, String password, String name, String country, String city) {}
 
     public record LoginRequest(String email, String password) {}
 

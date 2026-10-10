@@ -161,6 +161,77 @@ function AudienceBlock({ audience, days }) {
   )
 }
 
+const fmtSecs = (s) => (s == null ? '–' : s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`)
+
+const STATUS_STYLE = {
+  reading: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  browsing: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  'logged-in only': 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+}
+
+// What signed-in members actually do: read, skim, or just log in.
+function EngagementBlock({ engagement, topQuestions }) {
+  if (!engagement) return null
+  const { avgScroll = 0, avgReadSeconds = 0, statusCounts = {}, members = [] } = engagement
+  const card = 'rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-4'
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <Stat label="Avg scroll depth" value={`${avgScroll}%`} tone="blue" />
+        <Stat label="Avg time / visitor" value={fmtSecs(avgReadSeconds)} tone="violet" />
+        <Stat label="Reading" value={statusCounts.reading ?? 0} sub="30s+ or scrolled half" tone="green" />
+        <Stat label="Browsing" value={statusCounts.browsing ?? 0} sub="opened, didn't read" />
+        <Stat label="Logged in only" value={statusCounts.loggedInOnly ?? 0} sub="no activity after sign-in" />
+      </div>
+
+      <div className={card}>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Reading depth on top questions</h3>
+        {!topQuestions?.length ? <p className="text-sm text-slate-400">No question views yet.</p> : (
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
+              <th className="font-semibold pb-2">Question</th><th className="font-semibold pb-2 text-right">Views</th>
+              <th className="font-semibold pb-2 text-right">Scroll</th><th className="font-semibold pb-2 text-right">Time</th>
+            </tr></thead>
+            <tbody>{topQuestions.map(q => (
+              <tr key={q.id} className="border-t border-slate-100 dark:border-slate-800">
+                <td className="py-1.5 pr-3 truncate max-w-[16rem] text-slate-700 dark:text-slate-200" title={q.title}>{q.title}</td>
+                <td className="py-1.5 text-right tabular-nums">{q.views}</td>
+                <td className="py-1.5 text-right tabular-nums">{q.avgScroll == null ? '–' : `${q.avgScroll}%`}</td>
+                <td className="py-1.5 text-right tabular-nums">{fmtSecs(q.avgSeconds)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <BarList title="Most clicked" rows={engagement.topClicks || []} labelKey="label" valueKey="clicks" empty="No clicks recorded yet." />
+
+        <div className={card}>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Member activity</h3>
+          {!members.length ? <p className="text-sm text-slate-400">No signed-in activity yet.</p> : (
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
+              {members.map(m => (
+                <li key={m.email} className="py-2 flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-slate-800 dark:text-slate-100 truncate">{m.name || m.email}</p>
+                    <p className="text-xs text-slate-400 truncate">
+                      {m.location && <>📍 {m.location} · </>}{m.views} views · {fmtSecs(m.readSeconds)} read · {m.maxScroll}% scroll · {m.clicks} clicks
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_STYLE[m.status] || ''}`}>
+                    {m.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 export default function AnalyticsPanel() {
   const [days, setDays] = useState(30)
   const [data, setData] = useState(null)
@@ -238,6 +309,8 @@ export default function AnalyticsPanel() {
 
       <AudienceBlock audience={data.audience} days={data.windowDays} />
 
+      <EngagementBlock engagement={data.engagement} topQuestions={data.topQuestions} />
+
       <DailyChart daily={data.daily} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -258,6 +331,13 @@ export default function AnalyticsPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <BarList
+          title="Members by country"
+          rows={data.countries || []}
+          labelKey="country"
+          valueKey="members"
+          empty="No members yet."
+        />
         <BarList
           title="Devices"
           rows={data.devices || []}

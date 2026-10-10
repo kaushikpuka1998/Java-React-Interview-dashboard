@@ -3,6 +3,8 @@ package com.interview.backend.controller;
 import com.interview.backend.entity.PageView;
 import com.interview.backend.entity.Question;
 import com.interview.backend.entity.User;
+import com.interview.backend.entity.UserEvent;
+import com.interview.backend.repository.UserEventRepository;
 import com.interview.backend.repository.PageViewRepository;
 import com.interview.backend.repository.QuestionRepository;
 import com.interview.backend.repository.UserProgressRepository;
@@ -28,6 +30,10 @@ public class AnalyticsController {
     private final UserRepository users;
     private final QuestionRepository questions;
     private final UserProgressRepository progress;
+    private final UserEventRepository events;
+
+    /** A member counts as "reading" once they spend this long on, or scroll this far into, an answer. */
+    private static final int READ_SECONDS = 30, READ_SCROLL = 50;
 
     // ---------- public: record an event ----------
 
@@ -51,6 +57,35 @@ public class AnalyticsController {
             pv.setDevice(trim(req.device(), 20));
             pv.setUserId(currentUserId());   // resolved from the JWT, never client-supplied
             pageViews.save(pv);
+        } catch (Exception ignored) {
+            // swallow: a failed metric must never surface to the visitor
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    public record EventRequest(String type, String questionId, String label,
+                               Integer scrollPct, Integer seconds, String sessionId) {}
+
+    /** Batched engagement events (reads + clicks). Same never-fail contract as /track. */
+    @PostMapping("/events")
+    public ResponseEntity<Void> events(@RequestBody List<EventRequest> batch) {
+        try {
+            if (batch == null) return ResponseEntity.noContent().build();
+            Long userId = currentUserId();
+            List<UserEvent> rows = new ArrayList<>();
+            for (EventRequest r : batch.subList(0, Math.min(batch.size(), 50))) {
+                if (!"read".equals(r.type()) && !"click".equals(r.type())) continue;
+                UserEvent e = new UserEvent();
+                e.setType(r.type());
+                e.setQuestionId(trim(r.questionId(), 100));
+                e.setLabel(trim(r.label(), 80));
+                e.setScrollPct(r.scrollPct() == null ? null : Math.min(Math.max(r.scrollPct(), 0), 100));
+                e.setSeconds(r.seconds() == null ? null : Math.min(Math.max(r.seconds(), 0), 3600));
+                e.setSessionId(trim(r.sessionId(), 64));
+                e.setUserId(userId);
+                rows.add(e);
+            }
+            events.saveAll(rows);
         } catch (Exception ignored) {
             // swallow: a failed metric must never surface to the visitor
         }
@@ -145,6 +180,8 @@ public class AnalyticsController {
         List<String> ids = top.stream().map(r -> (String) r[0]).toList();
         Map<String, Question> byId = questions.findAllById(ids).stream()
                 .collect(Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
+        Map<String, Object[]> readById = ids.isEmpty() ? Map.of() : events.readStatsFor(since, ids).stream()
+                .collect(Collectors.toMap(r -> (String) r[0], r -> r, (a, b) -> a));
         out.put("topQuestions", top.stream().map(r -> {
             Question q = byId.get((String) r[0]);
             Map<String, Object> m = new LinkedHashMap<>();
@@ -152,8 +189,16 @@ public class AnalyticsController {
             m.put("title", q != null ? q.getTitle() : "(deleted)");
             m.put("tech", q != null ? q.getTech() : null);
             m.put("views", ((Number) r[1]).longValue());
+            Object[] rs = readById.get((String) r[0]);
+            m.put("avgScroll", rs == null || rs[1] == null ? null : Math.round(((Number) rs[1]).doubleValue()));
+            m.put("avgSeconds", rs == null ? null : perSession(rs[2], rs[3]));
             return m;
         }).collect(Collectors.toList()));
+
+        out.put("countries", users.countByCountry().stream()
+                .map(r -> Map.of("country", r[0] == null ? "Unknown" : r[0],
+                                 "members", ((Number) r[1]).longValue()))
+                .collect(Collectors.toList()));
 
         out.put("devices", pageViews.deviceBreakdown(since).stream()
                 .map(r -> Map.of("device", r[0] == null ? "unknown" : r[0],
@@ -174,11 +219,65 @@ public class AnalyticsController {
         signups.put("inWindow", users.countByCreatedAtAfter(since));
         out.put("signups", signups);
 
+        out.put("engagement", engagement(since));
+
         out.put("content", Map.of(
                 "totalQuestions", questions.count(),
                 "totalProgressRows", progress.count()));
 
         return ResponseEntity.ok(out);
+    }
+
+    /** Scroll/read-time/click analytics plus who is actually using the site vs. only signing in. */
+    private Map<String, Object> engagement(Instant since) {
+        Map<String, Object> out = new LinkedHashMap<>();
+
+        Object[] t = events.readTotals(since).get(0);
+        out.put("avgScroll", t[0] == null ? 0 : Math.round(((Number) t[0]).doubleValue()));
+        out.put("avgReadSeconds", perSession(t[1], t[2]));
+
+        out.put("topClicks", events.topClicks(since, PageRequest.of(0, 15)).stream()
+                .map(r -> Map.of("label", r[0], "clicks", ((Number) r[1]).longValue()))
+                .collect(Collectors.toList()));
+
+        // ponytail: loads every active member for the window; paginate if that list reaches thousands.
+        long loggedInOnly = 0, browsing = 0, reading = 0;
+        List<Map<String, Object>> members = new ArrayList<>();
+        for (Object[] r : events.memberActivity(since)) {
+            long views = ((Number) r[3]).longValue();
+            long secs = ((Number) r[4]).longValue();
+            long scroll = ((Number) r[5]).longValue();
+            long clicks = ((Number) r[6]).longValue();
+            String status = secs >= READ_SECONDS || scroll >= READ_SCROLL ? "reading"
+                    : views > 0 || clicks > 0 ? "browsing" : "logged-in only";
+            switch (status) {
+                case "reading" -> reading++;
+                case "browsing" -> browsing++;
+                default -> loggedInOnly++;
+            }
+            if (members.size() < 50) {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("email", r[0]);
+                m.put("name", r[1] == null ? "" : r[1]);
+                m.put("lastLogin", r[2] == null ? null : String.valueOf(r[2]));
+                m.put("lastActive", r[7] == null ? null : String.valueOf(r[7]));
+                m.put("views", views);
+                m.put("readSeconds", secs);
+                m.put("maxScroll", scroll);
+                m.put("clicks", clicks);
+                m.put("status", status);
+                m.put("location", r[9] == null ? (r[8] == null ? "" : r[8]) : r[9] + ", " + r[8]);
+                members.add(m);
+            }
+        }
+        out.put("statusCounts", Map.of("reading", reading, "browsing", browsing, "loggedInOnly", loggedInOnly));
+        out.put("members", members);
+        return out;
+    }
+
+    private static long perSession(Object totalSeconds, Object sessions) {
+        long n = sessions == null ? 0 : ((Number) sessions).longValue();
+        return n == 0 ? 0 : ((Number) totalSeconds).longValue() / n;
     }
 
     /** Recent signups feed. `since` is an ISO instant so the UI can badge new ones. */

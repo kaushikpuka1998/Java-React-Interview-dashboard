@@ -9,7 +9,10 @@ import com.interview.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.interview.backend.service.GeoService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -77,6 +80,9 @@ public class ProfileController {
         body.put("email", u.getEmail());
         body.put("name", u.getName() == null ? "" : u.getName());
         body.put("memberSince", u.getCreatedAt());
+        body.put("country", u.getCountry() == null ? "" : u.getCountry());
+        body.put("city", u.getCity() == null ? "" : u.getCity());
+        body.put("locationSource", u.getLocationSource() == null ? "" : u.getLocationSource());
         body.put("totalQuestions", total);
         body.put("visitedCount", visitedIds.size());
         body.put("solvedCount", solvedIds.size());
@@ -85,6 +91,20 @@ public class ProfileController {
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
         return ResponseEntity.ok(body);
+    }
+
+    public record LocationRequest(String country, String city) {}
+
+    /** User-entered location; overrides the IP guess. Sending both blank reverts to the IP guess. */
+    @PutMapping("/location")
+    public ResponseEntity<Map<String, String>> updateLocation(@RequestBody LocationRequest req) {
+        User u = currentUser();
+        GeoService.applyUserLocation(u, req.country(), req.city());
+        userRepository.save(u);
+        return ResponseEntity.ok(Map.of(
+                "country", u.getCountry() == null ? "" : u.getCountry(),
+                "city", u.getCity() == null ? "" : u.getCity(),
+                "locationSource", u.getLocationSource() == null ? "" : u.getLocationSource()));
     }
 
     @GetMapping("/questions/solved")
