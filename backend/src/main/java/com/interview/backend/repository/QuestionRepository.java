@@ -95,4 +95,12 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
 
     @Query("SELECT COUNT(q) FROM Question q WHERE q.difficulty = :difficulty")
     long countByDifficulty(@Param("difficulty") String difficulty);
+
+    /** Question totals per tech in one query: row = [tech, count]. */
+    @Query("SELECT q.tech, COUNT(q) FROM Question q GROUP BY q.tech")
+    List<Object[]> countAllByTech();
+
+    /** Question totals per difficulty in one query: row = [difficulty, count]. */
+    @Query("SELECT q.difficulty, COUNT(q) FROM Question q WHERE q.difficulty IS NOT NULL GROUP BY q.difficulty")
+    List<Object[]> countAllByDifficulty();
 }

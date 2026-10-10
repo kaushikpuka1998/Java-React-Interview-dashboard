@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,9 +56,30 @@ public class ProgressService {
     }
 
     // Merge guest ids from localStorage; never downgrades existing flags.
+    // One read of the user's rows, then one batched save: no per-id query.
     @Transactional
     public void merge(Long userId, Collection<String> visited, Collection<String> read) {
-        if (visited != null) visited.forEach(id -> markVisited(userId, id));
-        if (read != null) read.forEach(id -> markRead(userId, id));
+        java.util.Set<String> v = visited == null ? java.util.Set.of() : new java.util.HashSet<>(visited);
+        java.util.Set<String> r = read == null ? java.util.Set.of() : new java.util.HashSet<>(read);
+        if (v.isEmpty() && r.isEmpty()) return;
+
+        java.util.Map<String, UserProgress> byId = repo.findByUserId(userId).stream()
+                .collect(java.util.stream.Collectors.toMap(UserProgress::getQuestionId, p -> p, (a, b) -> a));
+        java.util.Set<String> ids = new java.util.HashSet<>(v);
+        ids.addAll(r);
+
+        List<UserProgress> toSave = new java.util.ArrayList<>();
+        for (String id : ids) {
+            UserProgress p = byId.get(id);
+            if (p == null) {
+                p = new UserProgress();
+                p.setUserId(userId);
+                p.setQuestionId(id);
+            }
+            if (r.contains(id)) { p.setRead(true); p.setVisited(true); }   // reading implies visiting
+            else if (v.contains(id)) p.setVisited(true);
+            toSave.add(p);
+        }
+        repo.saveAll(toSave);
     }
 }

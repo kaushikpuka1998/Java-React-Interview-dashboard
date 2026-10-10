@@ -190,10 +190,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Valid token and password (min 6 chars) required"));
         }
 
-        User user = userRepository.findAll().stream()
-                .filter(u -> token.equals(u.getResetToken()))
-                .findFirst()
-                .orElse(null);
+        User user = userRepository.findByResetToken(token).orElse(null);
 
         if (user == null || user.getResetTokenExpiry() == null || Instant.now().isAfter(user.getResetTokenExpiry())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired reset token"));

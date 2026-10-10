@@ -56,11 +56,13 @@ public class ProfileController {
         // Per-tech breakdown: total questions vs how many this user has solved.
         Map<String, Long> solvedByTech = solvedQuestions.stream()
                 .collect(Collectors.groupingBy(Question::getTech, Collectors.counting()));
+        Map<String, Long> totalByTech = questionRepository.countAllByTech().stream()
+                .collect(Collectors.toMap(r -> (String) r[0], r -> ((Number) r[1]).longValue()));
         List<Map<String, Object>> byTech = new ArrayList<>();
         for (String tech : questionRepository.findDistinctTechs()) {
             byTech.add(Map.of(
                     "tech", tech,
-                    "total", questionRepository.countByTech(tech),
+                    "total", totalByTech.getOrDefault(tech, 0L),
                     "solved", solvedByTech.getOrDefault(tech, 0L)));
         }
 
@@ -68,11 +70,13 @@ public class ProfileController {
         Map<String, Long> solvedByDiff = solvedQuestions.stream()
                 .filter(q -> q.getDifficulty() != null)
                 .collect(Collectors.groupingBy(Question::getDifficulty, Collectors.counting()));
+        Map<String, Long> totalByDiff = questionRepository.countAllByDifficulty().stream()
+                .collect(Collectors.toMap(r -> (String) r[0], r -> ((Number) r[1]).longValue()));
         List<Map<String, Object>> byDifficulty = new ArrayList<>();
         for (String diff : questionRepository.findDistinctDifficulties()) {
             byDifficulty.add(Map.of(
                     "difficulty", diff,
-                    "total", questionRepository.countByDifficulty(diff),
+                    "total", totalByDiff.getOrDefault(diff, 0L),
                     "solved", solvedByDiff.getOrDefault(diff, 0L)));
         }
 

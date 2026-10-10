@@ -71,7 +71,11 @@ public class DuplicateReportController {
     @GetMapping("/duplicate-reports")
     public ResponseEntity<List<Map<String, Object>>> queue(@RequestParam(defaultValue = "PENDING") String status) {
         List<DuplicateReport> rows = reports.findByStatusOrderByCreatedAtDesc(status.toUpperCase());
-        return ResponseEntity.ok(rows.stream().map(this::toAdminView).toList());
+        // One query for all referenced questions, not one per report.
+        List<String> ids = rows.stream().map(DuplicateReport::getQuestionId).distinct().toList();
+        Map<String, Question> byId = ids.isEmpty() ? Map.of() : questions.findAllById(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
+        return ResponseEntity.ok(rows.stream().map(r -> toAdminView(r, byId.get(r.getQuestionId()))).toList());
     }
 
     @GetMapping("/duplicate-reports/counts")
@@ -116,7 +120,10 @@ public class DuplicateReportController {
     }
 
     private Map<String, Object> toAdminView(DuplicateReport r) {
-        Question q = questions.findById(r.getQuestionId()).orElse(null);
+        return toAdminView(r, questions.findById(r.getQuestionId()).orElse(null));
+    }
+
+    private Map<String, Object> toAdminView(DuplicateReport r, Question q) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", r.getId());
         m.put("questionId", r.getQuestionId());
