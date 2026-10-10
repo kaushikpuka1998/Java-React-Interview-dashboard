@@ -204,7 +204,7 @@ function EngagementBlock({ engagement, topQuestions }) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
         <BarList title="Most clicked" rows={engagement.topClicks || []} labelKey="label" valueKey="clicks" empty="No clicks recorded yet." />
 
         <div className={card}>
