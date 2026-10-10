@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal.jsx'
 import SignupGate from './components/SignupGate.jsx'
 import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, toggleFlaggedRemote, toggleImportantRemote, searchCompanies } from './lib/auth.js'
 import { trackView } from './lib/analytics.js'
+import LocationPrompt from './components/LocationPrompt.jsx'
 import { setQuestionSeo, setDefaultSeo } from './lib/seo.js'
 
 function App({ path = '/', onPathChange = () => {} }) {
@@ -527,6 +528,7 @@ function App({ path = '/', onPathChange = () => {} }) {
       )}
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
+      {user && <LocationPrompt />}
     </div>
   )
 }

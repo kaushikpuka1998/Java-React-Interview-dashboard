@@ -22,6 +22,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.interview.backend.filter.RateLimitFilter;
 import com.interview.backend.service.GeoService;
+import com.interview.backend.service.LocationRules;
 
 import java.security.Principal;
 import java.time.Instant;
@@ -58,6 +59,12 @@ public class AuthController {
         if (req.email() == null || req.password() == null || req.email().isBlank() || req.password().length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email and a password of at least 6 characters are required"));
         }
+        LocationRules.Location loc;
+        try {
+            loc = LocationRules.validate(req.country(), req.city());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
         String email = req.email().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Email already registered"));
@@ -67,7 +74,7 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setName(req.name());
         user.setLastLoginAt(Instant.now());
-        GeoService.applyUserLocation(user, req.country(), req.city());
+        GeoService.applyUserLocation(user, loc.country(), loc.city());
         user = userRepository.save(user);
         geo.resolveFromIp(user.getId(), RateLimitFilter.clientIp(http));
 

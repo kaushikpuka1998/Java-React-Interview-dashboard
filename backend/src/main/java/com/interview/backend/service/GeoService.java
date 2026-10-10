@@ -36,15 +36,10 @@ public class GeoService {
     @Value("${app.geo.url:https://ipwho.is/{ip}}")
     private String geoUrl;
 
-    /** Location the user typed. Blank both → clear it so the IP lookup takes over again. */
+    /** Location the user typed. Callers validate it with LocationRules first. */
     public static void applyUserLocation(User u, String country, String city) {
-        String c = clean(country), ci = clean(city);
-        if (c == null && ci == null) {
-            if ("user".equals(u.getLocationSource())) { u.setCountry(null); u.setCity(null); u.setLocationSource(null); }
-            return;
-        }
-        u.setCountry(c);
-        u.setCity(ci);
+        u.setCountry(country);
+        u.setCity(city);
         u.setLocationSource("user");
     }
 

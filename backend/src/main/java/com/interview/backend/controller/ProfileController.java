@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.interview.backend.service.GeoService;
+import com.interview.backend.service.LocationRules;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -99,11 +100,17 @@ public class ProfileController {
 
     public record LocationRequest(String country, String city) {}
 
-    /** User-entered location; overrides the IP guess. Sending both blank reverts to the IP guess. */
+    /** User-entered location; overrides the IP guess. Both fields are required and validated. */
     @PutMapping("/location")
     public ResponseEntity<Map<String, String>> updateLocation(@RequestBody LocationRequest req) {
         User u = currentUser();
-        GeoService.applyUserLocation(u, req.country(), req.city());
+        LocationRules.Location loc;
+        try {
+            loc = LocationRules.validate(req.country(), req.city());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+        GeoService.applyUserLocation(u, loc.country(), loc.city());
         userRepository.save(u);
         return ResponseEntity.ok(Map.of(
                 "country", u.getCountry() == null ? "" : u.getCountry(),

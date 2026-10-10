@@ -22,6 +22,7 @@ function LocationEditor({ profile }) {
 
   const save = async (e) => {
     e.preventDefault(); setError('')
+    if (!form.country.trim() || !form.city.trim()) return setError('Both country and city are required')
     try { const saved = await updateLocation(form); setLoc(saved); setForm(saved); setEditing(false) }
     catch (err) { setError(err.message) }
   }
