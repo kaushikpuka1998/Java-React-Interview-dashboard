@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Reader-proposed edits to a question and the admin review queue behind them.
@@ -88,9 +89,10 @@ public class SuggestionController {
     public ResponseEntity<Map<String, Object>> mine() {
         Long userId = currentUser().getId();
         List<Suggestion> rows = suggestions.findByUserIdOrderByCreatedAtDesc(userId);
+        Map<String, Question> byId = loadQuestions(rows);
         return ResponseEntity.ok(Map.of(
                 "unseen", suggestions.countByUserIdAndSeenFalseAndStatusNot(userId, Suggestion.PENDING),
-                "items", rows.stream().map(this::toReaderView).toList()));
+                "items", rows.stream().map(s -> toReaderView(s, byId)).toList()));
     }
 
     /** Mark this reader's decided suggestions as read, clearing the badge. */
@@ -110,7 +112,8 @@ public class SuggestionController {
     @GetMapping("/suggestions")
     public ResponseEntity<List<Map<String, Object>>> queue(@RequestParam(defaultValue = "PENDING") String status) {
         List<Suggestion> rows = suggestions.findByStatusOrderByCreatedAtDesc(status.toUpperCase());
-        return ResponseEntity.ok(rows.stream().map(this::toAdminView).toList());
+        Map<String, Question> byId = loadQuestions(rows);
+        return ResponseEntity.ok(rows.stream().map(s -> toAdminView(s, byId)).toList());
     }
 
     @GetMapping("/suggestions/counts")
@@ -154,16 +157,25 @@ public class SuggestionController {
         s.setAdminNote(req == null ? null : trimOrNull(req.adminNote()));
         s.setReviewedAt(Instant.now());
         s.setSeen(false);   // there is now a decision for the reader to see
-        return ResponseEntity.ok(toAdminView(s));
+        return ResponseEntity.ok(toAdminView(s, loadQuestions(List.of(s))));
     }
 
     // ---------- views ----------
 
-    private Map<String, Object> toReaderView(Suggestion s) {
+    /** Loads every question referenced by the suggestions in a single query. */
+    private Map<String, Question> loadQuestions(List<Suggestion> rows) {
+        List<String> ids = rows.stream().map(Suggestion::getQuestionId).distinct().toList();
+        if (ids.isEmpty()) return Map.of();
+        return questions.findAllById(ids).stream()
+                .collect(Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
+    }
+
+    private Map<String, Object> toReaderView(Suggestion s, Map<String, Question> byId) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", s.getId());
         m.put("questionId", s.getQuestionId());
-        m.put("questionTitle", questions.findById(s.getQuestionId()).map(Question::getTitle).orElse(s.getQuestionId()));
+        Question question = byId.get(s.getQuestionId());
+        m.put("questionTitle", question == null ? s.getQuestionId() : question.getTitle());
         m.put("status", s.getStatus());
         m.put("note", s.getNote());
         m.put("adminNote", s.getAdminNote());
@@ -173,9 +185,9 @@ public class SuggestionController {
         return m;
     }
 
-    private Map<String, Object> toAdminView(Suggestion s) {
-        Question q = questions.findById(s.getQuestionId()).orElse(null);
-        Map<String, Object> m = new LinkedHashMap<>(toReaderView(s));
+    private Map<String, Object> toAdminView(Suggestion s, Map<String, Question> byId) {
+        Question q = byId.get(s.getQuestionId());
+        Map<String, Object> m = new LinkedHashMap<>(toReaderView(s, byId));
         m.put("userEmail", s.getUserEmail());
         m.put("proposedTitle", s.getProposedTitle());
         m.put("proposedQuestion", s.getProposedQuestion());
