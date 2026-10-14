@@ -24,6 +24,11 @@ export async function fetchQuestion(id) {
     const res = await fetch(`${API_BASE}/questions/${id}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
+    if (res.status === 404) {
+      const err = new Error('Question not found')
+      err.notFound = true           // App shows the 404 state for a bad link
+      throw err
+    }
     if (!res.ok) throw new Error('Failed to fetch question')
     return await res.json()
   } catch (err) {

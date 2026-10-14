@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useReadTracking } from '../lib/analytics.js'
 import Markdown from './Markdown.jsx'
 import NotFound from './NotFound.jsx'
+import ReaderLoading from './ReaderLoading.jsx'
 import OnThisPage from './OnThisPage.jsx'
 import AskedAt from './AskedAt.jsx'
 import SuggestEdit from './SuggestEdit.jsx'
@@ -77,7 +78,7 @@ function JumpToQuestion({ current, total, onJump }) {
 /**
  * Reader pane component
  */
-export default function ReaderPane({ question, questions, onNavigate, visited, read, flagged, flagging, important, marking, onMarkRead, onToggleFlag, onToggleImportant }) {
+export default function ReaderPane({ question, questions, onNavigate, visited, read, flagged, flagging, important, marking, onMarkRead, onToggleFlag, onToggleImportant, loading = false, urlNotFound = false }) {
   const scrollRef = useRef(null)   // attached to the scrollable answer container
   useReadTracking(question?.id, scrollRef)
 
@@ -106,7 +107,9 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
   if (!question) {
     return (
         <main className="reader flex-1 flex items-center justify-center bg-white dark:bg-slate-800 min-w-0">
-          <NotFound />
+          {loading ? <ReaderLoading /> : urlNotFound
+            ? <NotFound title="Question not found" message="This link doesn't match any question. Pick one from the sidebar." />
+            : <NotFound />}
         </main>
     )
   }

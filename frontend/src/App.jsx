@@ -237,11 +237,13 @@ function App({ path = '/', onPathChange = () => {} }) {
 
   // Keep track of the very first ID we loaded with so we don't overwrite it while fetching
   const [pendingUrlId, setPendingUrlId] = useState(initialId)
+  const [urlNotFound, setUrlNotFound] = useState(false)   // the id in the URL matches no question
   const lastUrlId = useRef(initialId)
 
   // If the URL changes (e.g. popstate or pushState), update our tracking.
   if (initialId !== lastUrlId.current) {
     lastUrlId.current = initialId
+    setUrlNotFound(false)
     if (initialId && !questionsData.some(q => q.id === initialId)) {
       setPendingUrlId(initialId)
     }
@@ -265,7 +267,10 @@ function App({ path = '/', onPathChange = () => {} }) {
         })
         setTech(q.tech)
       })
-      .catch(console.error)
+      .catch(err => {
+        if (err.notFound) setUrlNotFound(true)
+        else console.error(err)
+      })
       .finally(() => {
         setPendingUrlId(null)
       })
@@ -281,7 +286,9 @@ function App({ path = '/', onPathChange = () => {} }) {
   // Prefer the current selection, then the URL slug, then default to the first result.
   // ONLY fallback to first result if we aren't waiting for the URL ID to load!
   const isPending = pendingUrlId && initialId === pendingUrlId && !byId && !bySlug
-  const selected = byId || bySlug || (isPending ? null : (filtered[0] || questionsData[0] || null))
+  const selected = byId || bySlug || (isPending || urlNotFound ? null : (filtered[0] || questionsData[0] || null))
+  // Reader shows a loading state until the first list load and any linked question have resolved.
+  const readerLoading = !loaded || isPending || (isLoading && !selected)
 
   // Keep selectedId in sync with what's actually shown — covers deep links (slug) and
   // filter changes (stale id -> first result), so the sidebar highlights the right item.
@@ -520,6 +527,8 @@ function App({ path = '/', onPathChange = () => {} }) {
       ) : (
       <ReaderPane
         question={selected}
+        loading={readerLoading}
+        urlNotFound={urlNotFound}
         questions={filtered}
         onNavigate={handleNavigate}
         visited={visited}
