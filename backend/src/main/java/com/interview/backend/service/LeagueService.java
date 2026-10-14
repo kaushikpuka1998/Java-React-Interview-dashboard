@@ -53,7 +53,8 @@ public class LeagueService {
     }
 
     public List<Standing> board() {
-        List<Object[]> rows = events.weeklyReaders(since(), BOARD_SIZE);
+        // Read a wider pool: members without a location are skipped below, so the top 100 needs spare rows.
+        List<Object[]> rows = events.weeklyReaders(since(), BOARD_SIZE * 5);
         List<Long> ids = rows.stream().map(r -> ((Number) r[0]).longValue()).toList();
         Map<Long, User> byId = ids.isEmpty() ? Map.of() : users.findAllById(ids).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
@@ -64,6 +65,7 @@ public class LeagueService {
             long xp = ((Number) rows.get(i)[1]).longValue() * XP_PER_READ;
             User u = byId.get(id);
             if (!hasLocation(u)) continue;   // the leaderboard is for members with a country and city
+            if (board.size() >= BOARD_SIZE) break;
             String name = u == null || u.getName() == null || u.getName().isBlank() ? "Learner" : u.getName();
             String username = u == null || u.getUsername() == null ? "" : u.getUsername();
             board.add(new Standing(id, username, name, xp, league(xp), board.size() + 1));

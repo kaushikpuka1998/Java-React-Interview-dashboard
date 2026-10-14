@@ -62,12 +62,58 @@ function DigestStatus({ status }) {
   )
 }
 
+// Ready-made copy for members who haven't added a location. Only describes features that exist.
+const LOCATION_TEMPLATE = {
+  subject: 'One quick step to complete your InterviewReader profile',
+  body: `Hi {{name}},
+
+Thanks for joining InterviewReader!
+
+Your profile is still missing your country or city. It takes less than 30 seconds:
+
+{{profile_link}}
+
+Once it's added, you can appear on the weekly leaderboard. Every read earns XP, and you move up through the leagues: Bronze, Silver, Gold and Platinum.
+
+While you're there, check your progress charts. There are 3,770+ interview questions across Java, React, Node.js, SQL, Go, Kafka, Microservices, Ruby on Rails, Angular and system design, and they work offline too.
+
+Happy preparing!
+Kaushik
+InterviewReader`,
+}
+
+const PLACEHOLDERS = ['{{name}}', '{{profile_link}}']
+
+// Shows the email as one member would see it, with sample values filled in.
+function Preview({ subject, body }) {
+  const fill = (t) => t
+    .replaceAll('{{name}}', 'Priya')
+    .replaceAll('{{profile_link}}', `${window.location.origin}/profile`)
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+      <p className="text-xs text-slate-400">Preview (sample name)</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{fill(subject) || '(no subject)'}</p>
+      <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-700 dark:text-slate-300">{fill(body) || '(no message)'}</pre>
+      <p className="mt-3 text-xs text-slate-400">An unsubscribe link is added to the bottom of every email.</p>
+    </div>
+  )
+}
+
 function Compose({ onSent }) {
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [audience, setAudience] = useState('all')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)   // { ok, text }
+  const [showPreview, setShowPreview] = useState(false)
+
+  const useTemplate = () => {
+    setSubject(LOCATION_TEMPLATE.subject)
+    setBody(LOCATION_TEMPLATE.body)
+    setAudience('no-location')
+    setShowPreview(true)
+  }
+  const insert = (token) => setBody(b => b + token)
 
   const send = async (e) => {
     e.preventDefault()
@@ -94,7 +140,16 @@ function Compose({ onSent }) {
         </select>
         <input className={`${input} sm:col-span-2`} placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} maxLength={200} required />
       </div>
-      <textarea className={`${input} min-h-[120px]`} placeholder="Message (plain text)" value={body} onChange={e => setBody(e.target.value)} maxLength={10000} required />
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <button type="button" onClick={useTemplate} className="rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white">Use "complete your profile" template</button>
+        <span className="text-slate-400">Insert:</span>
+        {PLACEHOLDERS.map(p => (
+          <button key={p} type="button" onClick={() => insert(p)} className="rounded-md bg-slate-100 px-2 py-1 font-mono text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">{p}</button>
+        ))}
+        <button type="button" onClick={() => setShowPreview(v => !v)} className="ml-auto font-medium text-blue-600 dark:text-blue-400">{showPreview ? 'Hide preview' : 'Show preview'}</button>
+      </div>
+      <textarea className={`${input} min-h-[160px]`} placeholder="Message (plain text). {{name}} and {{profile_link}} are filled in for each member." value={body} onChange={e => setBody(e.target.value)} maxLength={10000} required />
+      {showPreview && <Preview subject={subject} body={body} />}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-slate-400">Every email includes an unsubscribe link. Opted-out members are skipped.</p>
         <button type="submit" disabled={busy || !subject.trim() || !body.trim()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">

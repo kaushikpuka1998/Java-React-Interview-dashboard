@@ -6,6 +6,7 @@ import com.interview.backend.repository.EmailLogRepository;
 import com.interview.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,15 @@ public class AnnouncementService {
     private final EmailService email;
     private final EmailLogRepository emailLogs;
 
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
+    /** Fills {{name}} and {{profile_link}} for one member. Unknown placeholders are left as typed. */
+    public String render(String text, User u) {
+        String name = u.getName() == null || u.getName().isBlank() ? "there" : u.getName().trim();
+        return text.replace("{{name}}", name).replace("{{profile_link}}", frontendUrl + "/profile");
+    }
+
     public List<User> audience(String audience) {
         return NO_LOCATION.equals(audience) ? users.findSubscribedWithoutLocation() : users.findSubscribed();
     }
@@ -34,13 +44,14 @@ public class AnnouncementService {
         List<User> recipients = audience(audience);
         int sent = 0;
         for (User u : recipients) {
+            String personalSubject = render(subject, u);
             try {
-                email.sendAnnouncement(u.getEmail(), subject, body);
+                email.sendAnnouncement(u.getEmail(), personalSubject, render(body, u));
                 sent++;
-                emailLogs.save(EmailLog.of(u, "ANNOUNCEMENT", subject, null));
+                emailLogs.save(EmailLog.of(u, "ANNOUNCEMENT", personalSubject, null));
             } catch (Exception e) {
                 log.warn("Announcement to {} failed: {}", u.getEmail(), e.toString());
-                emailLogs.save(EmailLog.of(u, "ANNOUNCEMENT", subject, e));
+                emailLogs.save(EmailLog.of(u, "ANNOUNCEMENT", personalSubject, e));
             }
         }
         log.info("Announcement '{}': {}/{} sent", subject, sent, recipients.size());
