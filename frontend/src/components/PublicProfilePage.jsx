@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
+import { techLabel, techBadge, difficultyBadge } from '../lib/badges.js'
 import { ProgressBar, TECH_COLOR, DIFF_COLOR } from './ProfilePage.jsx'
-import { techLabel } from '../lib/badges.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
@@ -9,6 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 export default function PublicProfilePage({ id }) {
   const [profile, setProfile] = useState(null)
   const [error, setError] = useState('')
+  const [listFilter, setListFilter] = useState('solved')   // Solved | Visited
 
   useEffect(() => {
     fetch(`${API_BASE}/public/profiles/${encodeURIComponent(id)}`)
@@ -58,6 +59,48 @@ export default function PublicProfilePage({ id }) {
                 </div>
               ))}
             </div>
+
+            <div className="flex gap-2 mb-3" role="group" aria-label="Show">
+              {[['solved', 'Solved', profile.solved.length], ['visited', 'Visited', profile.visited.length]].map(([key, label, count]) => (
+                <button
+                  key={key}
+                  onClick={() => setListFilter(key)}
+                  aria-pressed={listFilter === key}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    listFilter === key
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {label} <span className="tabular-nums opacity-80">({count})</span>
+                </button>
+              ))}
+            </div>
+
+            <section className="rounded-xl bg-white dark:bg-slate-800 p-5 shadow-sm mb-6">
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                {listFilter === 'solved' ? 'Solved questions' : 'Visited questions'}
+              </h3>
+              {(listFilter === 'solved' ? profile.solved : profile.visited).length === 0 ? (
+                <p className="text-sm text-slate-400">
+                  {listFilter === 'solved' ? 'Nothing solved yet.' : 'No visited questions yet.'}
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100 dark:divide-slate-700 max-h-[32rem] overflow-y-auto">
+                  {(listFilter === 'solved' ? profile.solved : profile.visited).map(q => (
+                    <li key={q.id}>
+                      <a href={`/?id=${encodeURIComponent(q.id)}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-blue-600 dark:hover:text-blue-400">
+                        <span className="text-sm text-slate-800 dark:text-slate-100 break-words">{q.title}</span>
+                        <span className="flex gap-1.5 flex-shrink-0">
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full ${techBadge(q.tech)}`}>{techLabel(q.tech)}</span>
+                          {q.difficulty && <span className={`text-[11px] px-2 py-0.5 rounded-full ${difficultyBadge(q.difficulty)}`}>{q.difficulty}</span>}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
             {profile.byTech.length > 0 && (
               <section className="rounded-xl bg-white dark:bg-slate-800 p-5 shadow-sm mb-6">

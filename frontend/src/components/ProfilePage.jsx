@@ -111,6 +111,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null)
   const [solved, setSolved] = useState([])
   const [visited, setVisited] = useState([])
+  const [listFilter, setListFilter] = useState('solved')   // which of the two lists to show
   const [flagged, setFlagged] = useState([])
   const [important, setImportant] = useState([])
   const [loading, setLoading] = useState(true)
@@ -221,9 +222,27 @@ export default function ProfilePage() {
       </div>
 
       {/* Question lists */}
+      <div className="flex gap-2 mb-3" role="group" aria-label="Show">
+        {[['solved', 'Solved', solved.length], ['visited', 'Visited', visited.length]].map(([key, label, count]) => (
+          <button
+            key={key}
+            onClick={() => setListFilter(key)}
+            aria-pressed={listFilter === key}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              listFilter === key
+                ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            {label} <span className="tabular-nums opacity-80">({count})</span>
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
-        <QuestionList title="Visited questions" items={visited} emptyText="No visited questions yet." />
+        {listFilter === 'solved'
+          ? <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
+          : <QuestionList title="Visited questions" items={visited} emptyText="No visited questions yet." />}
         <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
         <QuestionList title="Important questions" items={important} emptyText="No questions marked important yet." />
       </div>

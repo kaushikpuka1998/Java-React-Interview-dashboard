@@ -70,6 +70,20 @@ public class PublicProfileController {
         body.put("solvedCount", solved.size());
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
+        // The lists behind the Solved / Visited filter on the public page.
+        body.put("solved", toItems(questions.findAllById(solved)));
+        body.put("visited", toItems(questions.findAllById(visited)));
         return ResponseEntity.ok(body);
+    }
+
+    private static List<Map<String, Object>> toItems(List<Question> qs) {
+        return qs.stream().map(q -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", q.getId());
+            m.put("title", q.getTitle());
+            m.put("tech", q.getTech());
+            m.put("difficulty", q.getDifficulty());
+            return m;
+        }).toList();
     }
 }
