@@ -69,13 +69,14 @@ public class PublicProfileController {
         body.put("name", u.getName() == null || u.getName().isBlank() ? "Learner" : u.getName());
         body.put("memberSince", u.getCreatedAt());
         body.put("totalQuestions", questions.count());
-        body.put("visitedCount", visited.size());
-        body.put("solvedCount", solved.size());
+        List<Question> visitedQuestions = questions.findAllById(visited);
+        body.put("visitedCount", visitedQuestions.size());
+        body.put("solvedCount", solvedQuestions.size());
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
         // The lists behind the Solved / Visited filter on the public page.
         body.put("solved", toItems(questions.findAllById(solved)));
-        body.put("visited", toItems(questions.findAllById(visited)));
+        body.put("visited", toItems(visitedQuestions));
         return ResponseEntity.ok(body);
     }
 

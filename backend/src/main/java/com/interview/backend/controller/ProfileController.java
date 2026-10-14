@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.function.Predicate;
 
@@ -45,7 +46,7 @@ public class ProfileController {
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me() {
         User u = currentUser();
-        List<UserProgress> rows = progressRepository.findByUserId(u.getId());
+        List<UserProgress> rows = liveRows(u.getId());
 
         List<String> visitedIds = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
         List<String> solvedIds = rows.stream().filter(UserProgress::isRead).map(UserProgress::getQuestionId).toList();
@@ -168,25 +169,19 @@ public class ProfileController {
     }
 
     // Fetches full Question objects for progress rows belonging to the current user.
+    /** Progress rows whose question still exists. A deleted question's progress is ignored, not shown. */
+    private List<UserProgress> liveRows(Long userId) {
+        List<UserProgress> rows = progressRepository.findByUserId(userId);
+        Set<String> live = questionRepository.findAllById(rows.stream().map(UserProgress::getQuestionId).toList())
+                .stream().map(Question::getId).collect(Collectors.toSet());
+        return rows.stream().filter(r -> live.contains(r.getQuestionId())).toList();
+    }
+
     private List<Question> questionsFor(Predicate<UserProgress> include) {
-        Long userId = currentUser().getId();
-        List<String> ids = progressRepository.findByUserId(userId).stream()
+        List<String> ids = liveRows(currentUser().getId()).stream()
                 .filter(include)
                 .map(UserProgress::getQuestionId)
                 .toList();
-        List<Question> found = new ArrayList<>(questionRepository.findAllById(ids));
-        if (found.size() < ids.size()) {
-            List<String> foundIds = found.stream().map(Question::getId).toList();
-            for (String id : ids) {
-                if (!foundIds.contains(id)) {
-                    Question q = new Question();
-                    q.setId(id);
-                    q.setTitle("Deleted Question");
-                    q.setTech("unknown");
-                    found.add(q);
-                }
-            }
-        }
-        return found;
+        return new ArrayList<>(questionRepository.findAllById(ids));
     }
 }
