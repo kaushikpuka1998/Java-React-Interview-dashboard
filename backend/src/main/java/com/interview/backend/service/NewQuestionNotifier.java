@@ -103,9 +103,11 @@ public class NewQuestionNotifier {
                     log.warn("Digest {}: taken over by another instance, stopping", run.getRunDate());
                     return;
                 }
+                // Claim before sending: the send can fail after the mail has already left,
+                // and a member must never receive the same digest twice.
+                if (users.claimDigest(u.getId(), run.getCoveredTo()) == 0) continue;
                 try {
                     email.sendNewQuestionsEmail(u.getEmail(), u.getName(), fresh);
-                    users.markDigested(u.getId(), run.getCoveredTo());
                     sent++;
                 } catch (Exception e) {
                     // ponytail: a failed member is not retried; they miss this digest. Add a retry pass if bounces matter.

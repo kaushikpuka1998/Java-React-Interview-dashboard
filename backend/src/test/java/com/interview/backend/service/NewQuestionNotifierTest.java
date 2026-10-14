@@ -91,7 +91,7 @@ class NewQuestionNotifierTest {
         LocalDateTime to = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         question("java-1", to.minusHours(1));
         DigestRun crashed = run(TODAY, to.minusDays(1), to, "RUNNING", Instant.now().minus(NewQuestionNotifier.STALE).minusSeconds(60));
-        users.markDigested(alice.getId(), to);                         // alice got it before the crash
+        users.claimDigest(alice.getId(), to);                         // alice got it before the crash
 
         notifier.runFor(TODAY);
 
