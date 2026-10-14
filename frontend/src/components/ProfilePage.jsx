@@ -5,6 +5,7 @@ import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
+import { updateUsername } from '../lib/auth.js'
 
 export const TECH_COLOR = {
   java: 'bg-orange-500', react: 'bg-cyan-500', node: 'bg-green-500', sql: 'bg-purple-500',
@@ -15,6 +16,41 @@ export const DIFF_COLOR = {
 }
 
 // "Where are you from?" — what the user typed wins; otherwise shows the IP-based guess.
+// Public handle for the /u/ link. Changing it retires the old link.
+function UsernameEditor({ username, onSaved }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(username || '')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const save = async (e) => {
+    e.preventDefault(); setError(''); setBusy(true)
+    try { const r = await updateUsername(value.trim()); onSaved(r.username); setEditing(false) }
+    catch (err) { setError(err.message) }
+    finally { setBusy(false) }
+  }
+
+  if (editing) return (
+    <form onSubmit={save} className="flex flex-wrap items-center gap-1.5 mt-1">
+      <span className="text-xs text-slate-500">/u/</span>
+      <input className="px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 w-40" value={value} onChange={e => setValue(e.target.value)} aria-label="Username" />
+      <button type="submit" disabled={busy} className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">Save</button>
+      <button type="button" onClick={() => { setValue(username || ''); setEditing(false); setError('') }} className="text-xs text-slate-500 hover:underline">Cancel</button>
+      {error && <span className="text-xs text-red-500">{error}</span>}
+    </form>
+  )
+  return (
+    <div className="flex items-center gap-2">
+      {username ? (
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">/u/{username}</span>
+      ) : (
+        <span className="text-xs text-slate-400">No username yet</span>
+      )}
+      <button onClick={() => setEditing(true)} className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">Change</button>
+    </div>
+  )
+}
+
 function LocationEditor({ profile }) {
   const [editing, setEditing] = useState(false)
   const [loc, setLoc] = useState({ country: profile.country || '', city: profile.city || '', locationSource: profile.locationSource || '' })
@@ -118,6 +154,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [handle, setHandle] = useState('')
+  useEffect(() => { if (profile?.username) setHandle(profile.username) }, [profile])
 
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
@@ -153,9 +191,9 @@ export default function ProfilePage() {
   if (error) return <Shell><p className="text-red-500">{error}</p></Shell>
   if (!profile) return <Shell><p className="text-slate-500">No profile data.</p></Shell>
 
-  const { id, name, email, totalQuestions, visitedCount, solvedCount, byTech = [], byDifficulty = [], memberSince } = profile
+  const { username, name, email, totalQuestions, visitedCount, solvedCount, byTech = [], byDifficulty = [], memberSince } = profile
   const copyLink = () => {
-    navigator.clipboard?.writeText(`${window.location.origin}/u/${id}`).then(() => {
+    navigator.clipboard?.writeText(`${window.location.origin}/u/${handle}`).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 1500)
     })
   }
@@ -168,23 +206,34 @@ export default function ProfilePage() {
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
           {(name || email || '?').trim().charAt(0).toUpperCase()}
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{name || 'Learner'}</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">{email}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{email}</p>
+
           {profile.league && (
-            <p className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
               <LeagueBadge league={profile.league} />
-              <span>{profile.weeklyXp} XP this week ·</span>
-              <a href="/leaderboard" className="text-blue-600 dark:text-blue-400 hover:underline">View leaderboard</a>
-            </p>
+              <span className="text-slate-500 dark:text-slate-400">{profile.weeklyXp} XP this week</span>
+              <a href="/leaderboard" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">View leaderboard →</a>
+            </div>
           )}
-          {id && (
-            <button onClick={copyLink} className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-              {copied ? 'Link copied!' : 'Copy public profile link'}
-            </button>
-          )}
-          {memberSince && <p className="text-xs text-slate-400 mt-0.5">Member since {new Date(memberSince).toLocaleDateString()}</p>}
-          <LocationEditor profile={profile} />
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <UsernameEditor username={handle} onSaved={setHandle} />
+            {handle && (
+              <button
+                onClick={copyLink}
+                className="rounded-lg border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              >
+                {copied ? 'Link copied!' : 'Copy link'}
+              </button>
+            )}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            {memberSince && <span>Member since {new Date(memberSince).toLocaleDateString()}</span>}
+            <LocationEditor profile={profile} />
+          </div>
         </div>
       </div>
 

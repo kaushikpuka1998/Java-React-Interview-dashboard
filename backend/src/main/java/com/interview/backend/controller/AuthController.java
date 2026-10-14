@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import com.interview.backend.filter.RateLimitFilter;
 import com.interview.backend.service.GeoService;
 import com.interview.backend.service.LocationRules;
+import com.interview.backend.service.UsernameService;
 
 import java.security.Principal;
 import java.time.Instant;
@@ -43,6 +44,18 @@ public class AuthController {
     private final EmailService emailService;
     private final CookieUtil cookieUtil;
     private final GeoService geo;
+    private final com.interview.backend.service.UsernameService usernames;
+
+    /** Live check for the signup form: is this username free? */
+    @GetMapping("/username-available")
+    public ResponseEntity<Map<String, Object>> usernameAvailable(@RequestParam String username) {
+        try {
+            String u = UsernameService.validate(username);
+            return ResponseEntity.ok(Map.of("available", usernames.isAvailable(u), "username", u));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(Map.of("available", false, "error", e.getMessage()));
+        }
+    }
 
     @Value("${app.admin.emails:}")
     private String adminEmailsCsv;
@@ -69,7 +82,19 @@ public class AuthController {
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Email already registered"));
         }
+        String username;
+        try {
+            username = req.username() == null || req.username().isBlank()
+                    ? usernames.generate(req.name(), email)
+                    : UsernameService.validate(req.username());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+        if (req.username() != null && !req.username().isBlank() && !usernames.isAvailable(username)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "That username is taken"));
+        }
         User user = new User();
+        user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setName(req.name());
@@ -78,6 +103,7 @@ public class AuthController {
         user.setUtmSource(trimTo(req.utmSource(), 100));
         user.setUtmCampaign(trimTo(req.utmCampaign(), 100));
         user = userRepository.save(user);
+        usernames.taken(username);
         geo.resolveFromIp(user.getId(), RateLimitFilter.clientIp(http));
 
         String token = jwtUtil.generateToken(email);

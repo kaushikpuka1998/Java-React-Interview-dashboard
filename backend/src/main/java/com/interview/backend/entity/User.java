@@ -42,6 +42,10 @@ public class User {
     /** coveredTo of the last digest this member received; a resumed run skips them. */
     private java.time.LocalDateTime lastDigestAt;
 
+    /** Public handle for /u/{username}. Unique; null only for rows not yet backfilled. */
+    @Column(unique = true, length = 30)
+    private String username;
+
     /** Campaign the member signed up from (first UTM they arrived with), for conversion tracking. */
     @Column(name = "utm_source", length = 100)
     private String utmSource;

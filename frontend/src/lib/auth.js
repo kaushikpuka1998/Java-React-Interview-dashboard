@@ -39,11 +39,25 @@ async function parseError(res) {
   try { return (await res.json()).error } catch { return null }
 }
 
-export async function register({ email, password, name, country, city }) {
+export async function checkUsername(username) {
+  const res = await fetch(`${API_BASE}/auth/username-available?username=${encodeURIComponent(username)}`)
+  return res.json()
+}
+
+export async function updateUsername(username) {
+  const res = await fetch(`${API_BASE}/profile/username`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ username }), credentials: 'include'
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not change username')
+  return res.json()
+}
+
+export async function register({ email, password, name, country, city, username }) {
   const { utmSource, utmCampaign } = getUtm()
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name, country, city, utmSource, utmCampaign }),
+    body: JSON.stringify({ email, password, name, country, city, utmSource, utmCampaign, username }),
     credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Registration failed')

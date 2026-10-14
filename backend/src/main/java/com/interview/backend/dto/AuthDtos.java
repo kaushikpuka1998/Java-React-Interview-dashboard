@@ -6,7 +6,7 @@ import java.util.List;
 public class AuthDtos {
 
     public record RegisterRequest(String email, String password, String name, String country, String city,
-                                  String utmSource, String utmCampaign) {}
+                                  String utmSource, String utmCampaign, String username) {}
 
     public record LoginRequest(String email, String password) {}
 

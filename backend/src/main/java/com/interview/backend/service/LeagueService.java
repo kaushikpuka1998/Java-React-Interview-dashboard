@@ -29,7 +29,7 @@ public class LeagueService {
     public static final List<Map.Entry<String, Long>> TIERS = List.of(
             Map.entry("Platinum", 300L), Map.entry("Gold", 150L), Map.entry("Silver", 50L), Map.entry("Bronze", 10L));
 
-    public record Standing(long userId, String name, long xp, String league, int rank) {}
+    public record Standing(long userId, String username, String name, long xp, String league, int rank) {}
 
     private final UserEventRepository events;
     private final UserRepository users;
@@ -59,7 +59,8 @@ public class LeagueService {
             long xp = ((Number) rows.get(i)[1]).longValue() * XP_PER_READ;
             User u = byId.get(id);
             String name = u == null || u.getName() == null || u.getName().isBlank() ? "Learner" : u.getName();
-            board.add(new Standing(id, name, xp, league(xp), i + 1));
+            String username = u == null || u.getUsername() == null ? "" : u.getUsername();
+            board.add(new Standing(id, username, name, xp, league(xp), i + 1));
         }
         return board;
     }

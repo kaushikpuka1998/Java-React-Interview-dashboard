@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { login, register } from '../lib/auth.js'
+import { login, register, checkUsername } from '../lib/auth.js'
 
 // Login / signup modal. Calls onSuccess(user) after a successful auth.
 export default function AuthModal({ onClose, onSuccess }) {
@@ -9,6 +9,8 @@ export default function AuthModal({ onClose, onSuccess }) {
   const [name, setName] = useState('')
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
+  const [username, setUsername] = useState('')
+  const [nameStatus, setNameStatus] = useState(null)   // null | { available, error }
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [busy, setBusy] = useState(false)
@@ -33,7 +35,7 @@ export default function AuthModal({ onClose, onSuccess }) {
         setSuccess(data.message)
       } else {
         const user = isSignup
-          ? await register({ email, password, name, country, city })
+          ? await register({ email, password, name, country, city, username })
           : await login({ email, password })
         onSuccess(user)
       }
@@ -65,6 +67,19 @@ export default function AuthModal({ onClose, onSuccess }) {
         </div>
 
         <form onSubmit={submit} className="space-y-4">
+          {isSignup && (
+            <input
+              type="text" placeholder="Username (optional, for your public link)" value={username}
+              onChange={(e) => { setUsername(e.target.value); setNameStatus(null) }}
+              onBlur={() => username.trim() && checkUsername(username.trim()).then(setNameStatus).catch(() => {})}
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          )}
+          {isSignup && nameStatus && (
+            <p className={`-mt-2 text-xs ${nameStatus.available ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {nameStatus.available ? `interviewreader.com/u/${nameStatus.username} is free` : (nameStatus.error || 'That username is taken')}
+            </p>
+          )}
           {isSignup && (
             <input
               type="text" placeholder="Name (optional)" value={name}

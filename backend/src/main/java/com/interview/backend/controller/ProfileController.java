@@ -35,6 +35,7 @@ public class ProfileController {
     private final UserProgressRepository progressRepository;
     private final QuestionRepository questionRepository;
     private final com.interview.backend.service.LeagueService leagues;
+    private final com.interview.backend.service.UsernameService usernames;
 
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -84,6 +85,7 @@ public class ProfileController {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("id", u.getId());
+        body.put("username", u.getUsername() == null ? "" : u.getUsername());
         body.put("email", u.getEmail());
         body.put("name", u.getName() == null ? "" : u.getName());
         body.put("memberSince", u.getCreatedAt());
@@ -121,6 +123,28 @@ public class ProfileController {
                 "country", u.getCountry() == null ? "" : u.getCountry(),
                 "city", u.getCity() == null ? "" : u.getCity(),
                 "locationSource", u.getLocationSource() == null ? "" : u.getLocationSource()));
+    }
+
+    public record UsernameRequest(String username) {}
+
+    /** Change your public handle. Taken names are refused; the old one stops resolving. */
+    @PutMapping("/username")
+    public ResponseEntity<Map<String, String>> updateUsername(@RequestBody UsernameRequest req) {
+        User u = currentUser();
+        String name;
+        try {
+            name = com.interview.backend.service.UsernameService.validate(req.username());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+        if (name.equals(u.getUsername())) return ResponseEntity.ok(Map.of("username", name));
+        if (!usernames.isAvailable(name)) {
+            return ResponseEntity.status(409).body(Map.of("error", "That username is taken"));
+        }
+        u.setUsername(name);
+        userRepository.save(u);
+        usernames.taken(name);
+        return ResponseEntity.ok(Map.of("username", name));
     }
 
     @GetMapping("/questions/solved")

@@ -10,6 +10,12 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
+    Optional<User> findByUsername(String username);
+    boolean existsByUsername(String username);
+    List<User> findByUsernameIsNull();
+
+    @org.springframework.data.jpa.repository.Query("SELECT u.username FROM User u WHERE u.username IS NOT NULL")
+    List<String> findAllUsernames();
     Optional<User> findByResetToken(String resetToken);
     boolean existsByEmail(String email);
 

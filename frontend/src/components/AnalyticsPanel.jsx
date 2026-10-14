@@ -441,7 +441,7 @@ export default function AnalyticsPanel() {
             <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
               {signups.users.map((u, i) => (
                 <li key={u.email + i}>
-                <a href={u.id ? `/u/${u.id}` : undefined} target="_blank" rel="noopener noreferrer" className="py-2 flex items-center gap-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-2 px-2 transition-colors" title="Open public profile">
+                <a href={u.username ? `/u/${u.username}` : undefined} target="_blank" rel="noopener noreferrer" className="py-2 flex items-center gap-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-2 px-2 transition-colors" title="Open public profile">
                   <div className="w-7 h-7 flex-shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold">
                     {(u.name || u.email || '?').trim().charAt(0).toUpperCase()}
                   </div>

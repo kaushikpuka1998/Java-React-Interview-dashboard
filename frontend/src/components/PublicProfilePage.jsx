@@ -4,15 +4,15 @@ import { ProgressBar, TECH_COLOR, DIFF_COLOR } from './ProfilePage.jsx'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
-// Public progress page at /u/:id. Shows only what the member chooses to make public:
+// Public progress page at /u/:username. Shows only what the member chooses to make public:
 // name, join date and progress. No email, location or private lists.
-export default function PublicProfilePage({ id }) {
+export default function PublicProfilePage({ username }) {
   const [profile, setProfile] = useState(null)
   const [error, setError] = useState('')
   const [listFilter, setListFilter] = useState('solved')   // Solved | Visited
 
   useEffect(() => {
-    fetch(`${API_BASE}/public/profiles/${encodeURIComponent(id)}`)
+    fetch(`${API_BASE}/public/profiles/${encodeURIComponent(username)}`)
       .then(res => {
         if (res.status === 404) throw new Error('This profile does not exist.')
         if (!res.ok) throw new Error('Could not load this profile.')
@@ -20,7 +20,7 @@ export default function PublicProfilePage({ id }) {
       })
       .then(setProfile)
       .catch(e => setError(e.message))
-  }, [id])
+  }, [username])
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-6">

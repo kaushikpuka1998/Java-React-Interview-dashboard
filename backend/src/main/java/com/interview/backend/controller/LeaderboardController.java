@@ -34,7 +34,7 @@ public class LeaderboardController {
         out.put("leagues", LeagueService.TIERS.stream()
                 .map(t -> Map.of("name", t.getKey(), "minXp", t.getValue())).toList());
         out.put("board", board.stream().map(s -> Map.of(
-                "rank", s.rank(), "userId", s.userId(), "name", s.name(),
+                "rank", s.rank(), "userId", s.userId(), "username", s.username(), "name", s.name(),
                 "xp", s.xp(), "league", s.league())).toList());
 
         User me = currentUser();

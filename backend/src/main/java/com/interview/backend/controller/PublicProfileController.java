@@ -29,11 +29,13 @@ public class PublicProfileController {
     private final UserRepository users;
     private final UserProgressRepository progress;
     private final QuestionRepository questions;
+    private final com.interview.backend.service.UsernameService usernames;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> profile(@PathVariable Long id) {
-        User u = users.findById(id).orElse(null);
+    @GetMapping("/{username}")
+    public ResponseEntity<Map<String, Object>> profile(@PathVariable String username) {
+        User u = usernames.resolve(username.toLowerCase()).orElse(null);
         if (u == null) return ResponseEntity.notFound().build();
+        Long id = u.getId();
 
         List<UserProgress> rows = progress.findByUserId(id);
         List<String> visited = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
@@ -63,6 +65,7 @@ public class PublicProfileController {
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("username", u.getUsername());
         body.put("name", u.getName() == null || u.getName().isBlank() ? "Learner" : u.getName());
         body.put("memberSince", u.getCreatedAt());
         body.put("totalQuestions", questions.count());

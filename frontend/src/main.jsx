@@ -40,7 +40,7 @@ function Router() {
   if (path === '/leaderboard') return <LeaderboardPage />
 
   // Public progress page for any member (no sign-in needed).
-  if (path.startsWith('/u/')) return <PublicProfilePage id={path.split('/')[2]} />
+  if (path.startsWith('/u/')) return <PublicProfilePage username={decodeURIComponent(path.split('/')[2] || '')} />
 
   // Password reset page.
   if (path === '/reset-password' || path.startsWith('/reset-password')) return <ResetPasswordPage />

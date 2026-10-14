@@ -62,7 +62,7 @@ export default function LeaderboardPage() {
                 <ol className="divide-y divide-slate-100 dark:divide-slate-700">
                   {data.board.map(row => (
                     <li key={row.userId}>
-                      <a href={`/u/${row.userId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <a href={row.username ? `/u/${row.username}` : undefined} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                         <span className={`w-8 text-center font-bold tabular-nums ${row.rank <= 3 ? 'text-amber-500' : 'text-slate-400'}`}>{row.rank}</span>
                         <span className="flex-1 min-w-0 truncate text-slate-800 dark:text-slate-100">{row.name}</span>
                         <LeagueBadge league={row.league} />
