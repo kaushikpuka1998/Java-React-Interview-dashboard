@@ -21,6 +21,65 @@ function Stat({ label, value, sub, tone }) {
   )
 }
 
+// Pie chart drawn as SVG arcs (no chart library). Rows: { [labelKey], [valueKey] }.
+const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#64748b']
+
+function PieChart({ title, rows, labelKey, valueKey, empty }) {
+  const total = rows.reduce((sum, r) => sum + (r[valueKey] || 0), 0)
+  const card = 'rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-4'
+  if (total === 0) {
+    return (
+      <div className={card}>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">{title}</h3>
+        <p className="text-sm text-slate-400">{empty}</p>
+      </div>
+    )
+  }
+
+  const cx = 60, cy = 60, r = 56
+  let angle = -Math.PI / 2
+  const slices = rows.filter(r => r[valueKey] > 0).map((row, i) => {
+    const frac = row[valueKey] / total
+    const color = PIE_COLORS[i % PIE_COLORS.length]
+    let path
+    if (frac >= 0.9999) {
+      path = null   // one slice is the whole pie: draw a circle instead of an arc
+    } else {
+      const start = angle, end = angle + frac * 2 * Math.PI
+      const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start)
+      const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end)
+      path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${frac > 0.5 ? 1 : 0} 1 ${x2} ${y2} Z`
+      angle = end
+    }
+    return { label: row[labelKey] || 'unknown', value: row[valueKey], pct: Math.round(frac * 100), color, path }
+  })
+
+  return (
+    <div className={card}>
+      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">{title}</h3>
+      <div className="flex items-center gap-5">
+        <svg viewBox="0 0 120 120" className="w-28 h-28 flex-shrink-0" role="img" aria-label={title}>
+          {slices.map(s => s.path
+            ? <path key={s.label} d={s.path} fill={s.color} stroke="white" strokeWidth="1" className="dark:stroke-slate-900"><title>{`${s.label}: ${s.value} (${s.pct}%)`}</title></path>
+            : <circle key={s.label} cx={cx} cy={cy} r={r} fill={s.color}><title>{`${s.label}: ${s.value} (100%)`}</title></circle>
+          )}
+        </svg>
+        <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
+          {slices.map(s => (
+            <li key={s.label} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm flex-shrink-0" style={{ background: s.color }} />
+                <span className="truncate text-slate-700 dark:text-slate-200">{s.label}</span>
+              </span>
+              <span className="tabular-nums text-slate-500 dark:text-slate-400 flex-shrink-0">{s.value.toLocaleString()} · {s.pct}%</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 // Horizontal bar list — used for referrers, questions and devices.
 function BarList({ title, rows, labelKey, valueKey, empty }) {
   const max = Math.max(1, ...rows.map(r => r[valueKey]))
@@ -184,6 +243,18 @@ function EngagementBlock({ engagement, topQuestions }) {
         <Stat label="Logged in only" value={statusCounts.loggedInOnly ?? 0} sub="no activity after sign-in" />
       </div>
 
+      <PieChart
+        title="Member status"
+        rows={[
+          { label: 'Reading', value: statusCounts.reading ?? 0 },
+          { label: 'Browsing', value: statusCounts.browsing ?? 0 },
+          { label: 'Logged in only', value: statusCounts.loggedInOnly ?? 0 },
+        ]}
+        labelKey="label"
+        valueKey="value"
+        empty="No signed-in member activity yet."
+      />
+
       <div className={card}>
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Reading depth on top questions</h3>
         {!topQuestions?.length ? <p className="text-sm text-slate-400">No question views yet.</p> : (
@@ -208,7 +279,7 @@ function EngagementBlock({ engagement, topQuestions }) {
         <div className={card}>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Member activity</h3>
           {!members.length ? <p className="text-sm text-slate-400">No signed-in activity yet.</p> : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[40rem] overflow-y-auto">
               {members.map(m => (
                 <li key={m.email} className="py-2 flex items-center gap-3">
                   <div className="min-w-0 flex-1">
@@ -353,7 +424,7 @@ export default function AnalyticsPanel() {
           valueKey="members"
           empty="No members yet."
         />
-        <BarList
+        <PieChart
           title="Devices"
           rows={data.devices || []}
           labelKey="device"
@@ -369,7 +440,8 @@ export default function AnalyticsPanel() {
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
               {signups.users.map((u, i) => (
-                <li key={u.email + i} className="py-2 flex items-center gap-3">
+                <li key={u.email + i}>
+                <a href={u.id ? `/u/${u.id}` : undefined} target="_blank" rel="noopener noreferrer" className="py-2 flex items-center gap-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-2 px-2 transition-colors" title="Open public profile">
                   <div className="w-7 h-7 flex-shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold">
                     {(u.name || u.email || '?').trim().charAt(0).toUpperCase()}
                   </div>
@@ -380,6 +452,7 @@ export default function AnalyticsPanel() {
                   <span className="text-xs text-slate-400 flex-shrink-0">
                     {u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : ''}
                   </span>
+                </a>
                 </li>
               ))}
             </ul>

@@ -5,11 +5,11 @@ import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
 
-const TECH_COLOR = {
+export const TECH_COLOR = {
   java: 'bg-orange-500', react: 'bg-cyan-500', node: 'bg-green-500', sql: 'bg-purple-500',
   hld: 'bg-indigo-500', kafka: 'bg-slate-500', golang: 'bg-sky-500',
 }
-const DIFF_COLOR = {
+export const DIFF_COLOR = {
   Basic: 'bg-green-500', Intermediate: 'bg-amber-500', Advanced: 'bg-rose-500', Experienced: 'bg-purple-500',
 }
 
@@ -59,7 +59,7 @@ function StatCard({ label, value, sub, accent }) {
   )
 }
 
-function ProgressBar({ label, total, solved, color }) {
+export function ProgressBar({ label, total, solved, color }) {
   const pct = total ? Math.round((solved / total) * 100) : 0
   return (
     <div>
@@ -150,7 +150,13 @@ export default function ProfilePage() {
   if (error) return <Shell><p className="text-red-500">{error}</p></Shell>
   if (!profile) return <Shell><p className="text-slate-500">No profile data.</p></Shell>
 
-  const { name, email, totalQuestions, visitedCount, solvedCount, byTech = [], byDifficulty = [], memberSince } = profile
+  const { id, name, email, totalQuestions, visitedCount, solvedCount, byTech = [], byDifficulty = [], memberSince } = profile
+  const [copied, setCopied] = useState(false)
+  const copyLink = () => {
+    navigator.clipboard?.writeText(`${window.location.origin}/u/${id}`).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 1500)
+    })
+  }
   const solvedPct = totalQuestions ? Math.round((solvedCount / totalQuestions) * 100) : 0
 
   return (
@@ -163,6 +169,11 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{name || 'Learner'}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">{email}</p>
+          {id && (
+            <button onClick={copyLink} className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+              {copied ? 'Link copied!' : 'Copy public profile link'}
+            </button>
+          )}
           {memberSince && <p className="text-xs text-slate-400 mt-0.5">Member since {new Date(memberSince).toLocaleDateString()}</p>}
           <LocationEditor profile={profile} />
         </div>

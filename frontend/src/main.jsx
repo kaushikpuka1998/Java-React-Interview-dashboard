@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import AdminPage from './components/AdminPage.jsx'
 import ProfilePage from './components/ProfilePage.jsx'
+import PublicProfilePage from './components/PublicProfilePage.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import './index.css'
 
@@ -34,6 +35,9 @@ function Router() {
 
   // User profile / progress dashboard.
   if (path === '/profile' || path.startsWith('/profile/')) return <ProfilePage />
+
+  // Public progress page for any member (no sign-in needed).
+  if (path.startsWith('/u/')) return <PublicProfilePage id={path.split('/')[2]} />
 
   // Password reset page.
   if (path === '/reset-password' || path.startsWith('/reset-password')) return <ResetPasswordPage />

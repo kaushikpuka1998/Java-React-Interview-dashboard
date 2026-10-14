@@ -316,6 +316,7 @@ public class AnalyticsController {
                 "newSince", newCount,
                 "users", recent.stream().map(u -> {
                     Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", u.getId());
                     m.put("email", u.getEmail());
                     m.put("name", u.getName() == null ? "" : u.getName());
                     m.put("joinedAt", u.getCreatedAt());

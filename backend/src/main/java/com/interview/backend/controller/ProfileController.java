@@ -82,6 +82,7 @@ public class ProfileController {
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", u.getId());
         body.put("email", u.getEmail());
         body.put("name", u.getName() == null ? "" : u.getName());
         body.put("memberSince", u.getCreatedAt());
