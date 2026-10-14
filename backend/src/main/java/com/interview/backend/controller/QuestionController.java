@@ -76,7 +76,13 @@ public class QuestionController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<String>> getCategories(@RequestParam String tech) {
+    public ResponseEntity<?> getCategories(@RequestParam String tech) {
+        if (!access.canRead(tech)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "signup_required",
+                    "message", "Create a free account to browse " + tech + " questions",
+                    "tech", tech));
+        }
         return ResponseEntity.ok(questionService.getCategoriesByTech(tech));
     }
 

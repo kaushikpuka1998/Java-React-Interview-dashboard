@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { PAGE, fetchQuestions, fetchQuestion, fetchCategories, fetchStats } from './lib/api.js'
-import { saveAllQuestions, getLastSyncedAt } from './lib/offlineStore.js'
+import { saveAllQuestions, getLastSyncedAt, clearQuestionCache } from './lib/offlineStore.js'
 import { initOfflineSync, sendOrQueue } from './lib/offlineSync.js'
 import { slugify } from './lib/slug.js'
 import Sidebar from './components/Sidebar.jsx'
@@ -182,7 +182,10 @@ function App({ path = '/', onPathChange = () => {} }) {
   useEffect(() => {
     fetchStats().then(stats => {
       setStats(stats)
-      if (Array.isArray(stats?.freeTechs)) setFreeTechs(stats.freeTechs)
+      if (Array.isArray(stats?.freeTechs)) {
+        setFreeTechs(stats.freeTechs)
+        localStorage.setItem('ir_free_techs', JSON.stringify(stats.freeTechs))   // offline reads for signed-out callers
+      }
     }).catch(() => {})
   }, [user])
 
@@ -193,7 +196,11 @@ function App({ path = '/', onPathChange = () => {} }) {
   useEffect(() => {
     if (!navigator.onLine) return
     const SIX_HOURS = 6 * 60 * 60 * 1000
-    getLastSyncedAt().then(async (last) => {
+    // Caches saved before the signed-out filter hold the full set. Wipe them once for signed-out browsers.
+    const scrub = !localStorage.getItem('ir_cache_scoped') && !localStorage.getItem('ir_token')
+      ? clearQuestionCache().then(() => localStorage.setItem('ir_cache_scoped', '1'))
+      : Promise.resolve()
+    scrub.then(() => getLastSyncedAt()).then(async (last) => {
       if (last && Date.now() - last < SIX_HOURS) return
       const results = await Promise.allSettled(
         TECHS.map(t => fetchQuestions({ tech: t, page: 0, size: 100000 }))

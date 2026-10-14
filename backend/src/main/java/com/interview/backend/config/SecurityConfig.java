@@ -90,8 +90,10 @@ public class SecurityConfig {
                         .requestMatchers("/analytics/**").hasRole("ADMIN")
                         // Public: auth
                         .requestMatchers("/auth/**", "/health").permitAll()
-                        // questions read-only but authenticated
-                        .requestMatchers(HttpMethod.GET, "/questions/**").authenticated()
+                        // Reads are open so signed-out visitors can browse the free topics.
+                        // QuestionController enforces per-topic access (401 signup_required).
+                        // Companies and the rules above stay authenticated.
+                        .requestMatchers(HttpMethod.GET, "/questions/**").permitAll()
                         // Progress + profile require a logged-in user
                         .requestMatchers("/progress/**", "/profile/**").authenticated()
                         .anyRequest().permitAll())

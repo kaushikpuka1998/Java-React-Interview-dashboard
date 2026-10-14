@@ -81,6 +81,19 @@ export async function getAllCachedQuestions() {
   return result
 }
 
+// Called on logout: the cache holds everything synced while signed in, and must not outlive it.
+export async function clearQuestionCache() {
+  const db = await openDb()
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE, 'meta'], 'readwrite')
+    tx.objectStore(STORE).clear()
+    tx.objectStore('meta').delete(META_KEY)
+    tx.oncomplete = resolve
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
+}
+
 export async function getLastSyncedAt() {
   const db = await openDb()
   const result = await new Promise((resolve, reject) => {

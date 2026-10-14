@@ -1,3 +1,4 @@
+import { clearQuestionCache } from './offlineStore.js'
 // Auth + per-user progress against the backend. 
 // Uses HttpOnly cookies for authentication.
 
@@ -22,6 +23,7 @@ export async function logout() {
   } catch (e) {
     console.error('Logout request failed', e)
   }
+  await clearQuestionCache().catch(() => {})
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem('ir_token')
   window.location.reload()

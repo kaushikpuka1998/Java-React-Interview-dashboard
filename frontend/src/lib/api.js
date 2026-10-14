@@ -1,6 +1,14 @@
 // Backend API integration for the questions service.
 import { getAllCachedQuestions } from './offlineStore.js'
 
+// Cached questions are the whole synced set, so signed-out callers only get the free topics
+// (saved from /questions/stats by the app). Signed-in callers get everything.
+function visibleOffline(items) {
+  if (localStorage.getItem('ir_token')) return items
+  const free = JSON.parse(localStorage.getItem('ir_free_techs') || '[]')
+  return items.filter(q => free.includes(q.tech))
+}
+
 export const PAGE = 50
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
@@ -20,7 +28,7 @@ export async function fetchQuestion(id) {
     return await res.json()
   } catch (err) {
     if (!isOffline(err)) throw err
-    const cached = (await getAllCachedQuestions()).find(q => q.id === id)
+    const cached = visibleOffline(await getAllCachedQuestions()).find(q => q.id === id)
     if (cached) return cached
     throw err
   }
@@ -67,7 +75,7 @@ export async function fetchQuestions(opts) {
 // Mirrors the backend's filter semantics over the whole IndexedDB-cached dataset,
 // so browsing (not editing) keeps working once the network drops.
 async function fetchQuestionsOffline({ tech, category, difficulty, company, search, status, visitedIds, readIds, flaggedIds, importantIds, page = 0, size = PAGE }) {
-  const all = await getAllCachedQuestions()
+  const all = visibleOffline(await getAllCachedQuestions())
   const visited = new Set(visitedIds || []), read = new Set(readIds || []), flagged = new Set(flaggedIds || []), important = new Set(importantIds || [])
   const q = (search || '').trim().toLowerCase()
 
