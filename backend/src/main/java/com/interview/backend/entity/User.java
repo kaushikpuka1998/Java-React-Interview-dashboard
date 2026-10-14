@@ -42,6 +42,9 @@ public class User {
     /** coveredTo of the last digest this member received; a resumed run skips them. */
     private java.time.LocalDateTime lastDigestAt;
 
+    /** Last time we asked this member to add a location (weekly nudge, claimed before sending). */
+    private Instant locationNudgedAt;
+
     /** Public handle for /u/{username}. Unique; null only for rows not yet backfilled. */
     @Column(unique = true, length = 30)
     private String username;

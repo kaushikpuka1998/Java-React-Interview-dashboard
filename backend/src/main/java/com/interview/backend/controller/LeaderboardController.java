@@ -45,9 +45,10 @@ public class LeaderboardController {
             Integer rank = board.stream().filter(s -> s.userId() == me.getId())
                     .map(Standing::rank).findFirst().orElse(null);
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("rank", rank);            // null = outside the top 100 (or no reads this week)
+            m.put("rank", rank);            // null = outside the top 100, no reads this week, or no location yet
             m.put("xp", xp);
             m.put("league", LeagueService.league(xp));
+            m.put("needsLocation", !LeagueService.hasLocation(me));
             out.put("me", m);
         }
         return out;

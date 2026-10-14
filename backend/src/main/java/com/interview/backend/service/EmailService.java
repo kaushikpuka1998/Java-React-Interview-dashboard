@@ -126,6 +126,23 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    /** Asks a member without a location to add one, so they can appear on the leaderboard. */
+    public void sendLocationNudgeEmail(String toEmail, String name) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("Add your location to join the weekly leaderboard");
+        message.setText("Hi" + (name == null || name.isBlank() ? "" : " " + name) + ",\n\n" +
+                "Members who add their country and city appear on the weekly leaderboard, " +
+                "and earn a league as they read.\n\n" +
+                "Add your location here (takes 10 seconds):\n" +
+                frontendUrl + "/profile\n\n" +
+                "Happy preparing!\nInterview Reader Team\n\n" +
+                "Don't want these emails? Unsubscribe: " + backendUrl + "/api/auth/unsubscribe?email=" +
+                URLEncoder.encode(toEmail, StandardCharsets.UTF_8) + "&sig=" + unsubscribeSig(toEmail));
+        mailSender.send(message);
+    }
+
     /** HMAC of the email so the unsubscribe link can't be forged for someone else. */
     String unsubscribeSig(String email) {
         try {

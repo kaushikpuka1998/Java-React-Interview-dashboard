@@ -43,6 +43,13 @@ export default function LeaderboardPage() {
               ))}
             </div>
 
+            {data.me?.needsLocation && (
+              <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+                Add your country and city to appear on the leaderboard.{' '}
+                <a href="/profile" className="font-semibold underline">Add location</a>
+              </div>
+            )}
+
             {data.me && (
               <div className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-4 text-white shadow-lg shadow-blue-500/30 mb-6 flex items-center justify-between gap-3">
                 <div>

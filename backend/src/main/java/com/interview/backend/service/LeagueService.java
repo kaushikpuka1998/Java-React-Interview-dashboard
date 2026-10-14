@@ -47,6 +47,11 @@ public class LeagueService {
         return events.weeklyReadCount(userId, since()) * XP_PER_READ;
     }
 
+    /** Members need a country and city to appear on the board. */
+    public static boolean hasLocation(User u) {
+        return u != null && u.getCountry() != null && u.getCity() != null;
+    }
+
     public List<Standing> board() {
         List<Object[]> rows = events.weeklyReaders(since(), BOARD_SIZE);
         List<Long> ids = rows.stream().map(r -> ((Number) r[0]).longValue()).toList();
@@ -58,9 +63,10 @@ public class LeagueService {
             long id = ids.get(i);
             long xp = ((Number) rows.get(i)[1]).longValue() * XP_PER_READ;
             User u = byId.get(id);
+            if (!hasLocation(u)) continue;   // the leaderboard is for members with a country and city
             String name = u == null || u.getName() == null || u.getName().isBlank() ? "Learner" : u.getName();
             String username = u == null || u.getUsername() == null ? "" : u.getUsername();
-            board.add(new Standing(id, username, name, xp, league(xp), i + 1));
+            board.add(new Standing(id, username, name, xp, league(xp), board.size() + 1));
         }
         return board;
     }
