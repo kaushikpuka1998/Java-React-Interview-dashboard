@@ -5,6 +5,7 @@ import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
+import PieChart, { toHex, countBy } from './PieChart.jsx'
 import { updateUsername } from '../lib/auth.js'
 
 export const TECH_COLOR = {
@@ -111,14 +112,16 @@ export function ProgressBar({ label, total, solved, color }) {
   )
 }
 
-function QuestionList({ title, items, emptyText }) {
+// Fixed height so the lists line up; long lists scroll inside their card.
+// fixed={false} sizes the card to its contents (used for the full-width Important card).
+function QuestionList({ title, items, emptyText, fixed = true }) {
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
+    <div className={`flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 ${fixed ? 'h-[26rem]' : ''}`}>
       <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">{title} <span className="text-slate-400 font-normal">({items.length})</span></h3>
       {items.length === 0 ? (
         <p className="text-sm text-slate-400">{emptyText}</p>
       ) : (
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
+        <ul className={`divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto ${fixed ? 'min-h-0 flex-1' : 'max-h-80'}`}>
           {items.map((q) => (
             <li key={q.id} className="py-2">
               <a href={`/${slugify(q.question || q.title)}?id=${q.id}`} className="block group">
@@ -260,48 +263,72 @@ export default function ProfilePage() {
 
       {/* Breakdowns: technology + difficulty side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        {byTech.length > 0 && (
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Progress by technology</h3>
-            <div className="space-y-4">
-              {byTech.map((t) => <ProgressBar key={t.tech} label={techLabel(t.tech)} total={t.total} solved={t.solved} color={TECH_COLOR[t.tech]} />)}
-            </div>
-          </div>
-        )}
-        {byDifficulty.length > 0 && (
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">Progress by difficulty</h3>
-            <div className="space-y-4">
-              {byDifficulty.map((d) => <ProgressBar key={d.difficulty} label={d.difficulty} total={d.total} solved={d.solved} color={DIFF_COLOR[d.difficulty]} />)}
-            </div>
-          </div>
-        )}
+        <PieChart
+          title="Solved by technology"
+          empty="Nothing solved yet."
+          slices={[
+            ...byTech.filter(t => t.solved > 0).map(t => ({ label: techLabel(t.tech), value: t.solved, color: toHex(TECH_COLOR[t.tech]) })),
+            { label: 'Not solved', value: Math.max(totalQuestions - solvedCount, 0), color: '#94a3b8' },
+          ]}
+        />
+        <PieChart
+          title="Solved by difficulty"
+          empty="Nothing solved yet."
+          slices={[
+            ...byDifficulty.filter(d => d.solved > 0).map(d => ({ label: d.difficulty, value: d.solved, color: toHex(DIFF_COLOR[d.difficulty]) })),
+            { label: 'Not solved', value: Math.max(totalQuestions - solvedCount, 0), color: '#94a3b8' },
+          ]}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <PieChart
+          title="Visited by technology"
+          empty="No visited questions yet."
+          slices={[
+            ...countBy(visited, 'tech').map(({ key, value }) => ({ label: techLabel(key), value, color: toHex(TECH_COLOR[key]) })),
+            { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
+          ]}
+        />
+        <PieChart
+          title="Visited by difficulty"
+          empty="No visited questions yet."
+          slices={[
+            ...countBy(visited, 'difficulty').map(({ key, value }) => ({ label: key, value, color: toHex(DIFF_COLOR[key]) })),
+            { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
+          ]}
+        />
       </div>
 
       {/* Question lists */}
-      <div className="flex gap-2 mb-3" role="group" aria-label="Show">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Your questions</h2>
+        <div className="inline-flex rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800" role="group" aria-label="Show">
         {[['solved', 'Solved', solved.length], ['visited', 'Visited', visited.length]].map(([key, label, count]) => (
           <button
             key={key}
             onClick={() => setListFilter(key)}
             aria-pressed={listFilter === key}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
               listFilter === key
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-300'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
             }`}
           >
-            {label} <span className="tabular-nums opacity-80">({count})</span>
+            {label} <span className="tabular-nums opacity-70">({count})</span>
           </button>
         ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         {listFilter === 'solved'
           ? <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
           : <QuestionList title="Visited questions" items={visited} emptyText="No visited questions yet." />}
         <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
-        <QuestionList title="Important questions" items={important} emptyText="No questions marked important yet." />
+        <div className="lg:col-span-2">
+          <QuestionList title="Important questions" items={important} emptyText="No questions marked important yet." fixed={false} />
+        </div>
       </div>
     </Shell>
   )

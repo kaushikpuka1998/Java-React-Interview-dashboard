@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { techLabel, techBadge, difficultyBadge } from '../lib/badges.js'
-import { ProgressBar, TECH_COLOR, DIFF_COLOR } from './ProfilePage.jsx'
+import { TECH_COLOR, DIFF_COLOR } from './ProfilePage.jsx'
+import PieChart, { toHex, countBy } from './PieChart.jsx'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
@@ -60,6 +61,25 @@ export default function PublicProfilePage({ username }) {
               ))}
             </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <PieChart
+                title="Visited by topic"
+                empty="No visited questions yet."
+                slices={[
+                  ...countBy(profile.visited, 'tech').map(({ key, value }) => ({ label: techLabel(key), value, color: toHex(TECH_COLOR[key]) })),
+                  { label: 'Not visited', value: Math.max(profile.totalQuestions - profile.visitedCount, 0), color: '#94a3b8' },
+                ]}
+              />
+              <PieChart
+                title="Visited by difficulty"
+                empty="No visited questions yet."
+                slices={[
+                  ...countBy(profile.visited, 'difficulty').map(({ key, value }) => ({ label: key, value, color: toHex(DIFF_COLOR[key]) })),
+                  { label: 'Not visited', value: Math.max(profile.totalQuestions - profile.visitedCount, 0), color: '#94a3b8' },
+                ]}
+              />
+            </div>
+
             <div className="flex gap-2 mb-3" role="group" aria-label="Show">
               {[['solved', 'Solved', profile.solved.length], ['visited', 'Visited', profile.visited.length]].map(([key, label, count]) => (
                 <button
@@ -102,27 +122,24 @@ export default function PublicProfilePage({ username }) {
               )}
             </section>
 
-            {profile.byTech.length > 0 && (
-              <section className="rounded-xl bg-white dark:bg-slate-800 p-5 shadow-sm mb-6">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">By topic</h3>
-                <div className="space-y-3">
-                  {profile.byTech.map(t => (
-                    <ProgressBar key={t.tech} label={techLabel(t.tech)} total={t.total} solved={t.solved} color={TECH_COLOR[t.tech]} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {profile.byDifficulty.length > 0 && (
-              <section className="rounded-xl bg-white dark:bg-slate-800 p-5 shadow-sm">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">By difficulty</h3>
-                <div className="space-y-3">
-                  {profile.byDifficulty.map(d => (
-                    <ProgressBar key={d.difficulty} label={d.difficulty} total={d.total} solved={d.solved} color={DIFF_COLOR[d.difficulty]} />
-                  ))}
-                </div>
-              </section>
-            )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <PieChart
+                title="Solved by topic"
+                empty="Nothing solved yet."
+                slices={[
+                  ...profile.byTech.filter(t => t.solved > 0).map(t => ({ label: techLabel(t.tech), value: t.solved, color: toHex(TECH_COLOR[t.tech]) })),
+                  { label: 'Not solved', value: Math.max(profile.totalQuestions - profile.solvedCount, 0), color: '#94a3b8' },
+                ]}
+              />
+              <PieChart
+                title="Solved by difficulty"
+                empty="Nothing solved yet."
+                slices={[
+                  ...profile.byDifficulty.filter(d => d.solved > 0).map(d => ({ label: d.difficulty, value: d.solved, color: toHex(DIFF_COLOR[d.difficulty]) })),
+                  { label: 'Not solved', value: Math.max(profile.totalQuestions - profile.solvedCount, 0), color: '#94a3b8' },
+                ]}
+              />
+            </div>
           </>
         )}
       </div>
