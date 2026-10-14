@@ -34,6 +34,7 @@ public class ProfileController {
     private final UserRepository userRepository;
     private final UserProgressRepository progressRepository;
     private final QuestionRepository questionRepository;
+    private final com.interview.backend.service.LeagueService leagues;
 
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -89,6 +90,9 @@ public class ProfileController {
         body.put("country", u.getCountry() == null ? "" : u.getCountry());
         body.put("city", u.getCity() == null ? "" : u.getCity());
         body.put("locationSource", u.getLocationSource() == null ? "" : u.getLocationSource());
+        long xp = leagues.weeklyXp(u.getId());
+        body.put("weeklyXp", xp);
+        body.put("league", com.interview.backend.service.LeagueService.league(xp));
         body.put("totalQuestions", total);
         body.put("visitedCount", visitedIds.size());
         body.put("solvedCount", solvedIds.size());

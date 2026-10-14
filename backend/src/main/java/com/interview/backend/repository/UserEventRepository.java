@@ -53,4 +53,16 @@ public interface UserEventRepository extends JpaRepository<UserEvent, Long> {
             ORDER BY 8 DESC NULLS LAST
             """, nativeQuery = true)
     List<Object[]> memberActivity(@Param("since") Instant since);
+
+    /** Qualifying reads in the window for a user (the basis of weekly XP). */
+    @Query("SELECT COUNT(e) FROM UserEvent e WHERE e.userId = :userId AND e.type = 'read' " +
+           "AND e.createdAt > :since AND (e.seconds >= 30 OR e.scrollPct >= 50)")
+    long weeklyReadCount(@Param("userId") Long userId, @Param("since") Instant since);
+
+    /** Top members by qualifying reads in the window: row = [user_id, reads]. */
+    @Query(value = "SELECT user_id, COUNT(*) AS reads FROM user_events " +
+                   "WHERE type = 'read' AND created_at > :since AND user_id IS NOT NULL " +
+                   "AND (seconds >= 30 OR scroll_pct >= 50) " +
+                   "GROUP BY user_id ORDER BY reads DESC LIMIT :limit", nativeQuery = true)
+    List<Object[]> weeklyReaders(@Param("since") Instant since, @Param("limit") int limit);
 }

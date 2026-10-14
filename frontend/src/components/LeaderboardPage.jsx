@@ -1,0 +1,81 @@
+import { useState, useEffect } from 'react'
+import LeagueBadge from './LeagueBadge.jsx'
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
+
+// Weekly leaderboard. Only the last 7 days count, so members who stop reading drop off on their own.
+export default function LeaderboardPage() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const token = localStorage.getItem('ir_token')
+    fetch(`${API_BASE}/leaderboard`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(res => { if (!res.ok) throw new Error('Could not load the leaderboard.'); return res.json() })
+      .then(setData)
+      .catch(e => setError(e.message))
+  }, [])
+
+  return (
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Weekly leaderboard</h1>
+          <a href="/" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Interview Reader</a>
+        </div>
+
+        {error && <p className="text-slate-500">{error}</p>}
+        {!error && !data && <p className="text-slate-500">Loading…</p>}
+
+        {data && (
+          <>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Each read earns {data.xpPerRead} XP. A read is 30 seconds on a question or scrolling halfway down it.
+              Only the last {data.windowDays} days count, so the board refreshes every week.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              {[...data.leagues].reverse().map(l => (
+                <div key={l.name} className="rounded-xl bg-white dark:bg-slate-800 p-3 shadow-sm">
+                  <LeagueBadge league={l.name} />
+                  <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{l.minXp}+ XP this week</p>
+                </div>
+              ))}
+            </div>
+
+            {data.me && (
+              <div className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-4 text-white shadow-lg shadow-blue-500/30 mb-6 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-white/80">Your standing</p>
+                  <p className="text-2xl font-bold tabular-nums">
+                    {data.me.rank ? `#${data.me.rank}` : 'Not ranked'} <span className="text-base font-medium text-white/80">· {data.me.xp} XP</span>
+                  </p>
+                </div>
+                <LeagueBadge league={data.me.league} />
+              </div>
+            )}
+
+            <section className="rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
+              {data.board.length === 0 ? (
+                <p className="p-6 text-sm text-slate-400">No one has read anything this week yet. Be the first.</p>
+              ) : (
+                <ol className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {data.board.map(row => (
+                    <li key={row.userId}>
+                      <a href={`/u/${row.userId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        <span className={`w-8 text-center font-bold tabular-nums ${row.rank <= 3 ? 'text-amber-500' : 'text-slate-400'}`}>{row.rank}</span>
+                        <span className="flex-1 min-w-0 truncate text-slate-800 dark:text-slate-100">{row.name}</span>
+                        <LeagueBadge league={row.league} />
+                        <span className="w-20 text-right text-sm font-semibold tabular-nums text-slate-700 dark:text-slate-200">{row.xp} XP</span>
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -4,6 +4,7 @@ import { fetchQuestions } from '../lib/api.js'
 import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
+import LeagueBadge from './LeagueBadge.jsx'
 
 export const TECH_COLOR = {
   java: 'bg-orange-500', react: 'bg-cyan-500', node: 'bg-green-500', sql: 'bg-purple-500',
@@ -116,6 +117,7 @@ export default function ProfilePage() {
   const [important, setImportant] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
@@ -152,7 +154,6 @@ export default function ProfilePage() {
   if (!profile) return <Shell><p className="text-slate-500">No profile data.</p></Shell>
 
   const { id, name, email, totalQuestions, visitedCount, solvedCount, byTech = [], byDifficulty = [], memberSince } = profile
-  const [copied, setCopied] = useState(false)
   const copyLink = () => {
     navigator.clipboard?.writeText(`${window.location.origin}/u/${id}`).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 1500)
@@ -170,6 +171,13 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{name || 'Learner'}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">{email}</p>
+          {profile.league && (
+            <p className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <LeagueBadge league={profile.league} />
+              <span>{profile.weeklyXp} XP this week ·</span>
+              <a href="/leaderboard" className="text-blue-600 dark:text-blue-400 hover:underline">View leaderboard</a>
+            </p>
+          )}
           {id && (
             <button onClick={copyLink} className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
               {copied ? 'Link copied!' : 'Copy public profile link'}
