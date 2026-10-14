@@ -1,5 +1,6 @@
 package com.interview.backend.service;
 
+import com.interview.backend.entity.EmailLog;
 import com.interview.backend.entity.User;
 import com.interview.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class LocationNudgeNotifier {
 
     private final UserRepository users;
     private final EmailService email;
+    private final com.interview.backend.repository.EmailLogRepository emailLogs;
 
     @Value("${app.digest.zone:Asia/Kolkata}")
     private ZoneId zone;
@@ -45,8 +47,10 @@ public class LocationNudgeNotifier {
             try {
                 email.sendLocationNudgeEmail(u.getEmail(), u.getName());
                 sent++;
+                emailLogs.save(EmailLog.of(u, "NUDGE", "Add your location to join the weekly leaderboard", null));
             } catch (Exception e) {
                 log.warn("Location nudge to {} failed: {}", u.getEmail(), e.toString());
+                emailLogs.save(EmailLog.of(u, "NUDGE", "Add your location to join the weekly leaderboard", e));
             }
         }
         log.info("Location nudge: {} email(s) sent", sent);

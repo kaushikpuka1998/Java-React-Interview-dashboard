@@ -90,6 +90,7 @@ public class SecurityConfig {
                         // Only admins may read the reports.
                         .requestMatchers(HttpMethod.POST, "/analytics/track", "/analytics/events").permitAll()
                         .requestMatchers("/analytics/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Public: auth
                         .requestMatchers("/auth/**", "/health").permitAll()
                         // Reads are open so signed-out visitors can browse the free topics.

@@ -1,0 +1,215 @@
+import { useState, useEffect, useCallback } from 'react'
+import { fetchEmailRecipients, fetchEmailLog, fetchDigestStatus, sendAnnouncement } from '../lib/emailAdmin.js'
+
+const STATUS_STYLE = {
+  'Got digest': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  'Not received': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  'Opted out': 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+}
+const FILTERS = [['all', 'All'], ['Got digest', 'Got digest'], ['Not received', 'Not received'], ['Opted out', 'Opted out']]
+const card = 'rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-4'
+const input = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+const when = (t) => (t ? new Date(t).toLocaleString() : '—')
+
+const TODAY_LABEL = {
+  NOT_STARTED: 'Not sent yet today',
+  RUNNING: 'Sending now',
+  DONE: 'Already sent today',
+}
+
+// What the next digest will send, before it goes out.
+function DigestStatus({ status }) {
+  if (!status) return null
+  const next = new Date(status.nextSendAt)
+  const stat = (label, value) => (
+    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
+      <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-0.5 text-xl font-bold tabular-nums text-slate-900 dark:text-slate-100">{value}</p>
+    </div>
+  )
+  return (
+    <div className={card}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Next digest</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {next.toLocaleString()} · {TODAY_LABEL[status.todayStatus] || status.todayStatus}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {stat('New questions waiting', status.pendingQuestions)}
+        {stat('Members who will get it', status.recipients)}
+        {stat('Covers since', status.pendingSince ? new Date(status.pendingSince).toLocaleString() : '—')}
+      </div>
+      <p className="mt-3 text-xs text-slate-400">
+        {status.pendingQuestions === 0
+          ? 'Nothing new is waiting, so no digest will be sent at that time.'
+          : 'New questions are queued here and emailed as one digest at the send time.'}
+      </p>
+      {status.runs?.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-blue-600 dark:text-blue-400">Recent digest runs</summary>
+          <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            {status.runs.map((r, i) => (
+              <li key={i} className="py-1.5 flex justify-between gap-3">
+                <span className="text-slate-600 dark:text-slate-300">{r.date} · {r.status}</span>
+                <span className="tabular-nums text-slate-500 dark:text-slate-400">{r.questions ?? 0} question(s) · {r.sent ?? 0} sent</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  )
+}
+
+function Compose({ onSent }) {
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
+  const [audience, setAudience] = useState('all')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)   // { ok, text }
+
+  const send = async (e) => {
+    e.preventDefault()
+    const label = audience === 'all' ? 'every subscribed member' : 'members without a country and city'
+    if (!window.confirm(`Send "${subject.trim()}" to ${label}?`)) return
+    setBusy(true); setMsg(null)
+    try {
+      const r = await sendAnnouncement({ subject, body, audience })
+      setMsg({ ok: true, text: `Queued for ${r.queued} member(s). Delivery shows up in the table below as it happens.` })
+      setSubject(''); setBody('')
+      onSent()
+    } catch (err) {
+      setMsg({ ok: false, text: err.message })
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <form onSubmit={send} className={`${card} space-y-3`}>
+      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Send an email</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <select className={input} value={audience} onChange={e => setAudience(e.target.value)}>
+          <option value="all">All subscribed members</option>
+          <option value="no-location">Members without a location</option>
+        </select>
+        <input className={`${input} sm:col-span-2`} placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} maxLength={200} required />
+      </div>
+      <textarea className={`${input} min-h-[120px]`} placeholder="Message (plain text)" value={body} onChange={e => setBody(e.target.value)} maxLength={10000} required />
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-slate-400">Every email includes an unsubscribe link. Opted-out members are skipped.</p>
+        <button type="submit" disabled={busy || !subject.trim() || !body.trim()} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          {busy ? 'Sending…' : 'Send'}
+        </button>
+      </div>
+      {msg && <p className={`text-sm ${msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{msg.text}</p>}
+    </form>
+  )
+}
+
+function Recipients({ rows }) {
+  const [filter, setFilter] = useState('all')
+  const shown = filter === 'all' ? rows : rows.filter(r => r.status === filter)
+  const counts = FILTERS.reduce((acc, [key]) => ({ ...acc, [key]: key === 'all' ? rows.length : rows.filter(r => r.status === key).length }), {})
+  return (
+    <div className={card}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Who gets the digest</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {FILTERS.map(([key, label]) => (
+            <button key={key} onClick={() => setFilter(key)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium ${filter === key ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+              {label} ({counts[key]})
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="overflow-x-auto max-h-[28rem] overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-white dark:bg-slate-900 text-left text-[11px] uppercase tracking-wide text-slate-400">
+            <tr>
+              <th className="py-2 pr-3 font-semibold">Member</th>
+              <th className="py-2 pr-3 font-semibold">Location</th>
+              <th className="py-2 pr-3 font-semibold">Status</th>
+              <th className="py-2 pr-3 font-semibold">Last digest</th>
+              <th className="py-2 pr-3 font-semibold">Last nudge</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map(r => (
+              <tr key={r.id} className="border-t border-slate-100 dark:border-slate-800">
+                <td className="py-2 pr-3">
+                  <p className="text-slate-800 dark:text-slate-100">{r.name || r.email}</p>
+                  <p className="text-xs text-slate-400 truncate max-w-[16rem]">{r.email}</p>
+                </td>
+                <td className="py-2 pr-3 text-slate-600 dark:text-slate-300">{r.location || '—'}</td>
+                <td className="py-2 pr-3">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[r.status] || ''}`}>{r.status}</span>
+                  {r.lastStatus === 'FAILED' && <span className="ml-1.5 text-[11px] text-red-500">last send failed</span>}
+                </td>
+                <td className="py-2 pr-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{when(r.lastDigest)}</td>
+                <td className="py-2 pr-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{when(r.lastNudge)}</td>
+              </tr>
+            ))}
+            {shown.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-slate-400">No members in this group.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function SendLog({ rows }) {
+  return (
+    <div className={card}>
+      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Recent sends (latest 200)</h3>
+      {rows.length === 0 ? <p className="text-sm text-slate-400">Nothing sent yet.</p> : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
+          {rows.map((l, i) => (
+            <li key={i} className="py-2 flex items-start justify-between gap-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate text-slate-800 dark:text-slate-100">{l.subject || l.type}</p>
+                <p className="text-xs text-slate-400 truncate">{l.email} · {when(l.when)}</p>
+                {l.error && <p className="text-xs text-red-500 truncate">{l.error}</p>}
+              </div>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{l.type}</span>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${l.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>{l.status}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+export default function EmailCenter() {
+  const [recipients, setRecipients] = useState(null)
+  const [log, setLog] = useState([])
+  const [digest, setDigest] = useState(null)
+  const [error, setError] = useState('')
+
+  const load = useCallback(() => {
+    Promise.all([fetchEmailRecipients(), fetchEmailLog(), fetchDigestStatus()])
+      .then(([r, l, d]) => { setRecipients(r); setLog(l); setDigest(d) })
+      .catch(e => setError(e.message))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  if (error) return <p className="text-sm text-red-500">{error}</p>
+  if (!recipients) return <p className="text-sm text-slate-500">Loading email activity…</p>
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500 dark:text-slate-400">Who gets mail, who doesn't, and what was sent.</p>
+        <button onClick={load} className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Refresh</button>
+      </div>
+      <DigestStatus status={digest} />
+      <Compose onSent={load} />
+      <Recipients rows={recipients} />
+      <SendLog rows={log} />
+    </div>
+  )
+}

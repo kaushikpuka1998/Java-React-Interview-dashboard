@@ -35,6 +35,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "AND (u.lastDigestAt IS NULL OR u.lastDigestAt < :coveredTo) ORDER BY u.id")
     List<User> findDigestRecipients(@org.springframework.data.repository.query.Param("coveredTo") java.time.LocalDateTime coveredTo);
 
+    /** Members who haven't opted out of email. */
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.emailOptOut IS NULL OR u.emailOptOut = false ORDER BY u.id")
+    List<User> findSubscribed();
+
+    /** Subscribed members without a country or city (the leaderboard nudge audience). */
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE (u.emailOptOut IS NULL OR u.emailOptOut = false) " +
+            "AND (u.country IS NULL OR u.city IS NULL) ORDER BY u.id")
+    List<User> findSubscribedWithoutLocation();
+
     /** Members missing a country or city who haven't been nudged since :before. */
     @Query("SELECT u FROM User u WHERE (u.country IS NULL OR u.city IS NULL) " +
             "AND (u.emailOptOut IS NULL OR u.emailOptOut = false) " +

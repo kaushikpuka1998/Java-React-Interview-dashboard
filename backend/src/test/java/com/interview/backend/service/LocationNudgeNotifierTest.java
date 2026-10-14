@@ -23,7 +23,7 @@ class LocationNudgeNotifierTest {
         // First claim wins; the repeat run finds the row already claimed.
         when(users.claimLocationNudge(eq(7L), any(), any())).thenReturn(1, 0);
 
-        LocationNudgeNotifier notifier = new LocationNudgeNotifier(users, email);
+        LocationNudgeNotifier notifier = new LocationNudgeNotifier(users, email, mock(com.interview.backend.repository.EmailLogRepository.class));
         notifier.sendNudges(Instant.now());
         notifier.sendNudges(Instant.now());
 

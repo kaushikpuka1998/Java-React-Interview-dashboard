@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface DigestRunRepository extends JpaRepository<DigestRun, Long> {
@@ -17,6 +18,8 @@ public interface DigestRunRepository extends JpaRepository<DigestRun, Long> {
 
     /** Watermark: where the last completed digest stopped. */
     Optional<DigestRun> findTopByStatusOrderByCoveredToDesc(String status);
+
+    List<DigestRun> findTop10ByOrderByIdDesc();
 
     /** Adopt a RUNNING run whose owner stopped heartbeating (crashed). 1 = we own it now. */
     @Modifying

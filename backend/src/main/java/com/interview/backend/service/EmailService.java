@@ -126,6 +126,18 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    /** Admin announcement: the admin's own subject and text, with the same unsubscribe footer. */
+    public void sendAnnouncement(String toEmail, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(body + "\n\n---\nDon't want these emails? Unsubscribe: " + backendUrl +
+                "/api/auth/unsubscribe?email=" + URLEncoder.encode(toEmail, StandardCharsets.UTF_8) +
+                "&sig=" + unsubscribeSig(toEmail));
+        mailSender.send(message);
+    }
+
     /** Asks a member without a location to add one, so they can appear on the leaderboard. */
     public void sendLocationNudgeEmail(String toEmail, String name) {
         SimpleMailMessage message = new SimpleMailMessage();

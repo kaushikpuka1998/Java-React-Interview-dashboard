@@ -1,6 +1,7 @@
 package com.interview.backend.service;
 
 import com.interview.backend.entity.DigestRun;
+import com.interview.backend.entity.EmailLog;
 import com.interview.backend.entity.Question;
 import com.interview.backend.entity.User;
 import com.interview.backend.repository.DigestRunRepository;
@@ -39,6 +40,7 @@ public class NewQuestionNotifier {
     private final UserRepository users;
     private final DigestRunRepository runs;
     private final EmailService email;
+    private final com.interview.backend.repository.EmailLogRepository emailLogs;
 
     @Value("${app.digest.time:19:00}")
     private LocalTime sendAt;
@@ -109,9 +111,11 @@ public class NewQuestionNotifier {
                 try {
                     email.sendNewQuestionsEmail(u.getEmail(), u.getName(), fresh);
                     sent++;
+                    emailLogs.save(EmailLog.of(u, "DIGEST", "New questions digest", null));
                 } catch (Exception e) {
                     // ponytail: a failed member is not retried; they miss this digest. Add a retry pass if bounces matter.
                     log.warn("Digest email to {} failed: {}", u.getEmail(), e.toString());
+                    emailLogs.save(EmailLog.of(u, "DIGEST", "New questions digest", e));
                 }
             }
         }
