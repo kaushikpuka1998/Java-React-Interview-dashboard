@@ -311,6 +311,23 @@ export default function AnalyticsPanel() {
 
       <DailyChart daily={data.daily} />
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+        <BarList
+          title="Campaigns (visits)"
+          rows={(data.campaigns || []).map(c => ({ ...c, label: c.campaign ? `${c.source} · ${c.campaign}` : c.source }))}
+          labelKey="label"
+          valueKey="visitors"
+          empty="No tagged visits yet. Share links with ?utm_source=…"
+        />
+        <BarList
+          title="Campaigns (signups)"
+          rows={(data.signupCampaigns || []).map(c => ({ ...c, label: c.campaign ? `${c.source} · ${c.campaign}` : c.source }))}
+          labelKey="label"
+          valueKey="signups"
+          empty="No signups from tagged links yet."
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <BarList
           title="Where visitors come from"

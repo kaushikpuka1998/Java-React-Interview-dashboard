@@ -75,6 +75,8 @@ public class AuthController {
         user.setName(req.name());
         user.setLastLoginAt(Instant.now());
         GeoService.applyUserLocation(user, loc.country(), loc.city());
+        user.setUtmSource(trimTo(req.utmSource(), 100));
+        user.setUtmCampaign(trimTo(req.utmCampaign(), 100));
         user = userRepository.save(user);
         geo.resolveFromIp(user.getId(), RateLimitFilter.clientIp(http));
 
@@ -110,6 +112,12 @@ public class AuthController {
             userRepository.save(u);
         });
         return ResponseEntity.ok("You've been unsubscribed from new-question emails.");
+    }
+
+    private static String trimTo(String s, int max) {
+        if (s == null || s.isBlank()) return null;
+        s = s.trim();
+        return s.length() > max ? s.substring(0, max) : s;
     }
 
     @PostMapping("/logout")

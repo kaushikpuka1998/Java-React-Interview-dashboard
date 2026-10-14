@@ -54,6 +54,19 @@ public class PageView {
     @Column(name = "device", length = 20)
     private String device;   // mobile | tablet | desktop
 
+    /** UTM tags from the landing URL (last-touch), e.g. utm_source=college_x. Null for untagged visits. */
+    @Column(name = "utm_source", length = 100)
+    private String utmSource;
+
+    @Column(name = "utm_campaign", length = 100)
+    private String utmCampaign;
+
+    @Column(name = "utm_medium", length = 100)
+    private String utmMedium;
+
+    @Column(name = "utm_content", length = 100)
+    private String utmContent;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 }

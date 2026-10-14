@@ -42,6 +42,13 @@ public class User {
     /** coveredTo of the last digest this member received; a resumed run skips them. */
     private java.time.LocalDateTime lastDigestAt;
 
+    /** Campaign the member signed up from (first UTM they arrived with), for conversion tracking. */
+    @Column(name = "utm_source", length = 100)
+    private String utmSource;
+
+    @Column(name = "utm_campaign", length = 100)
+    private String utmCampaign;
+
     /** Where the member is from. Typed by the user, or else resolved from their IP (the IP itself is never stored). */
     private String country;
     private String city;

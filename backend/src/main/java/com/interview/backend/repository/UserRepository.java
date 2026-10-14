@@ -33,6 +33,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int markDigested(@org.springframework.data.repository.query.Param("id") Long id,
                      @org.springframework.data.repository.query.Param("at") java.time.LocalDateTime at);
 
+    /** Signups per campaign: [utm_source, utm_campaign, signups]. */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT u.utmSource, u.utmCampaign, COUNT(u) FROM User u WHERE u.utmSource IS NOT NULL " +
+            "GROUP BY u.utmSource, u.utmCampaign ORDER BY COUNT(u) DESC")
+    List<Object[]> countSignupsByCampaign();
+
     /** Members per country, unknown last. Row: country (null = unknown), members. */
     @org.springframework.data.jpa.repository.Query(
             "SELECT u.country, COUNT(u) FROM User u GROUP BY u.country ORDER BY COUNT(u) DESC")

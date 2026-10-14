@@ -1,5 +1,18 @@
 import { useEffect } from 'react'
 
+// UTM tags (utm_source, utm_medium, utm_campaign, utm_content) from the landing URL, e.g.
+// https://site/?utm_source=college_x&utm_campaign=sept_drive. Last tagged visit wins; it's kept
+// in localStorage so tags survive the in-app URL rewrite and later visits until replaced.
+const UTM_PARAMS = { utm_source: 'utmSource', utm_medium: 'utmMedium', utm_campaign: 'utmCampaign', utm_content: 'utmContent' }
+const UTM_KEY = 'ir_utm'
+const p = new URLSearchParams(typeof location !== 'undefined' ? location.search : '')
+const tagged = Object.entries(UTM_PARAMS).reduce((acc, [k, v]) => (p.get(k) ? { ...acc, [v]: p.get(k).slice(0, 100) } : acc), {})
+if (Object.keys(tagged).length) localStorage.setItem(UTM_KEY, JSON.stringify(tagged))
+
+export function getUtm() {
+  try { return JSON.parse(localStorage.getItem(UTM_KEY) || '{}') } catch { return {} }
+}
+
 // Lightweight first-party analytics. No cookies and no IP: visitors are counted
 // with a random session id kept in localStorage, so the backend stores no PII.
 
@@ -41,6 +54,7 @@ export function trackView({ path, questionId } = {}) {
       referrer: initialReferrer,
       sessionId: sessionId(),
       device: device(),
+      ...getUtm(),
     })
 
     const token = localStorage.getItem('ir_token')

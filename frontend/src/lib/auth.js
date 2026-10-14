@@ -1,4 +1,5 @@
 import { clearQuestionCache } from './offlineStore.js'
+import { getUtm } from './analytics.js'
 // Auth + per-user progress against the backend. 
 // Uses HttpOnly cookies for authentication.
 
@@ -39,9 +40,10 @@ async function parseError(res) {
 }
 
 export async function register({ email, password, name, country, city }) {
+  const { utmSource, utmCampaign } = getUtm()
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name, country, city }),
+    body: JSON.stringify({ email, password, name, country, city, utmSource, utmCampaign }),
     credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Registration failed')

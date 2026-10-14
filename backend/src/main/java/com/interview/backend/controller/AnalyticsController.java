@@ -38,7 +38,8 @@ public class AnalyticsController {
     // ---------- public: record an event ----------
 
     public record TrackRequest(String path, String questionId, String referrer,
-                               String sessionId, String device) {}
+                               String sessionId, String device,
+                               String utmSource, String utmMedium, String utmCampaign, String utmContent) {}
 
     /**
      * Fire-and-forget event recording. Public, because anonymous visitors are
@@ -56,6 +57,10 @@ public class AnalyticsController {
             pv.setSessionId(trim(req.sessionId(), 64));
             pv.setDevice(trim(req.device(), 20));
             pv.setUserId(currentUserId());   // resolved from the JWT, never client-supplied
+            pv.setUtmSource(trim(req.utmSource(), 100));
+            pv.setUtmMedium(trim(req.utmMedium(), 100));
+            pv.setUtmCampaign(trim(req.utmCampaign(), 100));
+            pv.setUtmContent(trim(req.utmContent(), 100));
             pageViews.save(pv);
         } catch (Exception ignored) {
             // swallow: a failed metric must never surface to the visitor
@@ -220,6 +225,17 @@ public class AnalyticsController {
         out.put("signups", signups);
 
         out.put("engagement", engagement(since));
+
+        // Campaign performance: visits per utm_source + utm_campaign, and signups from the same tags.
+        out.put("campaigns", pageViews.topCampaigns(since, PageRequest.of(0, 15)).stream()
+                .map(r -> Map.of("source", r[0], "campaign", r[1] == null ? "" : r[1],
+                                 "views", ((Number) r[2]).longValue(),
+                                 "visitors", ((Number) r[3]).longValue()))
+                .collect(Collectors.toList()));
+        out.put("signupCampaigns", users.countSignupsByCampaign().stream()
+                .map(r -> Map.of("source", r[0], "campaign", r[1] == null ? "" : r[1],
+                                 "signups", ((Number) r[2]).longValue()))
+                .collect(Collectors.toList()));
 
         out.put("content", Map.of(
                 "totalQuestions", questions.count(),
