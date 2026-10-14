@@ -18,16 +18,19 @@ function setSession({ token, email, name, admin }) {
   localStorage.setItem(USER_KEY, JSON.stringify({ email, name, admin: !!admin }))
 }
 
-export async function logout() {
+// Clears the session first, then reloads (or goes to `redirect` when given). Callers that
+// navigate away must await this, or the page leaves before the session is cleared.
+export async function logout({ redirect } = {}) {
+  localStorage.removeItem(USER_KEY)
+  localStorage.removeItem('ir_token')
   try {
     await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
   } catch (e) {
     console.error('Logout request failed', e)
   }
   await clearQuestionCache().catch(() => {})
-  localStorage.removeItem(USER_KEY)
-  localStorage.removeItem('ir_token')
-  window.location.reload()
+  if (redirect) window.location.href = redirect
+  else window.location.reload()
 }
 
 function authHeaders() {

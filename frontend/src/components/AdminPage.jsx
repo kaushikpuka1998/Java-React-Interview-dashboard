@@ -308,7 +308,7 @@ export default function AdminPage() {
     return (
       <Shell>
         <p className="text-red-600 dark:text-red-400">Your account ({user.email}) is not an admin. Ask an admin to add your email to <code>ADMIN_EMAILS</code>.</p>
-        <button onClick={() => { logout(); window.location.href = '/' }} className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline">Log out</button>
+        <button onClick={() => logout({ redirect: '/' })} className="mt-4 text-sm text-blue-600 dark:text-blue-400 hover:underline">Log out</button>
       </Shell>
     )
   }
