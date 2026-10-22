@@ -2,6 +2,7 @@ package com.interview.backend.controller;
 
 import com.interview.backend.entity.Question;
 import com.interview.backend.entity.User;
+import com.interview.backend.entity.UserNote;
 import com.interview.backend.entity.UserProgress;
 import com.interview.backend.repository.QuestionRepository;
 import com.interview.backend.repository.UserProgressRepository;
@@ -11,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.interview.backend.service.GeoService;
 import com.interview.backend.service.LocationRules;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +38,7 @@ public class ProfileController {
     private final QuestionRepository questionRepository;
     private final com.interview.backend.service.LeagueService leagues;
     private final com.interview.backend.service.UsernameService usernames;
+    private final com.interview.backend.repository.UserNoteRepository userNotes;
 
     private User currentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -124,6 +126,73 @@ public class ProfileController {
                 "country", u.getCountry() == null ? "" : u.getCountry(),
                 "city", u.getCity() == null ? "" : u.getCity(),
                 "locationSource", u.getLocationSource() == null ? "" : u.getLocationSource()));
+    }
+
+    public record NoteRequest(String title, String body) {}
+
+    private static final int NOTE_BODY_MAX = 5000;
+    private static final int NOTE_TITLE_MAX = 120;
+
+    private static Map<String, Object> noteView(UserNote n) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", n.getId());
+        m.put("title", n.getTitle());
+        m.put("body", n.getBody());
+        m.put("createdAt", n.getCreatedAt());
+        m.put("updatedAt", n.getUpdatedAt());
+        return m;
+    }
+
+    /** Validates and normalises a note's title and body. Returns an error message, or null when valid. */
+    private static String noteError(NoteRequest req) {
+        String body = req.body() == null ? "" : req.body().strip();
+        if (body.isEmpty()) return "Write something in the note first";
+        if (body.length() > NOTE_BODY_MAX) return "Note is too long (max " + NOTE_BODY_MAX + " characters)";
+        String title = req.title() == null ? "" : req.title().strip();
+        if (title.length() > NOTE_TITLE_MAX) return "Title is too long (max " + NOTE_TITLE_MAX + " characters)";
+        return null;
+    }
+
+    @GetMapping("/notes")
+    public ResponseEntity<List<Map<String, Object>>> notes() {
+        return ResponseEntity.ok(userNotes.findByUserIdOrderByUpdatedAtDesc(currentUser().getId())
+                .stream().map(ProfileController::noteView).toList());
+    }
+
+    @PostMapping("/notes")
+    public ResponseEntity<?> createNote(@RequestBody NoteRequest req) {
+        String error = noteError(req);
+        if (error != null) return ResponseEntity.badRequest().body(Map.of("error", error));
+        UserNote n = new UserNote();
+        n.setUserId(currentUser().getId());
+        n.setTitle(title(req));
+        n.setBody(req.body().strip());
+        return ResponseEntity.status(201).body(noteView(userNotes.save(n)));
+    }
+
+    @PutMapping("/notes/{id}")
+    public ResponseEntity<?> updateNote(@PathVariable Long id, @RequestBody NoteRequest req) {
+        String error = noteError(req);
+        if (error != null) return ResponseEntity.badRequest().body(Map.of("error", error));
+        UserNote n = userNotes.findByIdAndUserId(id, currentUser().getId()).orElse(null);
+        if (n == null) return ResponseEntity.notFound().build();
+        n.setTitle(title(req));
+        n.setBody(req.body().strip());
+        n.setUpdatedAt(java.time.Instant.now());
+        return ResponseEntity.ok(noteView(userNotes.save(n)));
+    }
+
+    @DeleteMapping("/notes/{id}")
+    public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
+        UserNote n = userNotes.findByIdAndUserId(id, currentUser().getId()).orElse(null);
+        if (n == null) return ResponseEntity.notFound().build();
+        userNotes.delete(n);
+        return ResponseEntity.noContent().build();
+    }
+
+    private static String title(NoteRequest req) {
+        String t = req.title() == null ? "" : req.title().strip();
+        return t.isEmpty() ? "Untitled note" : t;
     }
 
     public record UsernameRequest(String username) {}

@@ -47,6 +47,28 @@ export async function checkUsername(username) {
   return res.json()
 }
 
+export async function fetchNotes() {
+  const res = await fetch(`${API_BASE}/profile/notes`, { headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) throw new Error('Could not load your notes')
+  return res.json()
+}
+
+// id === null creates a note; otherwise updates that note.
+export async function saveNote(id, { title, body }) {
+  const res = await fetch(`${API_BASE}/profile/notes${id ? `/${id}` : ''}`, {
+    method: id ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ title, body }), credentials: 'include'
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not save the note')
+  return res.json()
+}
+
+export async function removeNote(id) {
+  const res = await fetch(`${API_BASE}/profile/notes/${id}`, { method: 'DELETE', headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) throw new Error('Could not delete the note')
+}
+
 export async function updateUsername(username) {
   const res = await fetch(`${API_BASE}/profile/username`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() },

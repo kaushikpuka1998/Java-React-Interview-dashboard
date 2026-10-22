@@ -6,7 +6,8 @@ import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
 import PieChart, { toHex, countBy } from './PieChart.jsx'
-import { updateUsername } from '../lib/auth.js'
+import Markdown from './Markdown.jsx'
+import { updateUsername, fetchNotes, saveNote, removeNote } from '../lib/auth.js'
 
 export const TECH_COLOR = {
   java: 'bg-orange-500', react: 'bg-cyan-500', node: 'bg-green-500', sql: 'bg-purple-500',
@@ -17,6 +18,117 @@ export const DIFF_COLOR = {
 }
 
 // "Where are you from?" — what the user typed wins; otherwise shows the IP-based guess.
+const NOTE_MAX = 5000
+const NOTE_TITLE_MAX = 120
+
+// One note: a formatted view, or an editor with a live Markdown preview beside it.
+function NoteEditor({ initial, onSave, onCancel }) {
+  const [title, setTitle] = useState(initial?.title || '')
+  const [body, setBody] = useState(initial?.body || '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const save = async () => {
+    setBusy(true); setError('')
+    try { await onSave({ title, body }) }
+    catch (e) { setError(e.message) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <div className="rounded-2xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-950 p-5">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value.slice(0, NOTE_TITLE_MAX))}
+          placeholder="Note title"
+          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        />
+        <span className="text-xs tabular-nums text-slate-400">{body.length}/{NOTE_MAX}</span>
+        <button onClick={onCancel} className="rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
+        <button onClick={save} disabled={busy || !body.trim()} className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Saving…' : 'Save'}</button>
+      </div>
+      <p className="mb-3 text-xs text-slate-400">Only you can see this. Markdown works: # heading, **bold**, - lists, `code`.</p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <textarea
+          value={body}
+          onChange={e => setBody(e.target.value.slice(0, NOTE_MAX))}
+          rows={14}
+          placeholder={'# Topic\n\n- Point one\n- Point two'}
+          className="min-h-[18rem] w-full rounded-xl border border-slate-300 bg-slate-50 p-3 font-mono text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        />
+        <div className="min-h-[18rem] overflow-auto rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700">
+          {body.trim() ? <Markdown text={body} /> : <p className="text-sm text-slate-400">Preview appears here.</p>}
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  )
+}
+
+// The member's private notes: a list of formatted notes, with add, edit and delete.
+function PersonalNotes() {
+  const [notes, setNotes] = useState(null)
+  const [editing, setEditing] = useState(null)   // null | 'new' | note id
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchNotes().then(setNotes).catch(e => setError(e.message))
+  }, [])
+
+  const save = async (id, data) => {
+    const saved = await saveNote(id, data)
+    setNotes(list => id ? list.map(n => (n.id === id ? saved : n)) : [saved, ...list])
+    setEditing(null)
+  }
+  const remove = async (id) => {
+    if (!window.confirm('Delete this note? This cannot be undone.')) return
+    try { await removeNote(id); setNotes(list => list.filter(n => n.id !== id)) }
+    catch (e) { setError(e.message) }
+  }
+
+  if (error && !notes) return <p className="text-sm text-slate-500">{error}</p>
+  if (!notes) return null
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">My notes <span className="text-slate-400 font-normal">({notes.length})</span></h2>
+        {editing !== 'new' && (
+          <button onClick={() => setEditing('new')} className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white">New note</button>
+        )}
+      </div>
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+      {editing === 'new' && <NoteEditor onSave={(d) => save(null, d)} onCancel={() => setEditing(null)} />}
+
+      {notes.length === 0 && editing !== 'new' && (
+        <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400 dark:border-slate-700">
+          No notes yet. Keep track of what you're preparing for, goals, or things to revisit.
+        </p>
+      )}
+
+      {notes.map(n => editing === n.id ? (
+        <NoteEditor key={n.id} initial={n} onSave={(d) => save(n.id, d)} onCancel={() => setEditing(null)} />
+      ) : (
+        <article key={n.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-slate-100">{n.title}</h3>
+              <p className="text-xs text-slate-400">Updated {new Date(n.updatedAt).toLocaleString()}</p>
+            </div>
+            <div className="flex gap-3 text-sm">
+              <button onClick={() => setEditing(n.id)} className="font-medium text-blue-600 hover:underline dark:text-blue-400">Edit</button>
+              <button onClick={() => remove(n.id)} className="font-medium text-red-600 hover:underline dark:text-red-400">Delete</button>
+            </div>
+          </div>
+          <Markdown text={n.body} />
+        </article>
+      ))}
+    </section>
+  )
+}
+
 // Public handle for the /u/ link. Changing it retires the old link.
 function UsernameEditor({ username, onSaved }) {
   const [editing, setEditing] = useState(false)
@@ -238,6 +350,10 @@ export default function ProfilePage() {
             <LocationEditor profile={profile} />
           </div>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <PersonalNotes />
       </div>
 
       {/* Stat cards */}

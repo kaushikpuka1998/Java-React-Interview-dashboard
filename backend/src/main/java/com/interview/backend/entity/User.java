@@ -45,6 +45,10 @@ public class User {
     /** Last time we asked this member to add a location (weekly nudge, claimed before sending). */
     private Instant locationNudgedAt;
 
+    /** Personal note in Markdown. Private: shown only on the member's own profile. */
+    @Column(columnDefinition = "TEXT")
+    private String note;
+
     /** Public handle for /u/{username}. Unique; null only for rows not yet backfilled. */
     @Column(unique = true, length = 30)
     private String username;
