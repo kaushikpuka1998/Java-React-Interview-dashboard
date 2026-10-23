@@ -21,6 +21,10 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
     List<Question> findByTech(String tech);
 
     /** Questions published in a window — feeds the daily new-questions email. */
+    /** Questions edited in the window that already existed before it (their creation isn't news). */
+    List<Question> findByUpdatedAtGreaterThanEqualAndUpdatedAtLessThanAndCreatedAtLessThanOrderByTechAscSortKeyAsc(
+            java.time.LocalDateTime from, java.time.LocalDateTime to, java.time.LocalDateTime createdBefore);
+
     List<Question> findByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByTechAscSortKeyAsc(
             java.time.LocalDateTime from, java.time.LocalDateTime to);
 

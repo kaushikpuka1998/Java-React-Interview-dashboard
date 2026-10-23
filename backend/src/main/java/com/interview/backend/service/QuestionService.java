@@ -193,6 +193,7 @@ public class QuestionService {
     public Question update(String id, com.interview.backend.dto.QuestionInput in) {
         Question q = questionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Question not found: " + id));
+        String before = contentOf(q);
         // Only overwrite fields the admin actually supplied.
         if (in.title() != null && !in.title().isBlank()) q.setTitle(in.title().trim());
         if (in.question() != null && !in.question().isBlank()) q.setQuestion(in.question());
@@ -200,7 +201,15 @@ public class QuestionService {
         if (in.difficulty() != null && !in.difficulty().isBlank()) q.setDifficulty(in.difficulty());
         if (in.category() != null) q.setCategory(in.category());
         if (in.tech() != null && !in.tech().isBlank()) q.setTech(in.tech().trim().toLowerCase());
+        // Saving without a real change must not bump updatedAt, or members get an "updated" email for nothing.
+        if (contentOf(q).equals(before)) return q;
         return questionRepository.save(q);
+    }
+
+    private static String contentOf(Question q) {
+        return String.join("\u0000", java.util.Objects.toString(q.getTitle(), ""), java.util.Objects.toString(q.getQuestion(), ""),
+                java.util.Objects.toString(q.getAnswer(), ""), java.util.Objects.toString(q.getDifficulty(), ""),
+                java.util.Objects.toString(q.getCategory(), ""), java.util.Objects.toString(q.getTech(), ""));
     }
 
     @Transactional

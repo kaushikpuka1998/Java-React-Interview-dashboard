@@ -98,20 +98,33 @@ public class EmailService {
         log.info("Password reset email sent to {}", toEmail);
     }
 
-    /** One email per user listing the questions just published. Caller handles per-user failures. */
-    public void sendNewQuestionsEmail(String toEmail, String name, List<Question> questions) {
-        String subject = questions.size() == 1
-                ? "New interview question today: " + questions.get(0).getTitle()
-                : questions.size() + " new interview questions added today";
+    /** One email per user: questions added and questions edited since their last digest. */
+    public void sendNewQuestionsEmail(String toEmail, String name, List<Question> added, List<Question> updated) {
+        int total = added.size() + updated.size();
+        String subject;
+        if (added.isEmpty()) {
+            subject = updated.size() == 1 ? "Updated interview question: " + updated.get(0).getTitle()
+                    : updated.size() + " interview questions updated";
+        } else if (updated.isEmpty()) {
+            subject = added.size() == 1 ? "New interview question today: " + added.get(0).getTitle()
+                    : added.size() + " new interview questions added today";
+        } else {
+            subject = added.size() + " new and " + updated.size() + " updated interview questions";
+        }
 
-        StringBuilder body = new StringBuilder("Hi" + (name == null || name.isBlank() ? "" : " " + name) + ",\n\n")
-                .append("Here's what was added to Interview Reader in the last 24 hours:\n\n");
-        questions.stream().limit(25).forEach(q -> body
-                .append("• [").append(q.getTech()).append("] ").append(q.getTitle()).append("\n  ")
-                .append(frontendUrl).append("/?id=").append(URLEncoder.encode(q.getId(), StandardCharsets.UTF_8))
-                .append("\n\n"));
-        if (questions.size() > 25) body.append("…and ").append(questions.size() - 25).append(" more at ")
-                .append(frontendUrl).append("\n\n");
+        StringBuilder body = new StringBuilder("Hi" + (name == null || name.isBlank() ? "" : " " + name) + ",\n\n");
+        int room = 25;
+        if (!added.isEmpty()) {
+            body.append("New questions:\n\n");
+            for (Question q : added.stream().limit(room).toList()) appendQuestion(body, q, "");
+            room -= Math.min(added.size(), room);
+            if (added.size() > 25) body.append("…and ").append(added.size() - 25).append(" more\n\n");
+        }
+        if (!updated.isEmpty()) {
+            body.append("Updated questions:\n\n");
+            for (Question q : updated.stream().limit(Math.max(room, 0)).toList()) appendQuestion(body, q, " (updated)");
+            if (updated.size() > Math.max(room, 0)) body.append("…and ").append(updated.size() - Math.max(room, 0)).append(" more\n\n");
+        }
         body.append("Happy preparing!\nInterview Reader Team\n\n")
             .append("Don't want these emails? Unsubscribe: ")
             .append(backendUrl).append("/api/auth/unsubscribe?email=")
@@ -124,6 +137,12 @@ public class EmailService {
         message.setSubject(subject);
         message.setText(body.toString());
         mailSender.send(message);
+    }
+
+    private void appendQuestion(StringBuilder body, Question q, String tag) {
+        body.append("• [").append(q.getTech()).append("] ").append(q.getTitle()).append(tag).append("\n  ")
+            .append(frontendUrl).append("/?id=").append(URLEncoder.encode(q.getId(), StandardCharsets.UTF_8))
+            .append("\n\n");
     }
 
     /** Admin announcement: the admin's own subject and text, with the same unsubscribe footer. */

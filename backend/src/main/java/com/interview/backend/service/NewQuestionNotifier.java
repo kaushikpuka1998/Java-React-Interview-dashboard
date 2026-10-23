@@ -95,11 +95,14 @@ public class NewQuestionNotifier {
     private void send(DigestRun run, String me) {
         List<Question> fresh = questions.findByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByTechAscSortKeyAsc(
                 run.getCoveredFrom(), run.getCoveredTo());
+        List<Question> updated = questions.findByUpdatedAtGreaterThanEqualAndUpdatedAtLessThanAndCreatedAtLessThanOrderByTechAscSortKeyAsc(
+                run.getCoveredFrom(), run.getCoveredTo(), run.getCoveredFrom());
+        int total = fresh.size() + updated.size();
 
         // ponytail: one SMTP send per user, sequential. Fine for hundreds of members;
         // past the provider's daily cap (Gmail ~500) move to a bulk-mail API.
         int sent = 0, i = 0;
-        if (!fresh.isEmpty()) {
+        if (total > 0) {
             for (User u : users.findDigestRecipients(run.getCoveredTo())) {
                 if (i++ % HEARTBEAT_EVERY == 0 && runs.heartbeat(run.getId(), me, Instant.now()) == 0) {
                     log.warn("Digest {}: taken over by another instance, stopping", run.getRunDate());
@@ -109,7 +112,7 @@ public class NewQuestionNotifier {
                 // and a member must never receive the same digest twice.
                 if (users.claimDigest(u.getId(), run.getCoveredTo()) == 0) continue;
                 try {
-                    email.sendNewQuestionsEmail(u.getEmail(), u.getName(), fresh);
+                    email.sendNewQuestionsEmail(u.getEmail(), u.getName(), fresh, updated);
                     sent++;
                     emailLogs.save(EmailLog.of(u, "DIGEST", "New questions digest", null));
                 } catch (Exception e) {
@@ -119,7 +122,7 @@ public class NewQuestionNotifier {
                 }
             }
         }
-        runs.finish(run.getId(), me, sent, fresh.size(), Instant.now());
-        log.info("Digest {}: {} question(s), {} email(s) sent", run.getRunDate(), fresh.size(), sent);
+        runs.finish(run.getId(), me, sent, total, Instant.now());
+        log.info("Digest {}: {} new, {} updated, {} email(s) sent", run.getRunDate(), fresh.size(), updated.size(), sent);
     }
 }

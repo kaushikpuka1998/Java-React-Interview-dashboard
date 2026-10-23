@@ -36,14 +36,14 @@ function DigestStatus({ status }) {
         </p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {stat('New questions waiting', status.pendingQuestions)}
+        {stat('New or updated waiting', status.pendingQuestions)}
         {stat('Members who will get it', status.recipients)}
         {stat('Covers since', status.pendingSince ? new Date(status.pendingSince).toLocaleString() : '—')}
       </div>
       <p className="mt-3 text-xs text-slate-400">
         {status.pendingQuestions === 0
           ? 'Nothing new is waiting, so no digest will be sent at that time.'
-          : 'New questions are queued here and emailed as one digest at the send time.'}
+          : 'New and edited questions are collected here and emailed as one digest at the send time.'}
       </p>
       {status.runs?.length > 0 && (
         <details className="mt-3">

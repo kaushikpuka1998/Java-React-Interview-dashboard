@@ -62,8 +62,8 @@ class NewQuestionNotifierTest {
                 CompletableFuture.runAsync(() -> notifier.runFor(TODAY))).join();
         notifier.runFor(TODAY);   // later 15-min tick, same day
 
-        verify(email, times(1)).sendNewQuestionsEmail(eq("alice@x.com"), any(), argThat(l -> l.size() == 2));
-        verify(email, times(1)).sendNewQuestionsEmail(eq("bob@x.com"), any(), anyList());
+        verify(email, times(1)).sendNewQuestionsEmail(eq("alice@x.com"), any(), argThat(l -> l.size() == 2), anyList());
+        verify(email, times(1)).sendNewQuestionsEmail(eq("bob@x.com"), any(), anyList(), anyList());
         assertThat(runs.findAll()).singleElement().extracting(DigestRun::getStatus).isEqualTo("DONE");
     }
 
@@ -83,7 +83,7 @@ class NewQuestionNotifierTest {
 
         notifier.runFor(TODAY);
 
-        verify(email).sendNewQuestionsEmail(eq("alice@x.com"), any(), argThat(l -> l.size() == 2));
+        verify(email).sendNewQuestionsEmail(eq("alice@x.com"), any(), argThat(l -> l.size() == 2), anyList());
     }
 
     @Test
@@ -95,8 +95,8 @@ class NewQuestionNotifierTest {
 
         notifier.runFor(TODAY);
 
-        verify(email, never()).sendNewQuestionsEmail(eq("alice@x.com"), any(), anyList());
-        verify(email, times(1)).sendNewQuestionsEmail(eq("bob@x.com"), any(), anyList());
+        verify(email, never()).sendNewQuestionsEmail(eq("alice@x.com"), any(), anyList(), anyList());
+        verify(email, times(1)).sendNewQuestionsEmail(eq("bob@x.com"), any(), anyList(), anyList());
         assertThat(runs.findById(crashed.getId())).get().extracting(DigestRun::getStatus).isEqualTo("DONE");
     }
 
@@ -119,8 +119,20 @@ class NewQuestionNotifierTest {
 
         notifier.runFor(TODAY);
 
-        verify(email).sendNewQuestionsEmail(eq("alice@x.com"), any(), anyList());
-        verify(email, never()).sendNewQuestionsEmail(eq("bob@x.com"), any(), anyList());
+        verify(email).sendNewQuestionsEmail(eq("alice@x.com"), any(), anyList(), anyList());
+        verify(email, never()).sendNewQuestionsEmail(eq("bob@x.com"), any(), anyList(), anyList());
+    }
+
+    @Test
+    void anEditedQuestionReachesMembersAsUpdated() {
+        LocalDateTime now = LocalDateTime.now();
+        question("java-old", now.minusDays(2));
+        jdbc.update("UPDATE questions SET updated_at = ? WHERE id = ?", now.minusHours(1), "java-old");
+
+        notifier.runFor(TODAY);
+
+        verify(email).sendNewQuestionsEmail(eq("alice@x.com"), any(), argThat(l -> l.isEmpty()),
+                argThat(l -> l.size() == 1 && l.get(0).getId().equals("java-old")));
     }
 
     // ---------- fixtures ----------

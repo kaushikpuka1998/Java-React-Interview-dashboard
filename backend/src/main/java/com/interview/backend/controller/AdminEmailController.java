@@ -55,7 +55,9 @@ public class AdminEmailController {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("nextSendAt", nextSend.toInstant());
         out.put("todayStatus", today.map(DigestRun::getStatus).orElse("NOT_STARTED"));
-        out.put("pendingQuestions", questions.findByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByTechAscSortKeyAsc(from, now).size());
+        int added = questions.findByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByTechAscSortKeyAsc(from, now).size();
+        int updatedCount = questions.findByUpdatedAtGreaterThanEqualAndUpdatedAtLessThanAndCreatedAtLessThanOrderByTechAscSortKeyAsc(from, now, from).size();
+        out.put("pendingQuestions", added + updatedCount);
         out.put("pendingSince", from.atZone(zone).toInstant());
         out.put("recipients", users.findDigestRecipients(now).size());
         out.put("runs", digestRuns.findTop10ByOrderByIdDesc().stream().map(r -> {
