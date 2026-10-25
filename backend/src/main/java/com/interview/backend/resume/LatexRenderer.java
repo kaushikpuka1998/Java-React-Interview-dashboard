@@ -24,10 +24,29 @@ public final class LatexRenderer {
 
     private static final Pattern MARKUP = Pattern.compile("\\[([^\\]]+)\\]\\(([^)\\s]+)\\)|\\*\\*(.+?)\\*\\*");
 
+    // Macros the body uses (the Jake-style resume layout). A template's preamble may not define them,
+    // so render() adds any that are missing. Each entry is {name, definition}.
+    private static final String[][] MACROS = {
+            {"resumeItem", "\\newcommand{\\resumeItem}[1]{\\item\\small{#1\\vspace{-2pt}}}"},
+            {"resumeItemListStart", "\\newcommand{\\resumeItemListStart}{\\begin{itemize}[leftmargin=0.2in, topsep=2pt, itemsep=0pt, label=\\textbullet]}"},
+            {"resumeItemListEnd", "\\newcommand{\\resumeItemListEnd}{\\end{itemize}\\vspace{-3pt}}"},
+            {"resumeSubHeadingListStart", "\\newcommand{\\resumeSubHeadingListStart}{\\begin{itemize}[leftmargin=0.15in, label={}]}"},
+            {"resumeSubHeadingListEnd", "\\newcommand{\\resumeSubHeadingListEnd}{\\end{itemize}}"},
+            {"resumeSubheading", "\\newcommand{\\resumeSubheading}[4]{\\vspace{-2pt}\\item\\begin{tabular*}{0.97\\textwidth}[t]{l@{\\extracolsep{\\fill}}r}"
+                    + "\\textbf{#1} & #2 \\\\\\textit{\\small #3} & \\textit{\\small #4} \\\\\\end{tabular*}\\vspace{-6pt}}"},
+            {"resumeProjectHeading", "\\newcommand{\\resumeProjectHeading}[2]{\\item\\begin{tabular*}{0.97\\textwidth}{l@{\\extracolsep{\\fill}}r}"
+                    + "\\small #1 & \\small #2 \\\\\\end{tabular*}\\vspace{-7pt}}"},
+    };
+
     private LatexRenderer() {}
 
     public static String render(JsonNode d, String preamble, String layout) {
-        StringBuilder sb = new StringBuilder(preamble.strip()).append("\n\n\\begin{document}\n\n");
+        StringBuilder pre = new StringBuilder(preamble.strip()).append("\n");
+        if (!preamble.contains("enumitem")) pre.append("\\usepackage{enumitem}\n");
+        for (String[] m : MACROS) {
+            if (!preamble.contains("\\" + m[0] + "}")) pre.append(m[1]).append("\n");
+        }
+        StringBuilder sb = new StringBuilder(pre).append("\n\\begin{document}\n\n");
         variables(sb, d);
         for (String block : layout.split(",")) {
             switch (block.trim()) {
