@@ -391,6 +391,13 @@ export default function AnalyticsPanel() {
           empty="No tagged visits yet. Share links with ?utm_source=…"
         />
         <BarList
+          title="Resume builder entry points (visitors)"
+          rows={(data.resumeBuilder || []).map(r => ({ ...r, label: r.placement.replace(/_/g, ' ') }))}
+          labelKey="label"
+          valueKey="visitors"
+          empty="No resume builder visits yet. Clicks from the sidebar or profile show up here."
+        />
+        <BarList
           title="Campaigns (signups)"
           rows={(data.signupCampaigns || []).map(c => ({ ...c, label: c.campaign ? `${c.source} · ${c.campaign}` : c.source }))}
           labelKey="label"

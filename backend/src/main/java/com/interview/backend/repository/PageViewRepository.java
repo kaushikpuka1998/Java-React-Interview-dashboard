@@ -25,11 +25,17 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
            "GROUP BY p.referrerHost ORDER BY COUNT(p) DESC")
     List<Object[]> topReferrers(@Param("since") Instant since, Pageable pageable);
 
-    /** Visits per campaign: [utm_source, utm_campaign, views, visitors]. */
+    /** Visits per campaign: [utm_source, utm_campaign, views, visitors]. In-app links (utm_source=app) are excluded. */
     @Query("SELECT p.utmSource, p.utmCampaign, COUNT(p), COUNT(DISTINCT p.sessionId) FROM PageView p " +
-           "WHERE p.createdAt > :since AND p.utmSource IS NOT NULL " +
+           "WHERE p.createdAt > :since AND p.utmSource IS NOT NULL AND p.utmSource <> 'app' " +
            "GROUP BY p.utmSource, p.utmCampaign ORDER BY COUNT(p) DESC")
     List<Object[]> topCampaigns(@Param("since") Instant since, Pageable pageable);
+
+    /** Resume builder entry points: [utm_content (placement), views, visitors, signed-in users]. */
+    @Query("SELECT p.utmContent, COUNT(p), COUNT(DISTINCT p.sessionId), COUNT(DISTINCT p.userId) FROM PageView p " +
+           "WHERE p.createdAt > :since AND p.utmMedium = 'resume_builder' " +
+           "GROUP BY p.utmContent ORDER BY COUNT(p) DESC")
+    List<Object[]> resumeBuilderPlacements(@Param("since") Instant since);
 
     /** Most-opened questions. */
     @Query("SELECT p.questionId AS qid, COUNT(p) AS views FROM PageView p " +

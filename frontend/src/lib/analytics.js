@@ -5,9 +5,24 @@ import { useEffect } from 'react'
 // in localStorage so tags survive the in-app URL rewrite and later visits until replaced.
 const UTM_PARAMS = { utm_source: 'utmSource', utm_medium: 'utmMedium', utm_campaign: 'utmCampaign', utm_content: 'utmContent' }
 const UTM_KEY = 'ir_utm'
-const p = new URLSearchParams(typeof location !== 'undefined' ? location.search : '')
-const tagged = Object.entries(UTM_PARAMS).reduce((acc, [k, v]) => (p.get(k) ? { ...acc, [v]: p.get(k).slice(0, 100) } : acc), {})
-if (Object.keys(tagged).length) localStorage.setItem(UTM_KEY, JSON.stringify(tagged))
+// Our own links (see resumeBuilderLink) use utm_source=app. They describe where a click came from
+// inside the app, so they must not replace a visitor's campaign tags.
+const INTERNAL_SOURCE = 'app'
+
+function urlTags() {
+  const p = new URLSearchParams(typeof location !== 'undefined' ? location.search : '')
+  return Object.entries(UTM_PARAMS).reduce((acc, [k, v]) => (p.get(k) ? { ...acc, [v]: p.get(k).slice(0, 100) } : acc), {})
+}
+
+const initialTags = urlTags()
+if (Object.keys(initialTags).length && initialTags.utmSource !== INTERNAL_SOURCE) {
+  localStorage.setItem(UTM_KEY, JSON.stringify(initialTags))
+}
+
+// Link to the resume builder with a tag for where the click came from (e.g. 'sidebar', 'profile').
+export function resumeBuilderLink(placement) {
+  return `/resume?utm_source=${INTERNAL_SOURCE}&utm_medium=resume_builder&utm_content=${encodeURIComponent(placement)}`
+}
 
 export function getUtm() {
   try { return JSON.parse(localStorage.getItem(UTM_KEY) || '{}') } catch { return {} }
@@ -54,7 +69,8 @@ export function trackView({ path, questionId } = {}) {
       referrer: initialReferrer,
       sessionId: sessionId(),
       device: device(),
-      ...getUtm(),
+      // Internal tags describe this view only; campaign tags come from storage.
+      ...(urlTags().utmSource === INTERNAL_SOURCE ? urlTags() : getUtm()),
     })
 
     const token = localStorage.getItem('ir_token')

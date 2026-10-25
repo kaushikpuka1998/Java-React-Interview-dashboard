@@ -232,6 +232,12 @@ public class AnalyticsController {
                                  "views", ((Number) r[2]).longValue(),
                                  "visitors", ((Number) r[3]).longValue()))
                 .collect(Collectors.toList()));
+        out.put("resumeBuilder", pageViews.resumeBuilderPlacements(since).stream()
+                .map(r -> Map.of("placement", r[0] == null ? "unknown" : r[0],
+                                 "views", ((Number) r[1]).longValue(),
+                                 "visitors", ((Number) r[2]).longValue(),
+                                 "signedIn", ((Number) r[3]).longValue()))
+                .collect(Collectors.toList()));
         out.put("signupCampaigns", users.countSignupsByCampaign().stream()
                 .map(r -> Map.of("source", r[0], "campaign", r[1] == null ? "" : r[1],
                                  "signups", ((Number) r[2]).longValue()))

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import QuestionLink from './QuestionLink.jsx'
 import { SearchInput, TechFilter, CategorySelect, CompanySelect, StatusSelect, DifficultySelect, QuestionCount } from './SidebarFilters.jsx'
 import Notifications from './Notifications.jsx'
+import { resumeBuilderLink } from '../lib/analytics.js'
 
 /**
  * Sidebar component
@@ -132,6 +133,20 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
             </button>
           )}
         </div>
+      </div>
+
+      {/* Resume builder entry point, tagged so clicks show up under Resume builder in analytics */}
+      <div className="px-4 pt-4 flex-shrink-0">
+        <a
+          href={resumeBuilderLink('sidebar')}
+          className="flex items-center justify-between gap-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-3 text-white shadow-md shadow-blue-600/20 transition hover:opacity-95"
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Build your resume</span>
+            <span className="block text-xs text-blue-100">Free LaTeX templates, PDF in one click</span>
+          </span>
+          <span aria-hidden="true" className="text-lg">→</span>
+        </a>
       </div>
 
       {/* Search always visible */}

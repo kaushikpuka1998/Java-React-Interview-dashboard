@@ -7,6 +7,7 @@ import AuthModal from './AuthModal.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
 import PieChart, { toHex, countBy } from './PieChart.jsx'
 import Markdown from './Markdown.jsx'
+import { resumeBuilderLink } from '../lib/analytics.js'
 import { updateUsername, fetchNotes, saveNote, removeNote } from '../lib/auth.js'
 
 export const TECH_COLOR = {
@@ -363,7 +364,7 @@ export default function ProfilePage() {
 
       <div className="mb-8">
         <div className="mb-4 flex justify-end">
-          <a href="/resume" className="rounded-lg border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">Resume builder →</a>
+          <a href={resumeBuilderLink('profile')} className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-600/20 hover:opacity-95">Build your resume →</a>
         </div>
         <PersonalNotes />
       </div>
