@@ -31,7 +31,9 @@ public class AnnouncementService {
     /** Fills {{name}} and {{profile_link}} for one member. Unknown placeholders are left as typed. */
     public String render(String text, User u) {
         String name = u.getName() == null || u.getName().isBlank() ? "there" : u.getName().trim();
-        return text.replace("{{name}}", name).replace("{{profile_link}}", frontendUrl + "/profile");
+        return text.replace("{{name}}", name)
+                .replace("{{profile_link}}", frontendUrl + "/profile")
+                .replace("{{resume_link}}", frontendUrl + "/resume");
     }
 
     public List<User> audience(String audience) {

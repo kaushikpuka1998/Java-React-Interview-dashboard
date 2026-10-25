@@ -82,7 +82,27 @@ Kaushik
 InterviewReader`,
 }
 
-const PLACEHOLDERS = ['{{name}}', '{{profile_link}}']
+// Launch announcement for the resume builder. Describes only what the feature does.
+const RESUME_TEMPLATE = {
+  subject: 'New on InterviewReader: build your resume',
+  body: `Hi {{name}},
+
+You can now build, edit and download your resume on InterviewReader.
+
+- Choose a template and fill in your details. The live PDF updates as you type.
+- Rename sections, or add your own, such as Certifications or Publications.
+- Edit the LaTeX yourself and compile it to a PDF.
+- Download the PDF or the .tex file.
+
+Start here:
+{{resume_link}}
+
+Happy preparing!
+Kaushik
+InterviewReader`,
+}
+
+const PLACEHOLDERS = ['{{name}}', '{{profile_link}}', '{{resume_link}}']
 
 // Shows the email as one member would see it, with sample values filled in.
 function Preview({ subject, body }) {
@@ -111,6 +131,12 @@ function Compose({ onSent }) {
     setSubject(LOCATION_TEMPLATE.subject)
     setBody(LOCATION_TEMPLATE.body)
     setAudience('no-location')
+    setShowPreview(true)
+  }
+  const useResumeTemplate = () => {
+    setSubject(RESUME_TEMPLATE.subject)
+    setBody(RESUME_TEMPLATE.body)
+    setAudience('all')
     setShowPreview(true)
   }
   const insert = (token) => setBody(b => b + token)
@@ -142,6 +168,7 @@ function Compose({ onSent }) {
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <button type="button" onClick={useTemplate} className="rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white">Use "complete your profile" template</button>
+        <button type="button" onClick={useResumeTemplate} className="rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white">Use "resume builder" launch template</button>
         <span className="text-slate-400">Insert:</span>
         {PLACEHOLDERS.map(p => (
           <button key={p} type="button" onClick={() => insert(p)} className="rounded-md bg-slate-100 px-2 py-1 font-mono text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">{p}</button>

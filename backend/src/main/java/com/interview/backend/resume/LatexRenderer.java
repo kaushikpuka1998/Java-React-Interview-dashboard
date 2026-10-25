@@ -28,6 +28,7 @@ public final class LatexRenderer {
 
     public static String render(JsonNode d, String preamble, String layout) {
         StringBuilder sb = new StringBuilder(preamble.strip()).append("\n\n\\begin{document}\n\n");
+        variables(sb, d);
         for (String block : layout.split(",")) {
             switch (block.trim()) {
                 case "header" -> header(sb, d.path("header"));
@@ -45,19 +46,31 @@ public final class LatexRenderer {
         return sb.append("\\end{document}\n").toString();
     }
 
+    /**
+     * The simple fields as named variables (\\def). The form and this LaTeX stay in sync through them:
+     * editing one in either place updates the other. Values are written as LaTeX text here.
+     */
+    static void variables(StringBuilder sb, JsonNode d) {
+        JsonNode h = d.path("header");
+        sb.append("%----------VARIABLES: the form and this LaTeX stay in sync through these lines----------\n");
+        sb.append("\\def\\rName{").append(text(h.path("name").asText(""))).append("}\n");
+        sb.append("\\def\\rHeadline{").append(text(h.path("headline").asText(""))).append("}\n");
+        sb.append("\\def\\rLocation{").append(text(h.path("location").asText(""))).append("}\n");
+        sb.append("\\def\\rEmail{").append(url(h.path("email").asText("").trim())).append("}\n");
+        sb.append("\\def\\rPhone{").append(url(h.path("phone").asText("").trim())).append("}\n");
+        sb.append("\\def\\rSummary{").append(text(d.path("summary").asText(""))).append("}\n\n");
+    }
+
     private static void header(StringBuilder sb, JsonNode h) {
         sb.append("\\begin{center}\n");
-        sb.append("  {\\Huge \\bfseries ").append(text(h.path("name").asText(""))).append("} \\\\ \\vspace{2pt}\n");
+        sb.append("  {\\Huge \\bfseries \\rName} \\\\ \\vspace{2pt}\n");
         if (!h.path("headline").asText("").isBlank())
-            sb.append("  {\\small ").append(text(h.path("headline").asText(""))).append("} \\\\ \\vspace{2pt}\n");
+            sb.append("  {\\small \\rHeadline} \\\\ \\vspace{2pt}\n");
         java.util.List<String> line1 = new java.util.ArrayList<>();
-        if (!h.path("location").asText("").isBlank()) line1.add(text(h.path("location").asText("")));
+        if (!h.path("location").asText("").isBlank()) line1.add("\\rLocation");
         if (!h.path("extra").asText("").isBlank()) line1.add(text(h.path("extra").asText("")));
-        if (!h.path("email").asText("").isBlank()) {
-            String e = h.path("email").asText("").trim();
-            line1.add("\\href{mailto:" + url(e) + "}{" + plain(e) + "}");
-        }
-        if (!h.path("phone").asText("").isBlank()) line1.add(plain(h.path("phone").asText("").trim()));
+        if (!h.path("email").asText("").isBlank()) line1.add("\\href{mailto:\\rEmail}{\\rEmail}");
+        if (!h.path("phone").asText("").isBlank()) line1.add("\\rPhone");
         if (!line1.isEmpty()) sb.append("  {\\small ").append(String.join(" $|$ ", line1)).append("} \\\\ \\vspace{1pt}\n");
         java.util.List<String> links = new java.util.ArrayList<>();
         for (JsonNode l : h.path("links")) {
@@ -90,7 +103,7 @@ public final class LatexRenderer {
 
     private static void summary(StringBuilder sb, String text, String title) {
         if (text.isBlank()) return;
-        sb.append("%-----------SUMMARY-----------\n\\section{").append(text(title)).append("}\n\\small{").append(text).append("}\n\\vspace{-4pt}\n\n");
+        sb.append("%-----------SUMMARY-----------\n\\section{").append(text(title)).append("}\n\\small{\\rSummary}\n\\vspace{-4pt}\n\n");
     }
 
     private static void skills(StringBuilder sb, JsonNode skills, String title) {

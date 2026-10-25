@@ -89,3 +89,9 @@ export const previewPdfRequest = (body, signal) =>
   fetch(`${API_BASE}/resumes/preview-pdf`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(body), signal,
   })
+
+// Live preview of LaTeX the member is editing. Returns the Response.
+export const previewLatexRequest = (latex, signal) =>
+  fetch(`${API_BASE}/resumes/preview-latex`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({ latex }), signal,
+  })

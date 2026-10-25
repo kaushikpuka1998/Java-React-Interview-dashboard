@@ -187,6 +187,20 @@ public class ResumeController {
         return ResponseEntity.ok(Map.of("latex", LatexRenderer.render(req.data(), t.getPreamble(), t.getLayout())));
     }
 
+    public record LatexPreviewRequest(String latex) {}
+
+    /** Live preview of LaTeX the member is editing: compiles it as written, without saving. */
+    @PostMapping("/resumes/preview-latex")
+    public ResponseEntity<?> previewLatex(@RequestBody LatexPreviewRequest req) {
+        try {
+            byte[] pdf = compiler.compile(req.latex());
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF).body(pdf);
+        } catch (TexCompiler.CompileException e) {
+            if (e.getMessage().startsWith("The compiler is busy")) return ResponseEntity.status(429).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.unprocessableEntity().body(Map.of("error", e.getMessage(), "log", e.log()));
+        }
+    }
+
     /** Live preview: compiles the form's current content to a PDF without saving anything. */
     @PostMapping("/resumes/preview-pdf")
     public ResponseEntity<?> previewPdf(@RequestBody ResumeRequest req) {

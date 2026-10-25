@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useLayoutEffect } from 'react'
-import { fetchResume, fetchTemplates, saveResume, downloadLatex, fetchLatexText, saveLatexText, resetLatexText, compileLatexPdf, previewPdfRequest } from '../lib/resume.js'
+import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react'
+import { fieldsToLatex, readFields, writeFields, fromLatexValue, applyFields } from '../lib/latexSync.js'
+import { fetchResume, fetchTemplates, saveResume, downloadLatex, fetchLatexText, saveLatexText, resetLatexText, previewPdfRequest, previewLatexRequest } from '../lib/resume.js'
 import { sampleResumeData } from '../lib/resumeSample.js'
 import { isLoggedIn } from '../lib/auth.js'
 
@@ -35,7 +36,11 @@ export default function ResumeEditor({ id }) {
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null)   // { ok, text }
-  const [latex, setLatex] = useState(null)
+  const [mode, setMode] = useState('editable')      // 'editable' (form) or 'latex' (edit the LaTeX source)
+  const [latexDraft, setLatexDraft] = useState(null)
+  const [latexEdited, setLatexEdited] = useState(false)
+  const [latexDirty, setLatexDirty] = useState(false)
+  const [latexMsg, setLatexMsg] = useState(null)
   const [mobile, setMobile] = useState('edit')   // phones: edit or preview, one at a time
   const [panel, setPanel] = useState('design')   // right panel: 'design' (instant) or 'pdf' (live LaTeX compile)
   const [fitOne, setFitOne] = useState(true)      // "Fit to 1 page" (default): scale down just enough to fit one Letter page
@@ -51,10 +56,10 @@ export default function ResumeEditor({ id }) {
 
   // Warn before leaving with unsaved edits.
   useEffect(() => {
-    const warn = (e) => { if (dirty) { e.preventDefault(); e.returnValue = '' } }
+    const warn = (e) => { if (dirty || latexDirty) { e.preventDefault(); e.returnValue = '' } }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
+  }, [dirty, latexDirty])
 
   const change = (fn) => { setData(d => fn(d)); setDirty(true) }
   const setHeader = (k, v) => change(d => ({ ...d, header: { ...d.header, [k]: v } }))
@@ -68,6 +73,28 @@ export default function ResumeEditor({ id }) {
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
     return { ...d, [k]: arr }
   })
+
+  // Form -> LaTeX: a simple field changed, so its line in the LaTeX is rewritten.
+  // LaTeX -> form: a line changed in the LaTeX, so the form field follows it.
+  const syncFromLatex = useRef(false)
+  const fieldsJson = JSON.stringify(fieldsToLatex(data))
+  useEffect(() => {
+    if (syncFromLatex.current) { syncFromLatex.current = false; return }
+    if (latexDraft === null) return
+    const next = writeFields(latexDraft, fieldsToLatex(data))
+    if (next !== latexDraft) { setLatexDraft(next); setLatexDirty(true) }
+  }, [fieldsJson])
+
+  useEffect(() => {
+    if (mode !== 'latex' || latexDraft === null) return
+    const found = readFields(latexDraft)
+    const formLatex = fieldsToLatex(data)
+    const changed = Object.keys(found).filter(v => found[v] !== formLatex[v])
+    if (!changed.length) return
+    syncFromLatex.current = true
+    setData(d => applyFields(d, Object.fromEntries(changed.map(v => [v, fromLatexValue(v, found[v])]))))
+    setDirty(true)
+  }, [latexDraft])
 
   const payload = useMemo(() => ({ title, templateId: Number(templateId), data }), [title, templateId, data])
   const layout = templates.find(t => String(t.id) === String(templateId))?.layout
@@ -98,9 +125,38 @@ export default function ResumeEditor({ id }) {
     finally { setBusy(false) }
   }
 
-  const showLatex = async () => {
-    try { setLatex(await fetchLatexText(id)) }
-    catch (e) { setNotice({ ok: false, text: e.message }) }
+  const loadLatex = async () => {
+    try {
+      const current = await fetchLatexText(id)
+      setLatexDraft(current.latex); setLatexEdited(current.edited); setLatexDirty(false); setLatexMsg(null)
+    } catch (e) { setLatexMsg({ ok: false, text: e.message }) }
+  }
+
+  // Switching modes never throws away edits. Going to LaTeX first saves the form, so the
+  // generated LaTeX matches it; an unsaved LaTeX draft is kept as it is.
+  const switchMode = async (next) => {
+    if (next === mode) return
+    if (next === 'latex') {
+      if (dirty) await save()
+      if (latexDraft === null || (!latexDirty && !latexEdited)) await loadLatex()
+    }
+    setMode(next)
+  }
+
+  const saveLatex = async () => {
+    try {
+      await saveLatexText(id, latexDraft)
+      setLatexEdited(true); setLatexDirty(false); setLatexMsg({ ok: true, text: 'LaTeX saved. The PDF on the right shows it.' })
+    } catch (e) { setLatexMsg({ ok: false, text: e.message }) }
+  }
+
+  const resetLatex = async () => {
+    if (!window.confirm('Drop your LaTeX edits and go back to the form?')) return
+    try {
+      await resetLatexText(id)
+      await loadLatex()
+      setLatexMsg({ ok: true, text: 'Back to the form. The LaTeX now follows it.' })
+    } catch (e) { setLatexMsg({ ok: false, text: e.message }) }
   }
 
   // Downloads a Letter-size PDF of exactly what the preview shows (same content, same fit). No print dialog.
@@ -169,7 +225,12 @@ export default function ResumeEditor({ id }) {
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${fitOne ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'}`}>
             {fitOne ? 'Fit to 1 page ✓' : 'Fit to 1 page'}
           </button>
-          <button onClick={showLatex} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">LaTeX</button>
+          <div className="inline-flex rounded-lg bg-slate-200 p-0.5 dark:bg-slate-800" role="group" aria-label="Editing mode">
+            {[['editable', 'Editable'], ['latex', 'LaTeX']].map(([k, label]) => (
+              <button key={k} onClick={() => switchMode(k)} aria-pressed={mode === k}
+                className={`rounded-md px-3 py-1 text-xs font-semibold ${mode === k ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>{label}</button>
+            ))}
+          </div>
           <button onClick={download} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Download .tex</button>
           <button onClick={save} disabled={busy || !dirty} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
         </div>
@@ -190,6 +251,31 @@ export default function ResumeEditor({ id }) {
       </div>
 
       <div className="resume-grid grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      {mode === 'latex' ? (
+      <div className={`resume-form-col space-y-4 ${mobile === 'preview' ? 'hidden lg:block' : ''}`}>
+        <section className={card}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">LaTeX source</h3>
+            <div className="flex gap-2">
+              <button onClick={resetLatex} disabled={!latexEdited} className={`${btnGhost} disabled:opacity-40`}>Reset to form</button>
+              <button onClick={saveLatex} disabled={!latexDirty || latexDraft === null} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">Save LaTeX</button>
+            </div>
+          </div>
+          <p className={`mb-3 rounded-lg px-3 py-2 text-xs ${latexEdited ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300' : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+            {latexEdited
+              ? 'This is your own LaTeX. Changes in the form do not update it until you reset.'
+              : 'This LaTeX is generated from the form. Edit it here, and it becomes your own LaTeX.'}
+          </p>
+          <textarea
+            value={latexDraft ?? ''}
+            onChange={e => { setLatexDraft(e.target.value); setLatexDirty(true) }}
+            spellCheck={false}
+            className="min-h-[70vh] w-full rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+          />
+          {latexMsg && <p className={`mt-3 text-sm ${latexMsg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{latexMsg.text}</p>}
+        </section>
+      </div>
+      ) : (
       <div className={`resume-form-col space-y-5 ${mobile === 'preview' ? 'hidden lg:block' : ''}`}>
         {/* Header */}
         <section className={card}>
@@ -318,13 +404,16 @@ export default function ResumeEditor({ id }) {
         </section>
       </div>
 
-      {/* Live preview: updates on every change. Printing shows only this block (see PRINT_CSS). */}
+      )}
+
+      {/* Live PDF: compiled from the form (Editable) or from the LaTeX source (LaTeX) */}
       <div className={`resume-preview-wrap rounded-xl bg-slate-300 p-4 dark:bg-slate-800 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-auto ${mobile === 'edit' ? 'hidden lg:block' : ''}`}>
-        <LivePdf id={id} title={title} body={{ templateId: Number(templateId), data }} />
+        {mode === 'latex'
+          ? <LivePdf title={title} pdfKey={`latex:${latexDraft ?? ''}`} run={(signal) => previewLatexRequest(latexDraft ?? '', signal)} />
+          : <LivePdf title={title} pdfKey={`form:${JSON.stringify(payload)}`} run={(signal) => previewPdfRequest({ templateId: Number(templateId), data }, signal)} />}
       </div>
       </div>
 
-      {latex !== null && <LatexModal id={id} title={title} initial={latex} onSaved={() => setLatex(null)} onClose={() => setLatex(null)} />}
     </Shell>
   )
 }
@@ -364,22 +453,20 @@ function Entries({ title, items, onAdd, onRemove, onMove, render }) {
   )
 }
 
-// LaTeX editor. Your edits are compiled exactly as written; "Reset" brings back the form's LaTeX.
-// Live PDF: compiles the form on the server 1.2s after the last change, and shows the result.
-function LivePdf({ id, title, body }) {
+// Live PDF: compiles on the server 1.2s after the last change. `run(signal)` makes the request.
+function LivePdf({ title, pdfKey, run }) {
   const [url, setUrl] = useState(null)
   const [pdf, setPdf] = useState(null)     // the compiled PDF blob, for download
   const [status, setStatus] = useState('Compiling…')
   const [error, setError] = useState('')
   const [log, setLog] = useState('')
-  const key = JSON.stringify(body)
 
   useEffect(() => {
     const ctrl = new AbortController()
     setStatus('Compiling…')
     const timer = setTimeout(async () => {
       try {
-        const res = await previewPdfRequest(JSON.parse(key), ctrl.signal)
+        const res = await run(ctrl.signal)
         if (res.status === 429) { setStatus('Busy: will retry on the next change'); return }
         if (!res.ok) {
           const b = await res.json().catch(() => ({}))
@@ -394,7 +481,7 @@ function LivePdf({ id, title, body }) {
       }
     }, 1200)
     return () => { clearTimeout(timer); ctrl.abort() }
-  }, [key])
+  }, [pdfKey])
 
   useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
 
@@ -419,79 +506,6 @@ function LivePdf({ id, title, body }) {
       {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
       {log && <pre className="mb-2 max-h-40 overflow-auto rounded-lg bg-white p-2 text-[11px] text-red-800">{log}</pre>}
       {url && <iframe title="Live PDF preview" src={url} className="h-[70vh] w-full rounded-lg bg-white" />}
-    </div>
-  )
-}
-
-function LatexModal({ id, title, initial, onClose }) {
-  const [source, setSource] = useState(initial.latex)
-  const [edited, setEdited] = useState(initial.edited)
-  const [dirty, setDirty] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(null)     // { ok, text }
-  const [log, setLog] = useState('')
-
-  const save = async () => {
-    setBusy(true); setMsg(null)
-    try {
-      await saveLatexText(id, source)
-      setEdited(true); setDirty(false); setMsg({ ok: true, text: 'LaTeX saved. Compile to get the PDF.' })
-    } catch (e) { setMsg({ ok: false, text: e.message }) }
-    finally { setBusy(false) }
-  }
-
-  const reset = async () => {
-    if (!window.confirm('Drop your LaTeX edits and use the LaTeX generated from the form?')) return
-    setBusy(true); setMsg(null)
-    try {
-      await resetLatexText(id)
-      const fresh = await fetchLatexText(id)
-      setSource(fresh.latex); setEdited(false); setDirty(false)
-      setMsg({ ok: true, text: 'Back to the LaTeX generated from the form.' })
-    } catch (e) { setMsg({ ok: false, text: e.message }) }
-    finally { setBusy(false) }
-  }
-
-  const compile = async () => {
-    setBusy(true); setMsg(null); setLog('')
-    try {
-      if (dirty) { await saveLatexText(id, source); setEdited(true); setDirty(false) }
-      await compileLatexPdf(id, title)
-      setMsg({ ok: true, text: 'PDF downloaded.' })
-    } catch (e) {
-      setMsg({ ok: false, text: e.message })
-      setLog(e.log || '')
-    } finally { setBusy(false) }
-  }
-
-  return (
-    <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl bg-white p-5 shadow-2xl dark:bg-slate-900" onClick={e => e.stopPropagation()}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">LaTeX · {title}</h3>
-          <button onClick={onClose} className={btnGhost}>Close</button>
-        </div>
-        <p className={`mb-3 rounded-lg px-3 py-2 text-xs ${edited ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300' : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
-          {edited
-            ? 'You are editing your own LaTeX. Changes in the form do not update it until you reset.'
-            : 'This is the LaTeX generated from the form. Edit it here, or change the form and it updates automatically.'}
-        </p>
-        <textarea
-          value={source}
-          onChange={e => { setSource(e.target.value); setDirty(true) }}
-          spellCheck={false}
-          className="min-h-[18rem] flex-1 rounded-lg border border-slate-300 bg-slate-50 p-3 font-mono text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-        />
-        {msg && <p className={`mt-3 text-sm ${msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{msg.text}</p>}
-        {log && <pre className="mt-2 max-h-40 overflow-auto rounded-lg bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-300">{log}</pre>}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          <button onClick={reset} disabled={busy || !edited} className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800">Reset to form</button>
-          <div className="flex gap-2">
-            <button onClick={save} disabled={busy || !dirty} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200">Save LaTeX</button>
-            <button onClick={compile} disabled={busy} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Working…' : 'Compile PDF'}</button>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
