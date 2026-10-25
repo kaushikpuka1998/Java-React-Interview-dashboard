@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { isLoggedIn, logout, fetchProfile, fetchProfileQuestions, fetchProgress, updateLocation } from '../lib/auth.js'
+import { isLoggedIn, getUser, logout, fetchDashboard, updateLocation } from '../lib/auth.js'
 import { fetchQuestions } from '../lib/api.js'
 import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
@@ -259,14 +259,23 @@ function QuestionList({ title, items, emptyText, fixed = true }) {
   )
 }
 
+// Last dashboard this browser saw for the account: shown at once, refreshed in the background.
+const readDashboardCache = () => {
+  try {
+    const email = getUser()?.email
+    return email ? JSON.parse(localStorage.getItem(`ir_dash_${email}`) || 'null') : null
+  } catch { return null }
+}
+
 export default function ProfilePage() {
-  const [profile, setProfile] = useState(null)
-  const [solved, setSolved] = useState([])
-  const [visited, setVisited] = useState([])
+  const [cache] = useState(() => (isLoggedIn() ? readDashboardCache() : null))
+  const [profile, setProfile] = useState(() => cache?.me ?? null)
+  const [solved, setSolved] = useState(() => cache?.solved ?? [])
+  const [visited, setVisited] = useState(() => cache?.visited ?? [])
   const [listFilter, setListFilter] = useState('solved')   // which of the two lists to show
-  const [flagged, setFlagged] = useState([])
-  const [important, setImportant] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [flagged, setFlagged] = useState(() => cache?.flagged ?? [])
+  const [important, setImportant] = useState(() => cache?.important ?? [])
+  const [loading, setLoading] = useState(() => !cache)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [handle, setHandle] = useState('')
@@ -275,21 +284,14 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
     let cancelled = false
-    Promise.all([fetchProfile(), fetchProfileQuestions('solved'), fetchProfileQuestions('visited'), fetchProfileQuestions('important'), fetchProgress()])
-      .then(([p, s, v, imp, progress]) => {
+    fetchDashboard()
+      .then((d) => {
         if (cancelled) return
-        setProfile(p); setSolved(s); setVisited(v); setImportant(imp)
+        setProfile(d.me); setSolved(d.solved); setVisited(d.visited); setImportant(d.important); setFlagged(d.flagged)
         setLoading(false)
-        // Flagged questions need a second request keyed off `progress` — don't make the
-        // whole page wait on it, fill it in once it arrives.
-        const ids = progress.flagged || []
-        if (ids.length) {
-          fetchQuestions({ status: 'flagged', flaggedIds: ids, size: ids.length })
-            .then((res) => !cancelled && setFlagged(res.content))
-            .catch(() => {})
-        }
+        localStorage.setItem(`ir_dash_${d.me.email}`, JSON.stringify(d))
       })
-      .catch((e) => { if (!cancelled) { setError(e.message); setLoading(false) } })
+      .catch((e) => { if (!cancelled) { if (!cache) setError(e.message); setLoading(false) } })
     return () => { cancelled = true }
   }, [])
 

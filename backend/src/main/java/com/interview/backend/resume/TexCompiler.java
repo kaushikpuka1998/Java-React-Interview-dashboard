@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -34,6 +35,24 @@ public class TexCompiler {
 
     public static final int MAX_CHARS = 200_000;
 
+    /** A line that sets a pdfTeX primitive, e.g. \\pdfgentounicode=1 or \\pdfpageheight=15.75in. */
+    private static final Pattern PDF_ONLY_LINE = Pattern.compile("(?m)^(\\\\(pdf[a-zA-Z]+)\\s*=.*)$");
+
+    /**
+     * Makes pdfTeX-only lines safe for XeTeX (Tectonic). Overleaf runs pdfTeX, so these work there;
+     * here they are skipped when the primitive is missing, so the same LaTeX compiles in both.
+     */
+    static String engineSafe(String latex) {
+        String s = latex.replace(ALLOWED_INCLUDE, "\\ifdefined\\pdfglyphtounicode" + ALLOWED_INCLUDE + "\\fi");
+        Matcher m = PDF_ONLY_LINE.matcher(s);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            m.appendReplacement(out, Matcher.quoteReplacement("\\ifdefined\\" + m.group(2) + m.group(1) + "\\fi"));
+        }
+        m.appendTail(out);
+        return out.toString();
+    }
+
     private final String tectonicPath;
     private final Semaphore slots = new Semaphore(2);
 
@@ -52,7 +71,7 @@ public class TexCompiler {
         Path dir = null;
         try {
             dir = Files.createTempDirectory("resume-");
-            Files.writeString(dir.resolve("resume.tex"), latex, StandardCharsets.UTF_8);
+            Files.writeString(dir.resolve("resume.tex"), engineSafe(latex), StandardCharsets.UTF_8);
             Process p = new ProcessBuilder(List.of(tectonicPath, "-X", "compile", "--outdir", dir.toString(), "resume.tex"))
                     .directory(dir.toFile())
                     .redirectErrorStream(true)

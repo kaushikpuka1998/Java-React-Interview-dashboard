@@ -23,6 +23,8 @@ function setSession({ token, email, name, admin }) {
 export async function logout({ redirect } = {}) {
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem('ir_token')
+  // Saved profile data belongs to the account that's leaving.
+  Object.keys(localStorage).filter(k => k.startsWith('ir_dash_')).forEach(k => localStorage.removeItem(k))
   try {
     await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
   } catch (e) {
@@ -332,4 +334,11 @@ export async function uploadImage(file) {
   })
   if (!res.ok) throw new Error(await parseError(res) || `Upload failed (${res.status})`)
   return (await res.json()).url
+}
+
+// Profile, lists and flagged questions in one request.
+export async function fetchDashboard() {
+  const res = await fetch(`${API_BASE}/profile/dashboard`, { headers: authHeaders(), credentials: 'include' })
+  if (!res.ok) throw new Error(await parseError(res) || 'Failed to load your profile')
+  return res.json()
 }

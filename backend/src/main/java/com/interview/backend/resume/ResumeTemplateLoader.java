@@ -14,9 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Loads every resources/resume-templates/*.tex into the database on startup.
+ * Adds every resources/resume-templates/*.tex to the database on startup, if it's not there yet.
  * Header comments set the name, description and layout; the file name is the slug.
- * Editing a file and restarting updates the template; members' resumes follow it.
+ * Templates are then managed from the admin page, so later edits there are kept.
  */
 @Slf4j
 @Component
@@ -32,14 +32,16 @@ public class ResumeTemplateLoader {
         for (Resource file : files) {
             String text = new String(file.getContentAsByteArray(), StandardCharsets.UTF_8);
             String slug = file.getFilename().replace(".tex", "");
-            ResumeTemplate t = templates.findBySlug(slug).orElseGet(ResumeTemplate::new);
+            // Insert-only: templates saved from the admin page must not be overwritten on restart.
+            if (templates.findBySlug(slug).isPresent()) continue;
+            ResumeTemplate t = new ResumeTemplate();
             t.setSlug(slug);
             t.setName(header(text, "name", slug));
             t.setDescription(header(text, "description", ""));
             t.setLayout(header(text, "layout", "header,summary,skills,experience,projects,education,achievements"));
             t.setPreamble(text);
             templates.save(t);
-            log.info("Resume template '{}' loaded", slug);
+            log.info("Resume template '{}' added from file", slug);
         }
     }
 
