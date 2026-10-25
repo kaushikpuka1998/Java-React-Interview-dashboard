@@ -7,6 +7,8 @@ import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
+import ResumePromo from './components/ResumePromo.jsx'
+import { fetchFeatures } from './lib/features.js'
 import SignupGate from './components/SignupGate.jsx'
 import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, toggleFlaggedRemote, toggleImportantRemote, searchCompanies } from './lib/auth.js'
 import { trackView } from './lib/analytics.js'
@@ -52,6 +54,7 @@ function App({ path = '/', onPathChange = () => {} }) {
 
   // Auth state
   const [user, setUser] = useState(() => getUser())
+  const [promoOpen, setPromoOpen] = useState(false)   // resume builder promo, shown after login
   const [authOpen, setAuthOpen] = useState(false)
   const [freeTechs, setFreeTechs] = useState([])
   const [gate, setGate] = useState(null)   // { message, tech } when a locked topic is requested
@@ -64,6 +67,7 @@ function App({ path = '/', onPathChange = () => {} }) {
     // stayed hidden until the next page load.
     setUser(getUser())
     setAuthOpen(false)
+    fetchFeatures().then(f => setPromoOpen(f.resume_promo !== false))
     try {
       await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
       const { visited: v, read: r, flagged: f = [], important: imp = [] } = await fetchProgress()
@@ -544,6 +548,7 @@ function App({ path = '/', onPathChange = () => {} }) {
       )}
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
+      {promoOpen && <ResumePromo onClose={() => setPromoOpen(false)} />}
       {user && <LocationPrompt />}
     </div>
   )

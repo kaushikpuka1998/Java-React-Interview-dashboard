@@ -8,6 +8,7 @@ import LeaderboardPage from './components/LeaderboardPage.jsx'
 import ResumePage from './components/ResumePage.jsx'
 import ResumeEditor from './components/ResumeEditor.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
+import { trackView } from './lib/analytics.js'
 import './index.css'
 
 // Patch fetch to always include credentials for API_BASE requests
@@ -24,6 +25,8 @@ window.fetch = function() {
 };
 
 // ponytail: raw pathname check at the entry point — avoids adding react-router just for a wildcard
+const TRACKED_PAGES = ['/admin', '/profile', '/leaderboard', '/resume', '/u/', '/reset-password']
+
 function Router() {
   const [path, setPath] = useState(() => typeof window !== 'undefined' ? window.location.pathname : '/')
 
@@ -32,6 +35,12 @@ function Router() {
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+
+  // Question pages are tracked by App. Every other page here needs its own page view,
+  // otherwise the analytics never see it (e.g. the resume builder).
+  useEffect(() => {
+    if (TRACKED_PAGES.some(p => path === p || path.startsWith(p))) trackView({ path })
+  }, [path])
 
   // Dedicated admin route (create / edit / delete questions).
   if (path === '/admin' || path.startsWith('/admin/')) return <AdminPage />

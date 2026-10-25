@@ -7,6 +7,7 @@ import Markdown from './Markdown.jsx'
 import AnalyticsPanel from './AnalyticsPanel.jsx'
 import EmailCenter from './EmailCenter.jsx'
 import ResumeTemplatesAdmin from './ResumeTemplatesAdmin.jsx'
+import FeatureFlagsPanel from './FeatureFlagsPanel.jsx'
 import SuggestionsPanel from './SuggestionsPanel.jsx'
 import DuplicatesPanel from './DuplicatesPanel.jsx'
 
@@ -317,7 +318,7 @@ export default function AdminPage() {
   return (
     <Shell tabWide={tab === "analytics"}>
       <div className="flex gap-2 mb-5 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
-        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['duplicates', 'Duplicates'], ['analytics', 'Analytics'], ['emails', 'Emails'], ['templates', 'Resume templates'], ['export', 'Export JSON']].map(([t, label]) => (
+        {[['single', editingId ? 'Edit' : 'Add'], ['bulk', 'Bulk (JSON)'], ['manage', 'Manage'], ['suggestions', 'Suggestions'], ['duplicates', 'Duplicates'], ['analytics', 'Analytics'], ['emails', 'Emails'], ['templates', 'Resume templates'], ['features', 'Feature flags'], ['export', 'Export JSON']].map(([t, label]) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null) }}
             className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-sm font-medium ${tab === t ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
             {label}
@@ -370,6 +371,7 @@ export default function AdminPage() {
       {tab === 'analytics' && <AnalyticsPanel />}
       {tab === 'emails' && <EmailCenter />}
       {tab === 'templates' && <ResumeTemplatesAdmin />}
+      {tab === 'features' && <FeatureFlagsPanel />}
 
       {tab === 'suggestions' && <SuggestionsPanel />}
 
