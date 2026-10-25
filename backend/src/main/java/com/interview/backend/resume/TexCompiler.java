@@ -67,7 +67,10 @@ public class TexCompiler {
         if (FORBIDDEN.matcher(latex.replace(ALLOWED_INCLUDE, "")).find()) {
             throw new CompileException("This LaTeX uses a command that isn't allowed here (file access or shell commands).", "");
         }
-        if (!slots.tryAcquire()) throw new CompileException("The compiler is busy. Try again in a moment.", "");
+        // ponytail: queue briefly for a slot; rapid edits abort the previous request but its compile keeps running.
+        boolean got;
+        try { got = slots.tryAcquire(10, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); got = false; }
+        if (!got) throw new CompileException("The compiler is busy. Try again in a moment.", "");
         Path dir = null;
         try {
             dir = Files.createTempDirectory("resume-");

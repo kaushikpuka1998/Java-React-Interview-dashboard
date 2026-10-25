@@ -94,6 +94,19 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
     @Query("SELECT DISTINCT q.tech FROM Question q ORDER BY q.tech")
     List<String> findDistinctTechs();
 
+    /** Which of these ids still exist (one small query, no answer text). */
+    @Query("SELECT q.id FROM Question q WHERE q.id IN :ids")
+    List<String> existingIds(@Param("ids") java.util.Collection<String> ids);
+
+    /** Question summaries for the given ids, without answers. */
+    @Query("SELECT new com.interview.backend.dto.QuestionSummary(q.id, q.title, q.question, q.tech, q.difficulty, q.category) " +
+           "FROM Question q WHERE q.id IN :ids ORDER BY q.sortKey")
+    List<com.interview.backend.dto.QuestionSummary> summariesByIds(@Param("ids") java.util.Collection<String> ids);
+
+    /** [id, tech, difficulty] for the given ids: for counting, without loading full questions. */
+    @Query("SELECT q.id, q.tech, q.difficulty FROM Question q WHERE q.id IN :ids")
+    List<Object[]> techDifficultyByIds(@Param("ids") java.util.Collection<String> ids);
+
     @Query("SELECT DISTINCT q.difficulty FROM Question q WHERE q.difficulty IS NOT NULL ORDER BY q.difficulty")
     List<String> findDistinctDifficulties();
 

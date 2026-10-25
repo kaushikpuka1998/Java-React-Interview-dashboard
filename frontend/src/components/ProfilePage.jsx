@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { isLoggedIn, getUser, logout, fetchDashboard, updateLocation } from '../lib/auth.js'
+import { isLoggedIn, getUser, logout, fetchDashboard, fetchProfileQuestions, updateLocation } from '../lib/auth.js'
 import { fetchQuestions } from '../lib/api.js'
 import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
@@ -272,7 +272,14 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(() => cache?.me ?? null)
   const [solved, setSolved] = useState(() => cache?.solved ?? [])
   const [visited, setVisited] = useState(() => cache?.visited ?? [])
+  const [visitedLoaded, setVisitedLoaded] = useState(false)   // the visited list loads when its tab is opened
   const [listFilter, setListFilter] = useState('solved')   // which of the two lists to show
+  useEffect(() => {
+    if (listFilter !== 'visited' || visitedLoaded) return
+    let alive = true
+    fetchProfileQuestions('visited').then(list => { if (alive) { setVisited(list); setVisitedLoaded(true) } })
+    return () => { alive = false }
+  }, [listFilter, visitedLoaded])
   const [flagged, setFlagged] = useState(() => cache?.flagged ?? [])
   const [important, setImportant] = useState(() => cache?.important ?? [])
   const [loading, setLoading] = useState(() => !cache)
@@ -287,7 +294,7 @@ export default function ProfilePage() {
     fetchDashboard()
       .then((d) => {
         if (cancelled) return
-        setProfile(d.me); setSolved(d.solved); setVisited(d.visited); setImportant(d.important); setFlagged(d.flagged)
+        setProfile(d.me); setSolved(d.solved); setImportant(d.important); setFlagged(d.flagged)
         setLoading(false)
         localStorage.setItem(`ir_dash_${d.me.email}`, JSON.stringify(d))
       })
@@ -407,7 +414,7 @@ export default function ProfilePage() {
           title="Visited by technology"
           empty="No visited questions yet."
           slices={[
-            ...countBy(visited, 'tech').map(({ key, value }) => ({ label: techLabel(key), value, color: toHex(TECH_COLOR[key]) })),
+            ...(profile.visitedByTech || []).map(({ tech, count }) => ({ label: techLabel(tech), value: count, color: toHex(TECH_COLOR[tech]) })),
             { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
           ]}
         />
@@ -415,7 +422,7 @@ export default function ProfilePage() {
           title="Visited by difficulty"
           empty="No visited questions yet."
           slices={[
-            ...countBy(visited, 'difficulty').map(({ key, value }) => ({ label: key, value, color: toHex(DIFF_COLOR[key]) })),
+            ...(profile.visitedByDifficulty || []).map(({ difficulty, count }) => ({ label: difficulty, value: count, color: toHex(DIFF_COLOR[difficulty]) })),
             { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
           ]}
         />
@@ -425,7 +432,7 @@ export default function ProfilePage() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Your questions</h2>
         <div className="inline-flex rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800" role="group" aria-label="Show">
-        {[['solved', 'Solved', solved.length], ['visited', 'Visited', visited.length]].map(([key, label, count]) => (
+        {[['solved', 'Solved', solved.length], ['visited', 'Visited', visitedCount]].map(([key, label, count]) => (
           <button
             key={key}
             onClick={() => setListFilter(key)}
@@ -445,7 +452,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         {listFilter === 'solved'
           ? <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
-          : <QuestionList title="Visited questions" items={visited} emptyText="No visited questions yet." />}
+          : <QuestionList title="Visited questions" items={visited} emptyText={visitedLoaded ? 'No visited questions yet.' : 'Loading visited questions…'} />}
         <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
         <div className="lg:col-span-2">
           <QuestionList title="Important questions" items={important} emptyText="No questions marked important yet." fixed={false} />

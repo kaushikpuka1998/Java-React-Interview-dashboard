@@ -460,6 +460,7 @@ function LivePdf({ title, pdfKey, run }) {
   const [status, setStatus] = useState('Compiling…')
   const [error, setError] = useState('')
   const [log, setLog] = useState('')
+  const [retry, setRetry] = useState(0)     // bumped to re-run after the server was busy
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -467,7 +468,7 @@ function LivePdf({ title, pdfKey, run }) {
     const timer = setTimeout(async () => {
       try {
         const res = await run(ctrl.signal)
-        if (res.status === 429) { setStatus('Busy: will retry on the next change'); return }
+        if (res.status === 429) { setStatus('Busy, retrying…'); setTimeout(() => setRetry(r => r + 1), 2000); return }
         if (!res.ok) {
           const b = await res.json().catch(() => ({}))
           setError(b.error || 'Compile failed'); setLog(b.log || ''); setStatus('error'); return
@@ -481,7 +482,7 @@ function LivePdf({ title, pdfKey, run }) {
       }
     }, 1200)
     return () => { clearTimeout(timer); ctrl.abort() }
-  }, [pdfKey])
+  }, [pdfKey, retry])
 
   useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
 

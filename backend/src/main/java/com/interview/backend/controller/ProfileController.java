@@ -57,7 +57,6 @@ public class ProfileController {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("me", meBody(u));
         out.put("solved", questionsFor(UserProgress::isRead));
-        out.put("visited", questionsFor(UserProgress::isVisited));
         out.put("important", questionsFor(UserProgress::isImportant));
         out.put("flagged", questionsFor(UserProgress::isFlagged));
         return ResponseEntity.ok(out);
@@ -73,11 +72,12 @@ public class ProfileController {
 
         long total = questionRepository.count();
 
-        List<Question> solvedQuestions = questionRepository.findAllById(solvedIds);
+        // Only tech and difficulty are needed for the counts: no answer text is loaded.
+        List<Object[]> solvedRows = solvedIds.isEmpty() ? List.of() : questionRepository.techDifficultyByIds(solvedIds);
 
         // Per-tech breakdown: total questions vs how many this user has solved.
-        Map<String, Long> solvedByTech = solvedQuestions.stream()
-                .collect(Collectors.groupingBy(Question::getTech, Collectors.counting()));
+        Map<String, Long> solvedByTech = solvedRows.stream()
+                .collect(Collectors.groupingBy(r -> (String) r[1], Collectors.counting()));
         Map<String, Long> totalByTech = questionRepository.countAllByTech().stream()
                 .collect(Collectors.toMap(r -> (String) r[0], r -> ((Number) r[1]).longValue()));
         List<Map<String, Object>> byTech = new ArrayList<>();
@@ -89,9 +89,9 @@ public class ProfileController {
         }
 
         // Per-difficulty breakdown (Basic / Intermediate / Advanced / ...).
-        Map<String, Long> solvedByDiff = solvedQuestions.stream()
-                .filter(q -> q.getDifficulty() != null)
-                .collect(Collectors.groupingBy(Question::getDifficulty, Collectors.counting()));
+        Map<String, Long> solvedByDiff = solvedRows.stream()
+                .filter(r -> r[2] != null)
+                .collect(Collectors.groupingBy(r -> (String) r[2], Collectors.counting()));
         Map<String, Long> totalByDiff = questionRepository.countAllByDifficulty().stream()
                 .collect(Collectors.toMap(r -> (String) r[0], r -> ((Number) r[1]).longValue()));
         List<Map<String, Object>> byDifficulty = new ArrayList<>();
@@ -111,6 +111,11 @@ public class ProfileController {
         body.put("country", u.getCountry() == null ? "" : u.getCountry());
         body.put("city", u.getCity() == null ? "" : u.getCity());
         body.put("locationSource", u.getLocationSource() == null ? "" : u.getLocationSource());
+        // Visited counts per tech and difficulty, for the pie charts (the visited list loads on demand).
+        body.put("visitedByTech", progressRepository.visitedByTech(u.getId()).stream()
+                .map(r -> Map.of("tech", r[0], "count", ((Number) r[1]).longValue())).toList());
+        body.put("visitedByDifficulty", progressRepository.visitedByDifficulty(u.getId()).stream()
+                .map(r -> Map.of("difficulty", r[0], "count", ((Number) r[1]).longValue())).toList());
         long xp = leagues.weeklyXp(u.getId());
         body.put("weeklyXp", xp);
         body.put("league", com.interview.backend.service.LeagueService.league(xp));
@@ -234,22 +239,22 @@ public class ProfileController {
     }
 
     @GetMapping("/questions/solved")
-    public ResponseEntity<List<Question>> solvedQuestions() {
+    public ResponseEntity<List<com.interview.backend.dto.QuestionSummary>> solvedQuestions() {
         return ResponseEntity.ok(questionsFor(UserProgress::isRead));
     }
 
     @GetMapping("/questions/visited")
-    public ResponseEntity<List<Question>> visitedQuestions() {
+    public ResponseEntity<List<com.interview.backend.dto.QuestionSummary>> visitedQuestions() {
         return ResponseEntity.ok(questionsFor(UserProgress::isVisited));
     }
 
     @GetMapping("/questions/flagged")
-    public ResponseEntity<List<Question>> flaggedQuestions() {
+    public ResponseEntity<List<com.interview.backend.dto.QuestionSummary>> flaggedQuestions() {
         return ResponseEntity.ok(questionsFor(UserProgress::isFlagged));
     }
 
     @GetMapping("/questions/important")
-    public ResponseEntity<List<Question>> importantQuestions() {
+    public ResponseEntity<List<com.interview.backend.dto.QuestionSummary>> importantQuestions() {
         return ResponseEntity.ok(questionsFor(UserProgress::isImportant));
     }
 
@@ -257,16 +262,17 @@ public class ProfileController {
     /** Progress rows whose question still exists. A deleted question's progress is ignored, not shown. */
     private List<UserProgress> liveRows(Long userId) {
         List<UserProgress> rows = progressRepository.findByUserId(userId);
-        Set<String> live = questionRepository.findAllById(rows.stream().map(UserProgress::getQuestionId).toList())
-                .stream().map(Question::getId).collect(Collectors.toSet());
+        if (rows.isEmpty()) return rows;
+        Set<String> live = new java.util.HashSet<>(questionRepository.existingIds(rows.stream().map(UserProgress::getQuestionId).toList()));
         return rows.stream().filter(r -> live.contains(r.getQuestionId())).toList();
     }
 
-    private List<Question> questionsFor(Predicate<UserProgress> include) {
+    /** Question summaries (no answers) for the member's progress rows matching the filter. */
+    private List<com.interview.backend.dto.QuestionSummary> questionsFor(Predicate<UserProgress> include) {
         List<String> ids = liveRows(currentUser().getId()).stream()
                 .filter(include)
                 .map(UserProgress::getQuestionId)
                 .toList();
-        return new ArrayList<>(questionRepository.findAllById(ids));
+        return ids.isEmpty() ? List.of() : questionRepository.summariesByIds(ids);
     }
 }
