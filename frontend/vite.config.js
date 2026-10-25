@@ -1,8 +1,18 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig({
+  resolve: {
+    alias: [
+      // Optional jspdf plugins (SVG / DOMPurify) that the resume PDF doesn't use.
+      { find: /^(canvg|dompurify)$/, replacement: path.resolve(__dirname, 'src/lib/unusedPdfPlugin.js') },
+    ],
+  },
   plugins: [
     react(),
     // Precaches the built app shell so the site itself still loads when offline. Question data offline-availability is handled separately

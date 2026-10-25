@@ -353,6 +353,9 @@ export default function ProfilePage() {
       </div>
 
       <div className="mb-8">
+        <div className="mb-4 flex justify-end">
+          <a href="/resume" className="rounded-lg border border-blue-200 px-3 py-1.5 text-sm font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">Resume builder →</a>
+        </div>
         <PersonalNotes />
       </div>
 

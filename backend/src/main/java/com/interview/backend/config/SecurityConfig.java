@@ -91,6 +91,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/analytics/track", "/analytics/events").permitAll()
                         .requestMatchers("/analytics/**").hasRole("ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Resumes are private to their owner.
+                        .requestMatchers("/resumes", "/resumes/**").authenticated()
                         // Public: auth
                         .requestMatchers("/auth/**", "/health").permitAll()
                         // Reads are open so signed-out visitors can browse the free topics.
@@ -109,7 +111,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        // Patterns, so "http://localhost:*" matches any dev port (the Vite port changes when 5173 is busy).
+        cfg.setAllowedOriginPatterns(Arrays.asList(allowedOrigins));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);

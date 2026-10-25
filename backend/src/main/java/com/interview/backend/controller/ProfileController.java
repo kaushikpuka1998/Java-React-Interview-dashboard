@@ -47,7 +47,23 @@ public class ProfileController {
 
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me() {
+        return ResponseEntity.ok(meBody(currentUser()));
+    }
+
+    /** Everything the profile page needs in one request: profile, the four lists, and flagged questions. */
+    @GetMapping("/dashboard")
+    public ResponseEntity<Map<String, Object>> dashboard() {
         User u = currentUser();
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("me", meBody(u));
+        out.put("solved", questionsFor(UserProgress::isRead));
+        out.put("visited", questionsFor(UserProgress::isVisited));
+        out.put("important", questionsFor(UserProgress::isImportant));
+        out.put("flagged", questionsFor(UserProgress::isFlagged));
+        return ResponseEntity.ok(out);
+    }
+
+    private Map<String, Object> meBody(User u) {
         List<UserProgress> rows = liveRows(u.getId());
 
         List<String> visitedIds = rows.stream().filter(UserProgress::isVisited).map(UserProgress::getQuestionId).toList();
@@ -105,7 +121,7 @@ public class ProfileController {
         body.put("importantCount", importantCount);
         body.put("byTech", byTech);
         body.put("byDifficulty", byDifficulty);
-        return ResponseEntity.ok(body);
+        return body;
     }
 
     public record LocationRequest(String country, String city) {}

@@ -5,6 +5,8 @@ import AdminPage from './components/AdminPage.jsx'
 import ProfilePage from './components/ProfilePage.jsx'
 import PublicProfilePage from './components/PublicProfilePage.jsx'
 import LeaderboardPage from './components/LeaderboardPage.jsx'
+import ResumePage from './components/ResumePage.jsx'
+import ResumeEditor from './components/ResumeEditor.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import './index.css'
 
@@ -38,6 +40,10 @@ function Router() {
   if (path === '/profile' || path.startsWith('/profile/')) return <ProfilePage />
 
   if (path === '/leaderboard') return <LeaderboardPage />
+
+  // Resume builder: list, and one resume's editor.
+  if (path === '/resume') return <ResumePage />
+  if (path.startsWith('/resume/')) return <ResumeEditor id={path.split('/')[2]} />
 
   // Public progress page for any member (no sign-in needed).
   if (path.startsWith('/u/')) return <PublicProfilePage username={decodeURIComponent(path.split('/')[2] || '')} />
