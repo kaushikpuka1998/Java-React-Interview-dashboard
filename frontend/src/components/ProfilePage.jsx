@@ -327,19 +327,23 @@ export default function ProfilePage() {
   return (
     <Shell>
       {/* Identity header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
+      <div className="relative flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
+        {/* Avatar and league badge both open the leaderboard */}
+        <a href="/leaderboard" title="View leaderboard" className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl sm:text-2xl font-bold hover:opacity-90">
           {(name || email || '?').trim().charAt(0).toUpperCase()}
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{name || 'Learner'}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{email}</p>
+        </a>
+        {profile.league && (
+          <a href="/leaderboard" title="View leaderboard" className="absolute right-0 top-0 hover:opacity-80">
+            <LeagueBadge league={profile.league} />
+          </a>
+        )}
+        <div className={`min-w-0 ${profile.league ? 'pr-24 sm:pr-28' : ''}`}>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 break-words">{name || 'Learner'}</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 break-all">{email}</p>
 
           {profile.league && (
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-              <LeagueBadge league={profile.league} />
               <span className="text-slate-500 dark:text-slate-400">{profile.weeklyXp} XP this week</span>
-              <a href="/leaderboard" className="font-medium text-blue-600 dark:text-blue-400 hover:underline">View leaderboard →</a>
             </div>
           )}
 
@@ -362,9 +366,9 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="mb-8">
-        <div className="mb-4 flex justify-end">
-          <a href={resumeBuilderLink('profile')} className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-600/20 hover:opacity-95">Build your resume →</a>
+      <div className="mb-6 sm:mb-8">
+        <div className="mb-4 flex justify-stretch sm:justify-end">
+          <a href={resumeBuilderLink('profile')} className="w-full sm:w-auto text-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-600/20 hover:opacity-95">Build your resume →</a>
         </div>
         <PersonalNotes />
       </div>
@@ -495,11 +499,11 @@ function ProfileSkeleton() {
 
 function Shell({ children }) {
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-6">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Your Profile</h1>
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Your Profile</h1>
+          <div className="flex items-center gap-3 sm:gap-4">
             <a href="/" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Back to app</a>
             {isLoggedIn() && <button onClick={() => logout({ redirect: '/' })} className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-colors hover:bg-red-700 hover:shadow-md hover:shadow-red-600/40 dark:bg-red-600 dark:hover:bg-red-500">Log out</button>}
           </div>

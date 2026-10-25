@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               {[...data.leagues].reverse().map(l => (
                 <div key={l.name} className="rounded-xl bg-white dark:bg-slate-800 p-3 shadow-sm">
-                  <LeagueBadge league={l.name} />
+                  <LeagueBadge league={l.name} size="sm" />
                   <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{l.minXp}+ XP this week</p>
                 </div>
               ))}
@@ -58,7 +58,7 @@ export default function LeaderboardPage() {
                     {data.me.rank ? `#${data.me.rank}` : 'Not ranked'} <span className="text-base font-medium text-white/80">· {data.me.xp} XP</span>
                   </p>
                 </div>
-                <LeagueBadge league={data.me.league} />
+                <LeagueBadge league={data.me.league} size="sm" />
               </div>
             )}
 
@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
                       <a href={row.username ? `/u/${row.username}` : undefined} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                         <span className={`w-8 text-center font-bold tabular-nums ${row.rank <= 3 ? 'text-amber-500' : 'text-slate-400'}`}>{row.rank}</span>
                         <span className="flex-1 min-w-0 truncate text-slate-800 dark:text-slate-100">{row.name}</span>
-                        <LeagueBadge league={row.league} />
+                        <LeagueBadge league={row.league} size="sm" />
                         <span className="w-20 text-right text-sm font-semibold tabular-nums text-slate-700 dark:text-slate-200">{row.xp} XP</span>
                       </a>
                     </li>

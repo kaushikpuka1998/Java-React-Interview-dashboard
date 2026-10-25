@@ -72,11 +72,12 @@ export default function AskedAt({ questionId }) {
           <span className="hidden sm:inline text-sm text-slate-400">Not reported yet</span>
         )}
 
-        {companies.map(c => (
+        {companies.map((c, i) => (
           <span
             key={c.company}
             title={`${c.reports} ${c.reports === 1 ? 'person' : 'people'} reported this`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+            style={{ animationDelay: `${i * 60}ms` }}
+            className="company-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
           >
             {c.company}
             {c.reports > 1 && (
@@ -88,9 +89,9 @@ export default function AskedAt({ questionId }) {
         {authed && !open && (
           <button
             onClick={() => { setOpen(true); setError('') }}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-xs font-semibold border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
-            + Was this asked to you?
+            + <span className="hidden sm:inline">Was this asked to you?</span><span className="sm:hidden">Asked to you?</span>
           </button>
         )}
       </div>

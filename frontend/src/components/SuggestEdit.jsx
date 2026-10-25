@@ -75,7 +75,7 @@ export default function SuggestEdit({ question }) {
         <button
           onClick={() => setOpen(true)}
           aria-label="Suggest an edit"
-          className="inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          className="inline-flex min-h-8 sm:min-h-10 items-center gap-1.5 text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           title="Propose a better answer — an admin reviews it before it goes live"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
