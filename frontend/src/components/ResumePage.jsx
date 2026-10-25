@@ -42,9 +42,9 @@ export default function ResumePage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between gap-3 mb-6">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">My resumes</h2>
-        {!creating && <button onClick={() => setCreating(true)} className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white">New resume</button>}
+        {!creating && <button onClick={() => setCreating(true)} className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white sm:w-auto sm:py-1.5">New resume</button>}
       </div>
 
       {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -78,14 +78,14 @@ export default function ResumePage() {
       ) : (
         <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl bg-white shadow-sm dark:divide-slate-800 dark:bg-slate-950">
           {resumes.map(r => (
-            <li key={r.id} className="flex items-center justify-between gap-3 px-5 py-4">
+            <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-4">
               <div className="min-w-0">
-                <a href={`/resume/${r.id}`} className="font-semibold text-slate-900 hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400">{r.title}</a>
+                <a href={`/resume/${r.id}`} className="break-words font-semibold text-slate-900 hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400">{r.title}</a>
                 <p className="text-xs text-slate-400">{r.templateName} · updated {new Date(r.updatedAt).toLocaleString()}</p>
               </div>
-              <div className="flex gap-3 text-sm">
-                <a href={`/resume/${r.id}`} className="font-medium text-blue-600 hover:underline dark:text-blue-400">Open</a>
-                <button onClick={() => remove(r.id)} className="font-medium text-red-600 hover:underline dark:text-red-400">Delete</button>
+              <div className="flex shrink-0 items-center gap-2 text-sm">
+                <a href={`/resume/${r.id}`} className="w-16 rounded-md border border-blue-200 px-2 py-1.5 text-center font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">Open</a>
+                <button onClick={() => remove(r.id)} className="w-16 rounded-md border border-red-200 px-2 py-1.5 text-center font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/30">Delete</button>
               </div>
             </li>
           ))}
@@ -97,10 +97,10 @@ export default function ResumePage() {
 
 function Shell({ children }) {
   return (
-    <div className="min-h-screen bg-slate-100 p-6 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 dark:bg-slate-900">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Resume builder</h1>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-100">Resume builder</h1>
           <div className="flex gap-4 text-sm">
             <a href="/profile" className="text-blue-600 hover:underline dark:text-blue-400">← Profile</a>
           </div>

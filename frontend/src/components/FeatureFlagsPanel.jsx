@@ -31,11 +31,11 @@ export default function FeatureFlagsPanel() {
       {FLAGS.map(f => {
         const on = flags[f.key] !== false
         return (
-          <div key={f.key} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-4">
-            <div>
+          <div key={f.key} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-3 sm:p-4">
+            <div className="min-w-0">
               <p className="font-semibold text-slate-900 dark:text-slate-100">{f.label}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400">{f.help}</p>
-              <p className="mt-1 text-[11px] font-mono text-slate-400">{f.key}</p>
+              <p className="mt-1 break-all text-[11px] font-mono text-slate-400">{f.key}</p>
             </div>
             <button
               type="button"
@@ -44,9 +44,9 @@ export default function FeatureFlagsPanel() {
               aria-label={`${f.label}: ${on ? 'on' : 'off'}`}
               disabled={saving === f.key}
               onClick={() => toggle(f.key)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${on ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+              className={`relative mt-0.5 inline-flex h-4 w-8 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 sm:h-6 sm:w-11 ${on ? 'bg-blue-600 max-sm:border-[1.5px] max-sm:border-blue-600 max-sm:bg-transparent' : 'bg-slate-300 dark:bg-slate-700 max-sm:border-[1.5px] max-sm:border-slate-400 max-sm:bg-transparent dark:max-sm:border-slate-500'}`}
             >
-              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              <span className={`inline-block h-3 w-3 transform rounded-full shadow transition-transform sm:h-5 sm:w-5 sm:bg-white ${on ? 'translate-x-[17px] bg-white max-sm:bg-blue-600 sm:translate-x-5' : 'translate-x-0 bg-white max-sm:bg-slate-400 sm:translate-x-0.5'}`} />
             </button>
           </div>
         )
