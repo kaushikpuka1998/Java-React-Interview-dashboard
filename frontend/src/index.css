@@ -178,6 +178,15 @@
     }
   }
 
+  /* Company pills in the Asked-at section pop in one after another */
+  @keyframes ir-pill-in {
+    from { opacity: 0; transform: translateY(4px) scale(0.92); }
+    to { opacity: 1; transform: none; }
+  }
+  .company-pill {
+    animation: ir-pill-in 0.3s ease-out both;
+  }
+
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

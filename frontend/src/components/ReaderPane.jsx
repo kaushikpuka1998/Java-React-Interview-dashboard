@@ -82,6 +82,40 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
   const scrollRef = useRef(null)   // attached to the scrollable answer container
   useReadTracking(question?.id, scrollRef)
 
+  // The action bar hides while the answer scrolls down and returns when it scrolls up or reaches the top.
+  const [barHidden, setBarHidden] = useState(false)
+  useEffect(() => { setBarHidden(false) }, [question?.id])
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    // Hysteresis: switch only after a real scroll in one direction, and not again within 250ms.
+    // Otherwise the bar's own show/hide shifts the layout and the scroll position, and it blinks.
+    // A movement made during the cooldown is applied when it ends, so a quick scroll back still shows the bar.
+    let last = el.scrollTop, run = 0, lastToggle = 0, timer = null
+    const decide = () => {
+      const y = el.scrollTop
+      const now = performance.now()
+      if (now - lastToggle < 250) {
+        clearTimeout(timer)
+        timer = setTimeout(decide, 260 - (now - lastToggle))
+        return
+      }
+      // Show again only when the answer is back near its top (within 10% of its height).
+      const nearTop = y <= el.clientHeight * 0.1
+      if (run > 24 && y > 60) { setBarHidden(true); lastToggle = now; run = 0 }
+      else if (nearTop) { setBarHidden(false); lastToggle = now; run = 0 }
+    }
+    const onScroll = () => {
+      const y = el.scrollTop
+      const d = y - last
+      last = y
+      run = Math.sign(d) === Math.sign(run) ? run + d : d
+      decide()
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => { el.removeEventListener('scroll', onScroll); clearTimeout(timer) }
+  }, [question?.id, loading])
+
   const selectedIndex = questions.findIndex(q => q.id === question?.id)
   const prev = questions[selectedIndex - 1]
   const next = questions[selectedIndex + 1]
@@ -170,32 +204,32 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                 </h2>
 
                 {isLoggedIn() && (
-                    <div className="mt-3 pt-3 sm:mt-5 sm:pt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-800">
-                      <div className="flex items-center gap-3 text-sm">
+                    <div className={`mt-3 pt-3 sm:mt-5 sm:pt-4 flex flex-wrap transition-all duration-300 ease-out ${barHidden ? 'max-lg:max-h-0 max-lg:opacity-0 max-lg:-translate-y-2 max-lg:pointer-events-none max-lg:overflow-hidden max-lg:border-transparent max-lg:!mt-0 max-lg:!pt-0' : 'max-h-96 opacity-100 translate-y-0'} items-center justify-between gap-1.5 sm:gap-2 border-t border-slate-200 dark:border-slate-800`}>
+                      <div className="flex items-center gap-2 sm:gap-3 text-sm">
                         {read.has(question.id) && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        Marked as read
+                        <span className="hidden sm:inline">Marked as read</span>
                       </span>
                         )}
                         {visited.has(question.id) && !read.has(question.id) && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                           <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                           <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                         </svg>
-                        Visited
+                        <span className="hidden sm:inline">Visited</span>
                       </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2 has-[form,[role=status]]:basis-full">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 has-[form,[role=status]]:basis-full">
                         <button
                             type="button"
                             onClick={() => onToggleFlag(question.id)}
                             disabled={flagging.has(question.id)}
-                            className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70 ${flagged.has(question.id) ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60' : 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-200'}`}
+                            className={`inline-flex min-h-9 sm:min-h-11 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70 ${flagged.has(question.id) ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:hover:bg-amber-900/60' : 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-amber-900/30 dark:hover:text-amber-200'}`}
                             aria-label={flagged.has(question.id) ? 'Remove flag' : 'Flag question'}
                             aria-pressed={flagged.has(question.id)}
                             title={flagged.has(question.id) ? 'Remove flag' : 'Flag question'}
@@ -203,13 +237,13 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                           <svg className="w-5 h-5" fill={flagged.has(question.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v18l7-4 7 4V3H5z" />
                           </svg>
-                          {flagging.has(question.id) ? 'Saving…' : flagged.has(question.id) ? 'Flagged' : 'Flag'}
+                          <span className="hidden sm:inline">{flagging.has(question.id) ? 'Saving…' : flagged.has(question.id) ? 'Flagged' : 'Flag'}</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => onToggleImportant(question.id)}
                             disabled={marking.has(question.id)}
-                            className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70 ${important.has(question.id) ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:hover:bg-rose-900/60' : 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-rose-900/30 dark:hover:text-rose-200'}`}
+                            className={`inline-flex min-h-9 sm:min-h-11 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 text-sm font-medium transition-colors disabled:cursor-wait disabled:opacity-70 ${important.has(question.id) ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-200 dark:hover:bg-rose-900/60' : 'bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-rose-900/30 dark:hover:text-rose-200'}`}
                             aria-label={important.has(question.id) ? 'Unmark important' : 'Mark as important'}
                             aria-pressed={important.has(question.id)}
                             title={important.has(question.id) ? 'Unmark important' : 'Mark as important'}
@@ -223,7 +257,7 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                             <button
                                 type="button"
                                 onClick={() => onMarkRead(question.id)}
-                                className="btn-read inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
+                                className="btn-read inline-flex min-h-9 sm:min-h-11 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:text-slate-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
                                 aria-label="Mark as read"
                                 title="Mark as read"
                             >
@@ -245,11 +279,13 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                     </div>
                 )}
 
-                <AskedAt questionId={question.id} />
+                <div className={`transition-all duration-300 ease-out ${barHidden ? 'max-lg:max-h-0 max-lg:opacity-0 max-lg:-translate-y-2 max-lg:pointer-events-none max-lg:overflow-hidden' : 'max-h-96 opacity-100 translate-y-0'}`}>
+                  <AskedAt questionId={question.id} />
+                </div>
               </header>
 
               {/* ONLY this answer content area scrolls (scrollRef is attached here) */}
-              <div ref={scrollRef} className="answer-content flex-1 overflow-y-auto pr-2">
+              <div ref={scrollRef} className="answer-content flex-1 overflow-y-auto pr-2" style={{ overflowAnchor: 'none' }}>
                 <Markdown text={question.answer} />
               </div>
 
