@@ -244,13 +244,13 @@ export default function ResumeEditor({ id }) {
       </div>
 
       <div className="no-print mb-4 flex gap-2 lg:hidden">
-        {['edit', 'preview'].map(v => (
+        {[['edit', 'Edit form'], ['preview', 'Live PDF']].map(([v, label]) => (
           <button key={v} onClick={() => setMobile(v)}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold capitalize ${mobile === v ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{v}</button>
+            className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${mobile === v ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{label}</button>
         ))}
       </div>
 
-      <div className="resume-grid grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      <div className="resume-grid grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)]">
       {mode === 'latex' ? (
       <div className={`resume-form-col space-y-4 ${mobile === 'preview' ? 'hidden lg:block' : ''}`}>
         <section className={card}>
@@ -407,7 +407,7 @@ export default function ResumeEditor({ id }) {
       )}
 
       {/* Live PDF: compiled from the form (Editable) or from the LaTeX source (LaTeX) */}
-      <div className={`resume-preview-wrap rounded-xl bg-slate-300 p-4 dark:bg-slate-800 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-auto ${mobile === 'edit' ? 'hidden lg:block' : ''}`}>
+      <div className={`resume-preview-wrap min-w-0 w-full max-w-full rounded-xl bg-slate-300 p-2 sm:p-4 dark:bg-slate-800 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-auto ${mobile === 'edit' ? 'hidden lg:block' : ''}`}>
         {mode === 'latex'
           ? <LivePdf title={title} pdfKey={`latex:${latexDraft ?? ''}`} run={(signal) => previewLatexRequest(latexDraft ?? '', signal)} />
           : <LivePdf title={title} pdfKey={`form:${JSON.stringify(payload)}`} run={(signal) => previewPdfRequest({ templateId: Number(templateId), data }, signal)} />}
@@ -462,7 +462,7 @@ function LivePdf({ title, pdfKey, run }) {
   const [log, setLog] = useState('')
   const [retry, setRetry] = useState(0)     // bumped to re-run after the server was busy
   const [liked, setLiked] = useState(null)  // answer to "do you like it?"
-  const [expanded, setExpanded] = useState(false)  // PDF fills the screen
+  const [expanded, setExpanded] = useState(true)   // PDF fills the screen; open by default
 
   useEffect(() => {
     const ctrl = new AbortController()
@@ -499,13 +499,13 @@ function LivePdf({ title, pdfKey, run }) {
   }
 
   return (
-    <div className={expanded ? 'fixed inset-0 z-50 flex flex-col bg-slate-100 p-4 dark:bg-slate-900' : ''}>
-      <div className="no-print mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+    <div className={expanded ? 'fixed inset-0 z-50 flex flex-col bg-slate-100 p-4 dark:bg-slate-900' : 'rounded-2xl bg-white p-3 shadow-xl ring-2 ring-blue-500/40 dark:bg-slate-900'}>
+      <div className="no-print mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
           {status === 'ready' ? 'Live PDF · compiled from your details' : status}
         </p>
         <div className="flex items-center gap-2">
-          <button onClick={() => setExpanded(e => !e)} data-track="resume_pdf_expand" className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white dark:border-slate-600 dark:text-slate-200">{expanded ? 'Close full view' : 'Full view'}</button>
+          <button onClick={() => setExpanded(e => !e)} data-track="resume_pdf_expand" className="rounded-lg border border-slate-400 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition-colors hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700">{expanded ? 'Close full view' : 'Full view'}</button>
           <button onClick={download} disabled={!pdf} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">Download PDF</button>
         </div>
       </div>
@@ -523,7 +523,7 @@ function LivePdf({ title, pdfKey, run }) {
       )}
       {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
       {log && <pre className="mb-2 max-h-40 overflow-auto rounded-lg bg-white p-2 text-[11px] text-red-800">{log}</pre>}
-      {url && <iframe title="Live PDF preview" src={url} className={`w-full rounded-lg bg-white ${expanded ? 'min-h-0 flex-1' : 'h-[85vh]'}`} />}
+      {url && <iframe title="Live PDF preview" src={url} className={`block w-full max-w-full rounded-lg bg-white ${expanded ? 'min-h-0 flex-1' : 'h-[85vh]'}`} />}
     </div>
   )
 }
@@ -531,7 +531,7 @@ function LivePdf({ title, pdfKey, run }) {
 function Shell({ children }) {
   return (
     <div className="resume-shell min-h-screen bg-slate-100 p-6 dark:bg-slate-900">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1600px]">
         <div className="no-print mb-4 flex items-center justify-between">
           <a href="/resume" className="text-sm text-blue-600 hover:underline dark:text-blue-400">← All resumes</a>
         </div>
