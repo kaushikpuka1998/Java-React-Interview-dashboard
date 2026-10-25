@@ -1,0 +1,26 @@
+% Compiled once at Docker build time so the packages the resume templates use are already cached.
+\documentclass[10pt,legalpaper]{article}
+\usepackage[a4paper,top=0.4in,bottom=0.35in,left=0.55in,right=0.55in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[hidelinks]{hyperref}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{xcolor}
+\usepackage{charter}
+\usepackage{enumitem}
+\usepackage{latexsym}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{changepage}
+\definecolor{navyblue}{RGB}{0,54,123}
+\pagestyle{empty}
+\begin{document}
+\section*{Warm-up}
+\tiny tiny \scriptsize script \footnotesize foot \small small \normalsize normal \large large \Large Large \LARGE LARGE \huge huge \Huge Huge\par
+\textbf{bold} \textit{italic} \textsc{smallcaps} \texttt{mono} \textsf{sans} \emph{emph} \textbf{\textit{bolditalic}}\par
+\color{navyblue}\bfseries navy bold\normalfont \par
+\titleformat{\section}{\bfseries}{}{0em}{}
+Packages are cached. \href{https://example.com}{link} and a table:
+\begin{tabularx}{\linewidth}{@{} >{\bfseries}l X @{}} Skill & Java \end{tabularx}
+\begin{itemize}[leftmargin=*] \item One \end{itemize}
+\end{document}
