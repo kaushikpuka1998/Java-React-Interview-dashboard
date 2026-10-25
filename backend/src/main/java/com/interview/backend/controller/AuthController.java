@@ -69,6 +69,9 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletRequest http, HttpServletResponse response) {
+        if (!Boolean.TRUE.equals(req.termsAccepted())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Please accept the Terms and Privacy notice to create an account."));
+        }
         if (req.email() == null || req.password() == null || req.email().isBlank() || req.password().length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email and a password of at least 6 characters are required"));
         }
