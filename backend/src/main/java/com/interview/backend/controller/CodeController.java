@@ -2,6 +2,7 @@ package com.interview.backend.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.interview.backend.code.CodeJobs;
 import com.interview.backend.code.CodeLanguages;
 import com.interview.backend.code.CodeRunner;
 import com.interview.backend.entity.CodingProblem;
@@ -11,10 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,7 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-/** Runs code for a signed-in user, either once or against a question's test cases. */
+/** Runs code for a signed-in user, either once or against a coding problem's tests, through a queue. */
 @RestController
 @RequestMapping("/code")
 public class CodeController {
@@ -41,13 +39,15 @@ public class CodeController {
 
     private final CodeRunner runner;
     private final CodingProblemRepository problems;
+    private final CodeJobs jobs;
     private final ObjectMapper json = new ObjectMapper();
     // user -> [windowStartMillis, count]
     private final Map<String, long[]> windows = new ConcurrentHashMap<>();
 
-    public CodeController(CodeRunner runner, CodingProblemRepository problems) {
+    public CodeController(CodeRunner runner, CodingProblemRepository problems, CodeJobs jobs) {
         this.runner = runner;
         this.problems = problems;
+        this.jobs = jobs;
     }
 
     @PostMapping("/run")
@@ -63,29 +63,13 @@ public class CodeController {
         if (!allow(auth.getName(), 1)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", "Too many runs. Wait a minute and try again."));
         }
-
-        try {
-            CodeRunner.Result r = runner.run(lang, req.code(), req.stdin());
-            Map<String, Object> out = new LinkedHashMap<>();
-            out.put("status", r.status());
-            out.put("stdout", r.stdout());
-            out.put("stderr", r.stderr());
-            out.put("compileOutput", r.compileOutput());
-            out.put("time", r.time());
-            out.put("memoryKb", r.memoryKb());
-            return ResponseEntity.ok(out);
-        } catch (IOException e) {
-            log.warn("Code runner call failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", "The code runner is unavailable right now."));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", "The run was interrupted. Try again."));
-        }
+        String stdin = req.stdin() == null ? "" : req.stdin();
+        return enqueue(auth.getName(), () -> runOnce(lang, req.code(), stdin));
     }
 
     /**
-     * Runs the code once per test case of the question and compares the output (line endings and
-     * trailing spaces ignored). Expected outputs and actual outputs are not returned, only pass or fail.
+     * Runs the code once per test case of the coding problem and compares the output (line endings and
+     * trailing spaces ignored). Expected and actual outputs are not returned, only pass or fail.
      */
     @PostMapping("/test")
     public ResponseEntity<?> test(@RequestBody TestRequest req, Authentication auth) {
@@ -110,7 +94,54 @@ public class CodeController {
         if (!allow(auth.getName(), tests.size())) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", "Too many runs. Wait a minute and try again."));
         }
+        return enqueue(auth.getName(), () -> runTests(lang, req.code(), tests));
+    }
 
+    /** Status of a queued job: QUEUED (with its place in line), RUNNING, or DONE (with the result). */
+    @GetMapping("/jobs/{id}")
+    public ResponseEntity<?> job(@PathVariable String id, Authentication auth) {
+        CodeJobs.Job job = jobs.find(id, auth.getName());
+        if (job == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "This run was not found. Try again."));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("state", job.state().name());
+        if (job.state() == CodeJobs.State.QUEUED) out.put("position", jobs.position(job));
+        if (job.state() == CodeJobs.State.DONE && job.outcome() != null) {
+            out.put("httpStatus", job.outcome().httpStatus());
+            out.put("body", job.outcome().body());
+        }
+        return ResponseEntity.ok(out);
+    }
+
+    private ResponseEntity<?> enqueue(String user, java.util.function.Supplier<CodeJobs.Outcome> task) {
+        try {
+            CodeJobs.Job job = jobs.submit(user, task);
+            return ResponseEntity.accepted().body(Map.of("jobId", job.id(), "state", "QUEUED"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", "The code runner is busy. Try again in a moment."));
+        }
+    }
+
+    private CodeJobs.Outcome runOnce(CodeLanguages.Language lang, String code, String stdin) {
+        try {
+            CodeRunner.Result r = runner.run(lang, code, stdin);
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("status", r.status());
+            out.put("stdout", r.stdout());
+            out.put("stderr", r.stderr());
+            out.put("compileOutput", r.compileOutput());
+            out.put("time", r.time());
+            out.put("memoryKb", r.memoryKb());
+            return new CodeJobs.Outcome(200, out);
+        } catch (IOException e) {
+            log.warn("Code runner call failed: {}", e.getMessage());
+            return new CodeJobs.Outcome(502, Map.of("error", "The code runner is unavailable right now."));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new CodeJobs.Outcome(503, Map.of("error", "The run was interrupted. Try again."));
+        }
+    }
+
+    private CodeJobs.Outcome runTests(CodeLanguages.Language lang, String code, List<Map<String, Object>> tests) {
         List<Map<String, Object>> results = new ArrayList<>();
         int passed = 0;
         try {
@@ -118,7 +149,7 @@ public class CodeController {
                 Map<String, Object> t = tests.get(i);
                 String input = String.valueOf(t.getOrDefault("input", ""));
                 String expected = String.valueOf(t.getOrDefault("expected", ""));
-                CodeRunner.Result r = runner.run(lang, req.code(), input);
+                CodeRunner.Result r = runner.run(lang, code, input);
                 boolean ok = "Accepted".equals(r.status()) && normalize(r.stdout()).equals(normalize(expected));
                 if (ok) passed++;
                 Map<String, Object> row = new LinkedHashMap<>();
@@ -129,17 +160,16 @@ public class CodeController {
             }
         } catch (IOException e) {
             log.warn("Code runner call failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", "The code runner is unavailable right now."));
+            return new CodeJobs.Outcome(502, Map.of("error", "The code runner is unavailable right now."));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", "The run was interrupted. Try again."));
+            return new CodeJobs.Outcome(503, Map.of("error", "The run was interrupted. Try again."));
         }
-
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("passed", passed);
         out.put("total", tests.size());
         out.put("results", results);
-        return ResponseEntity.ok(out);
+        return new CodeJobs.Outcome(200, out);
     }
 
     // Line endings and trailing spaces don't count as differences.

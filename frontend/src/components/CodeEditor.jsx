@@ -1,19 +1,36 @@
 import { useRef } from 'react'
 // A small code editor: line numbers, Tab indents by four spaces, and keyword/string/comment highlighting.
 const KEYWORDS = {
-  java: 'abstract assert boolean break byte case catch char class const continue default do double else enum extends false final finally float for if implements import instanceof int interface long new null package private protected public return short static super switch this throw throws true try void volatile while var record',
   cpp: 'auto bool break case catch char class const continue default delete do double else enum explicit extern false float for friend if include inline int long namespace new nullptr private protected public return short signed sizeof static struct switch template this throw true try typedef typename union unsigned using virtual void volatile while',
   c: 'auto break case char const continue default do double else enum extern false float for goto if include inline int long register return short signed sizeof static struct switch true typedef union unsigned void volatile while',
   python: 'and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass print raise return True try while with yield',
-  go: 'break case chan const continue default defer else fallthrough false for func go goto if import interface map nil package range return select struct switch true type var',
   ruby: 'alias and begin break case class def do else elsif end ensure false for if in module next nil not or puts require return self super then true undef unless until when while yield',
   rust: 'as async await break const continue crate else enum extern false fn for if impl in let loop match mod move mut println pub ref return self Self static struct super trait true type unsafe use where while',
-  kotlin: 'abstract as break class continue do else enum false fun if in interface is null object override package println return super this throw true try val var when while',
   csharp: 'abstract as base bool break byte case catch char class const continue decimal default do double else enum false float for foreach if in int interface long namespace new null object out override private protected public readonly ref return static string struct switch this throw true try typeof using var virtual void while Console',
   php: 'abstract and array as break case catch class const continue default do echo else elseif extends false final for foreach function if implements include namespace new null or private protected public return static switch this throw true try use var while',
   swift: 'let var func class struct enum protocol if else for while return import guard switch case default true false nil self in print init',
 }
 const HASH_COMMENTS = ['python', 'ruby', 'php']
+
+const PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"', "'": "'" }
+export const BRACE_LANGUAGES = new Set(['cpp', 'c', 'csharp', 'rust', 'php', 'swift'])
+
+// Re-indents brace-based code: four spaces per open brace, and a closing brace goes back one level.
+export function formatBraces(src) {
+  const out = []
+  let level = 0
+  for (const raw of src.split('\n')) {
+    const line = raw.trim()
+    if (!line) { out.push(''); continue }
+    const code = line.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/.*$/g, '')
+    const opens = (code.match(/[{[(]/g) || []).length
+    const closes = (code.match(/[}\])]/g) || []).length
+    const leading = /^[}\])]/.test(line) ? 1 : 0
+    out.push('    '.repeat(Math.max(0, level - leading)) + line)
+    level = Math.max(0, level + opens - closes)
+  }
+  return out.join('\n')
+}
 
 const escapeHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -39,7 +56,7 @@ function highlight(code, language) {
   return out + escapeHtml(code.slice(last)) + '\n'
 }
 
-const SHARED = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, lineHeight: '20px', padding: '12px 12px 12px 52px', tabSize: 4, margin: 0, whiteSpace: 'pre', letterSpacing: 0 }
+const SHARED = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 14, lineHeight: '24px', padding: '16px 20px 16px 72px', tabSize: 4, margin: 0, whiteSpace: 'pre', letterSpacing: 0 }
 
 export default function CodeEditor({ value, onChange, language }) {
   const area = useRef(null)
@@ -54,19 +71,56 @@ export default function CodeEditor({ value, onChange, language }) {
     if (gutter.current) gutter.current.scrollTop = t.scrollTop
   }
 
+  // Put the text back and move the cursor (keeps the caret where the user expects it).
+  const apply = (next, cursor) => {
+    onChange(next)
+    requestAnimationFrame(() => { if (area.current) area.current.selectionStart = area.current.selectionEnd = cursor })
+  }
+
   const onKeyDown = e => {
-    if (e.key !== 'Tab') return
-    e.preventDefault()
     const t = e.target
     const s = t.selectionStart
-    const next = value.slice(0, s) + '    ' + value.slice(t.selectionEnd)
-    onChange(next)
-    requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = s + 4 })
+    const end = t.selectionEnd
+    const v = value
+
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      apply(v.slice(0, s) + '    ' + v.slice(end), s + 4)
+      return
+    }
+    if (e.key === 'Enter') {
+      // New line keeps the current indentation. Between { and } it opens an indented block.
+      e.preventDefault()
+      const lineStart = v.lastIndexOf('\n', s - 1) + 1
+      const indent = v.slice(lineStart, s).match(/^\s*/)[0]
+      if (v[s - 1] === '{' && v[s] === '}') {
+        const inner = indent + '    '
+        apply(v.slice(0, s) + '\n' + inner + '\n' + indent + v.slice(end), s + 1 + inner.length)
+      } else {
+        apply(v.slice(0, s) + '\n' + indent + v.slice(end), s + 1 + indent.length)
+      }
+      return
+    }
+    if (s === end && (e.key === '}' || e.key === ')' || e.key === ']' || e.key === '"' || e.key === "'") && v[s] === e.key) {
+      // Typing a closing character that's already next just moves past it.
+      e.preventDefault()
+      apply(v, s + 1)
+      return
+    }
+    if (s === end && PAIRS[e.key]) {
+      e.preventDefault()
+      apply(v.slice(0, s) + e.key + PAIRS[e.key] + v.slice(end), s + 1)
+      return
+    }
+    if (e.key === 'Backspace' && s === end && s > 0 && PAIRS[v[s - 1]] === v[s]) {
+      e.preventDefault()
+      apply(v.slice(0, s - 1) + v.slice(s + 1), s - 1)
+    }
   }
 
   return (
-    <div className="relative h-[340px] overflow-hidden rounded-lg border border-slate-700 bg-slate-950 focus-within:ring-2 focus-within:ring-blue-500">
-      <div ref={gutter} aria-hidden="true" className="absolute inset-y-0 left-0 w-11 select-none overflow-hidden bg-slate-900 pt-3 text-right font-mono text-[13px] leading-[20px] text-slate-500" style={{ paddingRight: 8 }}>
+    <div className="relative h-[min(600px,75vh)] min-h-[420px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-inner focus-within:ring-2 focus-within:ring-blue-500">
+      <div ref={gutter} aria-hidden="true" className="absolute inset-y-0 left-0 w-14 select-none overflow-hidden border-r border-slate-800 bg-slate-900/80 pt-4 text-right font-mono text-[14px] leading-[24px] text-slate-500" style={{ paddingRight: 14 }}>
         {Array.from({ length: lines }, (_, i) => <div key={i}>{i + 1}</div>)}
       </div>
       <pre ref={overlay} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden text-slate-100" style={SHARED} dangerouslySetInnerHTML={{ __html: highlight(value, language) }} />
@@ -79,7 +133,7 @@ export default function CodeEditor({ value, onChange, language }) {
         spellCheck={false}
         wrap="off"
         aria-label="Code"
-        className="absolute inset-0 h-full w-full resize-none bg-transparent text-transparent outline-none"
+        className="absolute inset-0 h-full w-full resize-none bg-transparent text-transparent outline-none selection:bg-blue-500/40"
         style={{ ...SHARED, caretColor: '#f8fafc' }}
       />
     </div>

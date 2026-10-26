@@ -1,27 +1,52 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
-// Runs a snippet on the server (through Judge0). Throws with the server's message on failure.
-export async function runCode({ language, code, stdin }) {
+function authHeaders() {
   const token = localStorage.getItem('ir_token')
-  const res = await fetch(`${API_BASE}/code/run`, {
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+// Sends a run to the server queue and returns its job id. Throws with the server's message if it's refused.
+async function submit(path, payload) {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify({ language, code, stdin }),
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || 'Could not run the code.')
-  return data
+  return data.jobId
+}
+
+// Polls a queued job until it finishes. onStatus receives "Waiting in line…" or "Running…".
+async function waitFor(jobId, onStatus) {
+  const started = Date.now()
+  // Check quickly at first, then less often, so a slow run doesn't flood the server with requests.
+  let wait = 400
+  while (true) {
+    await sleep(wait)
+    wait = Math.min(Math.round(wait * 1.5), 2000)
+    const res = await fetch(`${API_BASE}/code/jobs/${jobId}`, { headers: authHeaders() })
+    if (!res.ok) throw new Error('Lost track of this run. Try again.')
+    const job = await res.json()
+    if (job.state === 'DONE') {
+      if (job.httpStatus >= 400) throw new Error(job.body?.error || 'Could not run the code.')
+      return job.body
+    }
+    onStatus?.(job.state === 'QUEUED' ? `Waiting in line (position ${job.position})…` : 'Running…')
+    if (Date.now() - started > 150_000) throw new Error('This is taking too long. Try again.')
+  }
+}
+
+// Runs a snippet through the queue. Returns { status, stdout, stderr, compileOutput, time, memoryKb }.
+export async function runCode({ language, code, stdin, onStatus }) {
+  const jobId = await submit('/code/run', { language, code, stdin })
+  return waitFor(jobId, onStatus)
 }
 
 // Runs the code against a coding problem's test cases. Returns { passed, total, results: [{ number, passed, status }] }.
-export async function runTests({ problemId, language, code }) {
-  const token = localStorage.getItem('ir_token')
-  const res = await fetch(`${API_BASE}/code/test`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify({ problemId, language, code }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || 'Could not run the tests.')
-  return data
+export async function runTests({ problemId, language, code, onStatus }) {
+  const jobId = await submit('/code/test', { problemId, language, code })
+  return waitFor(jobId, onStatus)
 }

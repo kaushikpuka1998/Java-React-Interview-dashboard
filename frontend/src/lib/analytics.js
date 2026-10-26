@@ -115,6 +115,11 @@ export function flushEvents() {
   if (queue.length) flushEvents()
 }
 
+// Records a named click, such as a code language being picked. Shows up in the admin "top clicks" list.
+export function trackClick(label) {
+  trackEvent({ type: 'click', label })
+}
+
 function trackEvent(evt) {
   try {
     queue.push({ ...evt, sessionId: sessionId() })
