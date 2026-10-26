@@ -17,6 +17,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.List;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -147,14 +152,52 @@ public class EmailService {
 
     /** Admin announcement: the admin's own subject and text, with the same unsubscribe footer. */
     public void sendAnnouncement(String toEmail, String subject, String body) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        message.setSubject(subject);
-        message.setText(body + "\n\n---\nDon't want these emails? Unsubscribe: " + backendUrl +
-                "/api/auth/unsubscribe?email=" + URLEncoder.encode(toEmail, StandardCharsets.UTF_8) +
-                "&sig=" + unsubscribeSig(toEmail));
-        mailSender.send(message);
+        String unsubscribe = backendUrl + "/api/auth/unsubscribe?email=" + URLEncoder.encode(toEmail, StandardCharsets.UTF_8) +
+                "&sig=" + unsubscribeSig(toEmail);
+        String plain = body + "\n\n---\nDon't want these emails? Unsubscribe: " + unsubscribe;
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8"); // multipart: plain text + HTML
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(plain, announcementHtml(body, unsubscribe));
+            mailSender.send(mime);
+        } catch (MessagingException e) {
+            throw new IllegalStateException("Could not build the announcement email", e);
+        }
+    }
+
+    // HTML version: paragraphs, links for web addresses, and a button for the practice page.
+    private String announcementHtml(String body, String unsubscribe) {
+        StringBuilder html = new StringBuilder("<div style=\"font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;max-width:560px\">");
+        for (String paragraph : body.split("\\n\\s*\\n")) {
+            String text = paragraph.strip();
+            if (!text.isEmpty()) html.append("<p style=\"margin:0 0 14px\">").append(linkify(text)).append("</p>");
+        }
+        html.append("<p style=\"margin-top:24px;font-size:12px;color:#64748b\">Don't want these emails? <a href=\"")
+                .append(escapeHtml(unsubscribe)).append("\">Unsubscribe</a></p></div>");
+        return html.toString();
+    }
+
+    private static final Pattern WEB_ADDRESS = Pattern.compile("https?://[^\\s<]+");
+
+    private String linkify(String text) {
+        Matcher m = WEB_ADDRESS.matcher(escapeHtml(text));
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            String url = m.group();
+            String replacement = url.startsWith(frontendUrl + "/practice")
+                    ? "<a href=\"" + url + "\" style=\"display:inline-block;padding:12px 22px;border-radius:10px;background:linear-gradient(90deg,#f97316,#ec4899,#7c3aed);color:#ffffff;text-decoration:none;font-weight:bold\">Open practice coding</a>"
+                    : "<a href=\"" + url + "\">" + url + "</a>";
+            m.appendReplacement(out, Matcher.quoteReplacement(replacement));
+        }
+        m.appendTail(out);
+        return out.toString().replace("\n", "<br>");
+    }
+
+    private static String escapeHtml(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     /** Asks a member without a location to add one, so they can appear on the leaderboard. */

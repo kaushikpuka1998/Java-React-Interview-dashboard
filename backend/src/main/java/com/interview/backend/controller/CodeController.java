@@ -6,6 +6,7 @@ import com.interview.backend.code.CodeJobs;
 import com.interview.backend.code.CodeLanguages;
 import com.interview.backend.code.CodeRunner;
 import com.interview.backend.entity.CodingProblem;
+import com.interview.backend.repository.FeatureFlagRepository;
 import com.interview.backend.repository.CodingProblemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,18 +41,21 @@ public class CodeController {
     private final CodeRunner runner;
     private final CodingProblemRepository problems;
     private final CodeJobs jobs;
+    private final FeatureFlagRepository flags;
     private final ObjectMapper json = new ObjectMapper();
     // user -> [windowStartMillis, count]
     private final Map<String, long[]> windows = new ConcurrentHashMap<>();
 
-    public CodeController(CodeRunner runner, CodingProblemRepository problems, CodeJobs jobs) {
+    public CodeController(CodeRunner runner, CodingProblemRepository problems, CodeJobs jobs, FeatureFlagRepository flags) {
         this.runner = runner;
         this.problems = problems;
         this.jobs = jobs;
+        this.flags = flags;
     }
 
     @PostMapping("/run")
     public ResponseEntity<?> run(@RequestBody RunRequest req, Authentication auth) {
+        if (!codePracticeOn()) return paused();
         if (!runner.configured()) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", "The code runner isn't set up yet."));
         }
@@ -73,6 +77,7 @@ public class CodeController {
      */
     @PostMapping("/test")
     public ResponseEntity<?> test(@RequestBody TestRequest req, Authentication auth) {
+        if (!codePracticeOn()) return paused();
         if (!runner.configured()) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", "The code runner isn't set up yet."));
         }
@@ -110,6 +115,15 @@ public class CodeController {
             out.put("body", job.outcome().body());
         }
         return ResponseEntity.ok(out);
+    }
+
+    // Turned off from the admin Feature flags tab, to stop new runs when something goes wrong.
+    private boolean codePracticeOn() {
+        return flags.findById("code_practice").map(f -> f.isEnabled()).orElse(true);
+    }
+
+    private static ResponseEntity<?> paused() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", "Code practice is paused right now. Please try again later."));
     }
 
     private ResponseEntity<?> enqueue(String user, java.util.function.Supplier<CodeJobs.Outcome> task) {

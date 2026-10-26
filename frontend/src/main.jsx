@@ -10,6 +10,26 @@ import ResumeEditor from './components/ResumeEditor.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import { trackView } from './lib/analytics.js'
 import PracticePage from './components/PracticePage.jsx'
+import { useFeature } from './lib/features.js'
+
+// Shown in place of a page whose feature is switched off in the admin Feature flags tab.
+function Paused({ what }) {
+  return (
+    <div className="min-h-screen bg-slate-100 p-6 dark:bg-slate-900">
+      <div className="mx-auto max-w-md rounded-2xl bg-white p-8 text-center shadow-sm dark:bg-slate-950">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{what} is paused</h1>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">It's temporarily unavailable. Please check back later.</p>
+        <a href="/" className="mt-4 inline-block text-sm text-blue-600 hover:underline dark:text-blue-400">← Back to the app</a>
+      </div>
+    </div>
+  )
+}
+
+// Renders the page only while its feature flag is on.
+function Gate({ flag, what, children }) {
+  const on = useFeature(flag)
+  return on ? children : <Paused what={what} />
+}
 import './index.css'
 
 // Patch fetch to always include credentials for API_BASE requests
@@ -52,11 +72,11 @@ function Router() {
   if (path === '/leaderboard') return <LeaderboardPage />
 
   // Practice coding: questions with a code box that runs on the server.
-  if (path === '/practice') return <PracticePage />
+  if (path === '/practice') return <Gate flag="code_practice" what="Practice coding"><PracticePage /></Gate>
 
   // Resume builder: list, and one resume's editor.
-  if (path === '/resume') return <ResumePage />
-  if (path.startsWith('/resume/')) return <ResumeEditor id={path.split('/')[2]} />
+  if (path === '/resume') return <Gate flag="resume_builder" what="The resume builder"><ResumePage /></Gate>
+  if (path.startsWith('/resume/')) return <Gate flag="resume_builder" what="The resume builder"><ResumeEditor id={path.split('/')[2]} /></Gate>
 
   // Public progress page for any member (no sign-in needed).
   if (path.startsWith('/u/')) return <PublicProfilePage username={decodeURIComponent(path.split('/')[2] || '')} />

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 
 // Feature flags from the server. If the request fails, return no flags so features fall back to their defaults.
@@ -19,4 +21,15 @@ export async function setFeature(key, enabled) {
   })
   if (!res.ok) throw new Error('Could not update the feature flag.')
   return res.json()
+}
+
+// Reads one feature flag. Returns true until the server answers, so a feature doesn't flicker off on load.
+export function useFeature(key) {
+  const [on, setOn] = useState(true)
+  useEffect(() => {
+    let alive = true
+    fetchFeatures().then(f => { if (alive) setOn(f[key] !== false) })
+    return () => { alive = false }
+  }, [key])
+  return on
 }

@@ -33,7 +33,8 @@ public class AnnouncementService {
         String name = u.getName() == null || u.getName().isBlank() ? "there" : u.getName().trim();
         return text.replace("{{name}}", name)
                 .replace("{{profile_link}}", frontendUrl + "/profile")
-                .replace("{{resume_link}}", frontendUrl + "/resume");
+                .replace("{{resume_link}}", frontendUrl + "/resume")
+                .replace("{{practice_link}}", frontendUrl + "/practice");
     }
 
     public List<User> audience(String audience) {

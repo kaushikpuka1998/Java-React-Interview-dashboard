@@ -17,7 +17,11 @@ import java.util.Map;
 public class FeatureFlagController {
 
     // Known flags and their defaults when no row has been saved yet.
-    private static final Map<String, Boolean> DEFAULTS = Map.of("resume_promo", true);
+    private static final Map<String, Boolean> DEFAULTS = Map.of(
+            "resume_promo", true,
+            "resume_builder", true,
+            "code_practice", true,
+            "code_practice_promo", true);
 
     private final FeatureFlagRepository flags;
 

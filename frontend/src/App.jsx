@@ -8,6 +8,7 @@ import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import ResumePromo from './components/ResumePromo.jsx'
+import CodePracticePromo from './components/CodePracticePromo.jsx'
 import { fetchFeatures } from './lib/features.js'
 import SignupGate from './components/SignupGate.jsx'
 import { getUser, isLoggedIn, logout as authLogout, fetchProgress, mergeProgress, markVisitedRemote, markReadRemote, toggleFlaggedRemote, toggleImportantRemote, searchCompanies } from './lib/auth.js'
@@ -55,6 +56,8 @@ function App({ path = '/', onPathChange = () => {} }) {
   // Auth state
   const [user, setUser] = useState(() => getUser())
   const [promoOpen, setPromoOpen] = useState(false)   // resume builder promo, shown after login
+  const [practicePromoOpen, setPracticePromoOpen] = useState(false)   // code practice promo, after the resume promo
+  const [practiceAllowed, setPracticeAllowed] = useState(false)       // code practice promo is on for this login
   const [authOpen, setAuthOpen] = useState(false)
   const [freeTechs, setFreeTechs] = useState([])
   const [gate, setGate] = useState(null)   // { message, tech } when a locked topic is requested
@@ -67,7 +70,13 @@ function App({ path = '/', onPathChange = () => {} }) {
     // stayed hidden until the next page load.
     setUser(getUser())
     setAuthOpen(false)
-    fetchFeatures().then(f => setPromoOpen(f.resume_promo !== false))
+    fetchFeatures().then(f => {
+      const showResume = f.resume_promo !== false && f.resume_builder !== false
+      const showPractice = f.code_practice !== false && f.code_practice_promo !== false
+      setPracticeAllowed(showPractice)
+      if (showResume) setPromoOpen(true)
+      else if (showPractice) setPracticePromoOpen(true)
+    })
     try {
       await mergeProgress({ visited: Array.from(visitedRef.current), read: Array.from(readRef.current) })
       const { visited: v, read: r, flagged: f = [], important: imp = [] } = await fetchProgress()
@@ -553,7 +562,8 @@ function App({ path = '/', onPathChange = () => {} }) {
       )}
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
-      {promoOpen && <ResumePromo onClose={() => setPromoOpen(false)} />}
+      {promoOpen && <ResumePromo onClose={() => { setPromoOpen(false); if (practiceAllowed) setPracticePromoOpen(true) }} />}
+      {practicePromoOpen && <CodePracticePromo onClose={() => setPracticePromoOpen(false)} />}
       {user && <LocationPrompt />}
     </div>
   )

@@ -102,13 +102,33 @@ Kaushik
 InterviewReader`,
 }
 
-const PLACEHOLDERS = ['{{name}}', '{{profile_link}}', '{{resume_link}}']
+const PRACTICE_TEMPLATE = {
+  subject: 'New on InterviewReader: practice coding',
+  body: `Hi {{name}},
+
+You can now practise coding on InterviewReader.
+
+- Solve coding problems and run your solution against test cases.
+- Write any program in the code editor, and upload a file from your computer.
+- Choose a language, such as C++ or Python, and get the result straight away.
+
+Start here:
+{{practice_link}}
+
+Happy coding!
+Kaushik
+InterviewReader`,
+}
+
+const PLACEHOLDERS = ['{{name}}', '{{profile_link}}', '{{resume_link}}', '{{practice_link}}']
 
 // Shows the email as one member would see it, with sample values filled in.
 function Preview({ subject, body }) {
   const fill = (t) => t
     .replaceAll('{{name}}', 'Priya')
     .replaceAll('{{profile_link}}', `${window.location.origin}/profile`)
+    .replaceAll('{{resume_link}}', `${window.location.origin}/resume`)
+    .replaceAll('{{practice_link}}', `${window.location.origin}/practice`)
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
       <p className="text-xs text-slate-400">Preview (sample name)</p>
@@ -131,6 +151,12 @@ function Compose({ onSent }) {
     setSubject(LOCATION_TEMPLATE.subject)
     setBody(LOCATION_TEMPLATE.body)
     setAudience('no-location')
+    setShowPreview(true)
+  }
+  const usePracticeTemplate = () => {
+    setSubject(PRACTICE_TEMPLATE.subject)
+    setBody(PRACTICE_TEMPLATE.body)
+    setAudience('all')
     setShowPreview(true)
   }
   const useResumeTemplate = () => {
@@ -169,6 +195,7 @@ function Compose({ onSent }) {
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <button type="button" onClick={useTemplate} className="rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white">Use "complete your profile" template</button>
         <button type="button" onClick={useResumeTemplate} className="rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white">Use "resume builder" launch template</button>
+        <button type="button" onClick={usePracticeTemplate} className="rounded-lg bg-orange-500 px-3 py-1.5 font-semibold text-white">Use "code practice" launch template</button>
         <span className="text-slate-400">Insert:</span>
         {PLACEHOLDERS.map(p => (
           <button key={p} type="button" onClick={() => insert(p)} className="rounded-md bg-slate-100 px-2 py-1 font-mono text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">{p}</button>

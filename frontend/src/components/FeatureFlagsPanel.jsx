@@ -3,7 +3,10 @@ import { fetchFeatures, setFeature } from '../lib/features.js'
 
 // Each entry is a flag the server knows about (see FeatureFlagController).
 const FLAGS = [
+  { key: 'resume_builder', label: 'Resume builder', help: 'Turns the whole resume builder on or off: sidebar entry, page, and new resumes.' },
   { key: 'resume_promo', label: 'Resume builder login promo', help: 'Shows the resume builder card to members right after they log in.' },
+  { key: 'code_practice', label: 'Code practice', help: 'Turns code practice on or off. When off, the page is hidden and new runs are refused.' },
+  { key: 'code_practice_promo', label: 'Code practice login promo', help: 'Shows the code practice card to members after they log in.' },
 ]
 
 export default function FeatureFlagsPanel() {

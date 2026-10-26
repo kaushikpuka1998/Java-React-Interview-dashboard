@@ -4,12 +4,14 @@ import { SearchInput, TechFilter, CategorySelect, CompanySelect, StatusSelect, D
 import Notifications from './Notifications.jsx'
 import PracticeCard from './PracticeCard.jsx'
 import { resumeBuilderLink } from '../lib/analytics.js'
+import { useFeature } from '../lib/features.js'
 
 /**
  * Sidebar component
  */
-export default function Sidebar({ questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, company, setCompany, companies = [], user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech, stats, totalCount }) {
+export default function Sidebar({  questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, company, setCompany, companies = [], user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech, stats, totalCount }) {
   const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
+  const resumeOn = useFeature('resume_builder')
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
   const internalListRef = useRef(null)
@@ -137,6 +139,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
       </div>
 
       {/* Resume builder entry point, tagged so clicks show up under Resume builder in analytics */}
+      {resumeOn && (
       <div className="px-4 pt-4 flex-shrink-0">
         <a
           href={resumeBuilderLink('sidebar')}
@@ -149,6 +152,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
           <span aria-hidden="true" className="text-lg">→</span>
         </a>
       </div>
+      )}
 
       {/* Practice coding: shown only when coding problems exist */}
       <PracticeCard />
