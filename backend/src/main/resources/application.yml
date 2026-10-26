@@ -121,3 +121,6 @@ app:
   migration:
     json-path: ${MIGRATION_JSON_PATH:../frontend/public/questions.json}
     batch-size: 100
+  judge0:
+    url: ${JUDGE0_URL}
+    token: ${JUDGE0_TOKEN}

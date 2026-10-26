@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import QuestionLink from './QuestionLink.jsx'
 import { SearchInput, TechFilter, CategorySelect, CompanySelect, StatusSelect, DifficultySelect, QuestionCount } from './SidebarFilters.jsx'
 import Notifications from './Notifications.jsx'
+import PracticeCard from './PracticeCard.jsx'
 import { resumeBuilderLink } from '../lib/analytics.js'
 
 /**
@@ -55,7 +56,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
 
   return (
     <aside
-      className={`sidebar sidebar-responsive h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'}`}
+      className={`sidebar sidebar-responsive h-full flex flex-col overflow-y-auto bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'}`}
       style={{ width: `${sidebarWidth}px`, minWidth: '280px', maxWidth: '600px', flexShrink: 0 }}
     >
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
@@ -149,6 +150,9 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
         </a>
       </div>
 
+      {/* Practice coding: shown only when coding problems exist */}
+      <PracticeCard />
+
       {/* Search always visible */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <SearchInput value={query} onChange={setQuery} placeholder="Search questions... (try '352' or 'Q352' for direct number lookup)" />
@@ -240,7 +244,7 @@ export default function Sidebar({ questions, filtered, selectedId, query, setQue
         </>
       )}
 
-      <nav ref={listRef} className="question-list flex-1 overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
+      <nav ref={listRef} className="question-list flex-1 min-h-[16rem] overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
         {loading && filtered.length === 0 ? (
           <div className="text-center py-8 text-sm text-slate-500 dark:text-slate-400">
             Loading questions…

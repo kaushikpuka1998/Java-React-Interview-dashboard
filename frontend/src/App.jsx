@@ -332,7 +332,12 @@ function App({ path = '/', onPathChange = () => {} }) {
     if (questionListRef.current) {
       const active = questionListRef.current.querySelector('[data-selected="true"]')
       if (active) {
-        active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+        // Scroll only the question list. scrollIntoView would also scroll the sidebar and push its header up.
+        const list = questionListRef.current
+        const lr = list.getBoundingClientRect()
+        const ar = active.getBoundingClientRect()
+        if (ar.top < lr.top) list.scrollBy({ top: ar.top - lr.top - 8, behavior: 'smooth' })
+        else if (ar.bottom > lr.bottom) list.scrollBy({ top: ar.bottom - lr.bottom + 8, behavior: 'smooth' })
       }
     }
   }, [])

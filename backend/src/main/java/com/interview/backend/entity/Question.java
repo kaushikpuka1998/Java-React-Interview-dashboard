@@ -58,6 +58,7 @@ public class Question implements Serializable {
     @Column(name = "tech", length = 50, nullable = false)
     private String tech;
 
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -9,6 +9,7 @@ import ResumePage from './components/ResumePage.jsx'
 import ResumeEditor from './components/ResumeEditor.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import { trackView } from './lib/analytics.js'
+import PracticePage from './components/PracticePage.jsx'
 import './index.css'
 
 // Patch fetch to always include credentials for API_BASE requests
@@ -25,7 +26,7 @@ window.fetch = function() {
 };
 
 // ponytail: raw pathname check at the entry point — avoids adding react-router just for a wildcard
-const TRACKED_PAGES = ['/admin', '/profile', '/leaderboard', '/resume', '/u/', '/reset-password']
+const TRACKED_PAGES = ['/admin', '/profile', '/leaderboard', '/resume', '/u/', '/reset-password', '/practice']
 
 function Router() {
   const [path, setPath] = useState(() => typeof window !== 'undefined' ? window.location.pathname : '/')
@@ -49,6 +50,9 @@ function Router() {
   if (path === '/profile' || path.startsWith('/profile/')) return <ProfilePage />
 
   if (path === '/leaderboard') return <LeaderboardPage />
+
+  // Practice coding: questions with a code box that runs on the server.
+  if (path === '/practice') return <PracticePage />
 
   // Resume builder: list, and one resume's editor.
   if (path === '/resume') return <ResumePage />

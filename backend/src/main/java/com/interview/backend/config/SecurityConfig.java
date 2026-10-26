@@ -93,6 +93,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Resumes are private to their owner.
                         .requestMatchers("/resumes", "/resumes/**").authenticated()
+                        .requestMatchers("/code/**").authenticated()
                         // Public: auth
                         .requestMatchers("/auth/**", "/health").permitAll()
                         // Reads are open so signed-out visitors can browse the free topics.
