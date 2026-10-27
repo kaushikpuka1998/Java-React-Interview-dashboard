@@ -10,7 +10,7 @@ export default defineConfig({
   resolve: {
     alias: [
       // Optional jspdf plugins (SVG / DOMPurify) that the resume PDF doesn't use.
-      { find: /^(canvg|dompurify)$/, replacement: path.resolve(__dirname, 'src/lib/unusedPdfPlugin.js') },
+      { find: /^canvg$/, replacement: path.resolve(__dirname, 'src/lib/unusedPdfPlugin.js') },   // dompurify is NOT stubbed: Mermaid needs the real one
     ],
   },
   plugins: [

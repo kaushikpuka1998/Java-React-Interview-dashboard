@@ -44,6 +44,15 @@ function loadMermaid(dark) {
 
 let idCounter = 0
 
+// Text in answers is often typeset: "-->" arrives as "⟶" and "→". Mermaid only understands the ASCII
+// arrows, so put them back before parsing. Other text is left untouched.
+function normalizeDiagram(src) {
+  return src
+    .replace(/\u27F6|\u2192|\u27F9/g, '-->')   // ⟶ → ⟹
+    .replace(/\u27F5|\u2190/g, '<--')          // ⟵ ←
+    .replace(/\u2014>|\u2013>/g, '-->')         // —> –>
+}
+
 export default function Mermaid({ code }) {
   const ref = useRef(null)
   const [svg, setSvg] = useState('')
@@ -59,8 +68,9 @@ export default function Mermaid({ code }) {
         const id = `mermaid-${++idCounter}`
         try {
           // parse first so a syntax error does not leave a stray error node in the DOM
-          await mermaid.parse(code)
-          const { svg } = await mermaid.render(id, code)
+          const clean = normalizeDiagram(code)
+          await mermaid.parse(clean)
+          const { svg } = await mermaid.render(id, clean)
           if (!cancelled) { setSvg(svg); setError('') }
         } catch (e) {
           if (!cancelled) setError(e?.message || 'Invalid diagram syntax')
