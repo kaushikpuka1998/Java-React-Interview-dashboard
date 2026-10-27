@@ -6,9 +6,10 @@ import Sidebar from './Sidebar.jsx'
 export function MobileMenuButton({ isOpen, onToggle }) {
   return (
     <button
-      className="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors touch-target"
+      className="tip lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors touch-target"
       onClick={onToggle}
       aria-label={isOpen ? 'Close menu' : 'Open menu'}
+      data-tip={isOpen ? 'Close menu' : 'Open menu'}
       aria-expanded={isOpen}
     >
       {isOpen ? (

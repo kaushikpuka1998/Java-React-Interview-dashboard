@@ -32,6 +32,28 @@ export function formatBraces(src) {
   return out.join('\n')
 }
 
+// Re-indents by the code's own nesting, four spaces per level. Used for Python and Ruby, where indentation is the structure.
+// ponytail: a line inside a multi-line string gets re-indented too; fine for typical code.
+export function formatByIndent(src) {
+  const out = []
+  const stack = [0]
+  for (const raw of src.split('\n')) {
+    const expanded = raw.replace(/\t/g, '    ')
+    const text = expanded.trim()
+    if (!text) { out.push(''); continue }
+    const width = expanded.length - expanded.trimStart().length
+    while (stack.length > 1 && width < stack[stack.length - 1]) stack.pop()
+    if (width > stack[stack.length - 1]) stack.push(width)
+    out.push('    '.repeat(stack.length - 1) + text)
+  }
+  return out.join('\n')
+}
+
+// Formats code in any supported language.
+export function formatCode(src, language) {
+  return BRACE_LANGUAGES.has(language) ? formatBraces(src) : formatByIndent(src)
+}
+
 const escapeHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 // Returns highlighted HTML for the code. Every piece of text is escaped before it is returned.

@@ -142,7 +142,7 @@ public class CodeController {
             saved.setCode(req.code());
             saved.setPassed(passed);
             saved.setTotal(total);
-            saved.setStatus(passed == total ? "Accepted" : "Wrong answer");
+            saved.setStatus(passed == total ? "Accepted" : String.valueOf(out.body().get("verdict")));
             try {
                 saved.setResults(json.writeValueAsString(out.body().get("results")));
             } catch (JsonProcessingException e) {
@@ -292,7 +292,21 @@ public class CodeController {
         out.put("passed", passed);
         out.put("total", tests.size());
         out.put("results", results);
+        out.put("verdict", verdictOf(results));
         return new CodeJobs.Outcome(200, out);
+    }
+
+    // The verdict comes from the first failing test, so a slow solution reads as Time Limit Exceeded, not Wrong answer.
+    static String verdictOf(List<Map<String, Object>> results) {
+        for (Map<String, Object> row : results) {
+            if (Boolean.TRUE.equals(row.get("passed"))) continue;
+            String status = String.valueOf(row.getOrDefault("status", ""));
+            if (status.startsWith("Time Limit")) return "Time Limit Exceeded";
+            if (status.startsWith("Compilation")) return "Compilation Error";
+            if (status.startsWith("Runtime")) return "Runtime Error";
+            return "Wrong answer";
+        }
+        return "Accepted";
     }
 
     // Line endings and trailing spaces don't count as differences.

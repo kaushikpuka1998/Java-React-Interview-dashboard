@@ -23,8 +23,8 @@ function setSession({ token, email, name, admin }) {
 export async function logout({ redirect } = {}) {
   localStorage.removeItem(USER_KEY)
   localStorage.removeItem('ir_token')
-  // Saved profile data belongs to the account that's leaving.
-  Object.keys(localStorage).filter(k => k.startsWith('ir_dash_')).forEach(k => localStorage.removeItem(k))
+  // Saved profile data and code drafts belong to the account that's leaving.
+  Object.keys(localStorage).filter(k => k.startsWith('ir_dash_') || k.startsWith('ir_draft_')).forEach(k => localStorage.removeItem(k))
   try {
     await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
   } catch (e) {

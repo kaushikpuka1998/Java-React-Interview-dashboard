@@ -69,7 +69,7 @@ export default function AuthModal({ onClose, onSuccess }) {
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
             {isForgot ? 'Reset password' : isSignup ? 'Create account' : 'Welcome back'}
           </h2>
-          <button onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <button onClick={onClose} aria-label="Close" data-tip="Close" className="tip text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -127,8 +127,8 @@ export default function AuthModal({ onClose, onSuccess }) {
                 onClick={() => setShowPassword(v => !v)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 aria-pressed={showPassword}
-                title={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+                data-tip={showPassword ? 'Hide password' : 'Show password'}
+                className="tip absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
               >
                 {showPassword ? (
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">

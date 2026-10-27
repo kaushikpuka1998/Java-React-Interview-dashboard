@@ -13,7 +13,7 @@ export default function TestResults({ data }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Test results</h3>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${allPassed ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'}`}>
-          {allPassed ? 'Accepted' : 'Wrong answer'} · {data.passed}/{data.total}
+          {allPassed ? 'Accepted' : (data.verdict || 'Wrong answer')} · {data.passed}/{data.total}
         </span>
       </div>
 

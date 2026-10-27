@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchCodingProblems, fetchCodingProblem } from '../lib/codingProblems.js'
-import { isLoggedIn } from '../lib/auth.js'
+import { getUser, isLoggedIn } from '../lib/auth.js'
 import { difficultyBadge } from '../lib/badges.js'
 import Markdown from './Markdown.jsx'
 import CodeRunner from './CodeRunner.jsx'
@@ -48,8 +48,7 @@ export default function PracticePage() {
         {problems && (
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div className="space-y-2">
-            <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Coding problems</h2>
-            <ul className="max-h-[70vh] divide-y divide-slate-200 overflow-y-auto rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
+            <ul className="overflow-hidden rounded-2xl bg-white dark:bg-slate-950">
               <li>
                 <button
                   type="button"
@@ -57,10 +56,13 @@ export default function PracticePage() {
                   aria-pressed={selected === CUSTOM}
                   className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold transition-colors ${selected === CUSTOM ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/60'}`}
                 >
-                  <span>Write your own code</span>
+                  <span>Playground</span>
                   <span aria-hidden="true">✎</span>
                 </button>
               </li>
+            </ul>
+            <h2 className="px-1 pt-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Problems</h2>
+            <ul className="max-h-[70vh] divide-y divide-slate-200 overflow-y-auto rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
               {problems.map(p => (
                 <li key={p.id}>
                   <button
@@ -82,10 +84,10 @@ export default function PracticePage() {
               {selected === CUSTOM && (
                 <>
                   <div className="rounded-2xl bg-white p-5 dark:bg-slate-950">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Write your own code</h2>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Playground</h2>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Write any program, choose a language, and run it. No tests are checked here.</p>
                   </div>
-                  <CodeRunner />
+                  <CodeRunner key={`custom-${getUser()?.email ?? 'guest'}`} />
                 </>
               )}
               {selected !== CUSTOM && detail && (
@@ -96,7 +98,7 @@ export default function PracticePage() {
                       <Markdown text={detail.statement} />
                     </div>
                   </div>
-                  <CodeRunner key={detail.id} problemId={detail.id} starters={detail.starters || {}} />
+                  <CodeRunner key={`${detail.id}-${getUser()?.email ?? 'guest'}`} problemId={detail.id} starters={detail.starters || {}} />
                 </>
               )}
             </div>

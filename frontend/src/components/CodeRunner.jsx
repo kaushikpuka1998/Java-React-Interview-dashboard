@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { isLoggedIn } from '../lib/auth.js'
+import { getUser, isLoggedIn } from '../lib/auth.js'
 import { runCode, runTests, fetchSubmissions, fetchSubmission } from '../lib/code.js'
 import { trackClick } from '../lib/analytics.js'
 import TestResults from './TestResults.jsx'
-import CodeEditor, { BRACE_LANGUAGES, FONTS, formatBraces } from './CodeEditor.jsx'
+import CodeEditor, { FONTS, formatCode } from './CodeEditor.jsx'
 
 const LANGUAGES = [
   { key: 'cpp', label: 'C++', starter: ['#include <iostream>', 'int main() {', '    std::cout << "Hello, world!" << std::endl;', '    return 0;', '}'] },
@@ -28,6 +28,27 @@ const languageLabel = key => LANGUAGES.find(l => l.key === key)?.label || key
 
 const starterFor = key => LANGUAGES.find(l => l.key === key).starter.join('\n')
 
+const ICON_PATHS = {
+  format: <path d="M8 4c-2 0-2 1-2 3v2c0 1-1 2-2 2 1 0 2 1 2 2v2c0 2 0 3 2 3M16 4c2 0 2 1 2 3v2c0 1 1 2 2 2-1 0-2 1-2 2v2c0 2 0 3-2 3" />,
+  last: <path d="M6 3h12v18l-6-4-6 4z" />,
+  reset: <><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" /><path d="M3 3v5h5" /></>,
+}
+
+function IconButton({ label, icon, onClick, disabled = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-tip={label}
+      aria-label={label}
+      className="tip rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+    >
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">{ICON_PATHS[icon]}</svg>
+    </button>
+  )
+}
+
 // Code box for practice problems. Runs on the server for signed-in members only.
 export default function CodeRunner({ problemId, starters = null }) {
   // Coding problems offer only the languages they have a starter for. Own-code practice offers all of them.
@@ -39,7 +60,8 @@ export default function CodeRunner({ problemId, starters = null }) {
   const [language, setLanguage] = useState(firstLanguage)
   // A coding problem starts from its starter for that language. Own-code practice starts from Hello world.
   // Drafts are kept in the browser per problem and language, so a refresh does not lose the code.
-  const draftKey = lang => `ir_draft_${problemId ?? 'custom'}_${lang}`
+  // Drafts belong to the signed-in account, so another account on this browser starts from its own draft.
+  const draftKey = lang => `ir_draft_${getUser()?.email ?? 'guest'}_${problemId ?? 'custom'}_${lang}`
   const readDraft = lang => localStorage.getItem(draftKey(lang))
   const [code, setCode] = useState(() => readDraft(firstLanguage) ?? (problemId ? (starters?.[firstLanguage] ?? '') : starterFor('cpp')))
   const updateCode = (value, lang = language) => { setCode(value); localStorage.setItem(draftKey(lang), value) }
@@ -84,6 +106,34 @@ export default function CodeRunner({ problemId, starters = null }) {
   const loadHistory = () => { if (problemId && isLoggedIn()) fetchSubmissions(problemId).then(setHistory) }
   useEffect(loadHistory, [problemId])
 
+  // Reset drops the draft and goes back to the starter code for this language.
+  const [confirmReset, setConfirmReset] = useState(false)
+  // A short note under the toolbar, so each icon's click has a visible result.
+  const [note, setNote] = useState('')
+  const noteTimer = useRef(null)
+  const flash = msg => { setNote(msg); clearTimeout(noteTimer.current); noteTimer.current = setTimeout(() => setNote(''), 2500) }
+  const resetCode = () => {
+    localStorage.removeItem(draftKey(language))
+    setCode(problemId ? (starters?.[language] ?? '') : starterFor(language))
+    setResult(null); setTestResult(null); setError('')
+    setConfirmReset(false)
+  }
+
+  // Loads the newest saved submission in this language, if there is one.
+  const lastSubmission = history.find(h => h.language === language)
+  const loadLastSubmission = () => fetchSubmission(lastSubmission.id).then(d => {
+    updateCode(d.code, d.language)
+    setResult(null)
+    setTestResult({ passed: d.passed, total: d.total, results: d.results, verdict: d.status })
+    flash(`Loaded your last ${languageLabel(d.language)} submission (${d.status}).`)
+  }).catch(e => setError(e.message))
+
+  const format = () => {
+    const next = formatCode(code, language)
+    updateCode(next)
+    flash(next === code ? 'Already formatted.' : 'Formatted.')
+  }
+
   // Run checks the visible tests. Submit checks every test and saves the attempt.
   const check = async (saveIt = false) => {
     setTesting(true); setError(''); setTestResult(null)
@@ -116,8 +166,12 @@ export default function CodeRunner({ problemId, starters = null }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Try it</h3>
         <div className="flex items-center gap-2">
-          {BRACE_LANGUAGES.has(language) && (
-            <button type="button" onClick={() => updateCode(formatBraces(code))} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">Format</button>
+          <IconButton label="Format code" icon="format" onClick={format} />
+          {problemId && (
+            <>
+              <IconButton label={lastSubmission ? 'Load last submitted code' : 'No saved submission in this language yet'} icon="last" onClick={loadLastSubmission} disabled={!lastSubmission} />
+              <IconButton label="Reset to starter code" icon="reset" onClick={() => setConfirmReset(true)} />
+            </>
           )}
           <button
             type="button"
@@ -155,6 +209,7 @@ export default function CodeRunner({ problemId, starters = null }) {
         </div>
       </div>
 
+      {note && <p className="mb-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">{note}</p>}
       <CodeEditor value={code} onChange={updateCode} language={language} font={font} />
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -220,6 +275,19 @@ export default function CodeRunner({ problemId, starters = null }) {
         </div>
       )}
 
+      {confirmReset && (
+        <div role="alertdialog" aria-modal="true" aria-labelledby="reset-title" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" onClick={() => setConfirmReset(false)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <h4 id="reset-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">Reset this code?</h4>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Your current code will be replaced with the starter code. This can't be undone.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setConfirmReset(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800">Cancel</button>
+              <button type="button" onClick={resetCode} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700">Reset</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {status && <p className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400">{status}</p>}
       {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
@@ -235,7 +303,7 @@ export default function CodeRunner({ problemId, starters = null }) {
                   type="button"
                   onClick={() => fetchSubmission(h.id).then(d => {
                     updateCode(d.code, d.language); setLanguage(d.language); setResult(null)
-                    setTestResult({ passed: d.passed, total: d.total, results: d.results })
+                    setTestResult({ passed: d.passed, total: d.total, results: d.results, verdict: d.status })
                   })}
                   className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60"
                 >
