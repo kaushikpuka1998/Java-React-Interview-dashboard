@@ -27,8 +27,8 @@ export default function PracticePage() {
   }, [selected])
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 dark:bg-slate-900">
-      <div className="mx-auto max-w-6xl">
+    <div className="min-h-screen bg-slate-100 p-3 sm:p-4 dark:bg-slate-900">
+      <div className="mx-auto w-full max-w-[1800px]">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-100">Practice coding</h1>
@@ -46,7 +46,9 @@ export default function PracticePage() {
         {!problems && !error && <p className="text-sm text-slate-500">Loading…</p>}
 
         {problems && (
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+            <div className="space-y-2">
+            <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Coding problems</h2>
             <ul className="max-h-[70vh] divide-y divide-slate-200 overflow-y-auto rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
               <li>
                 <button
@@ -74,6 +76,7 @@ export default function PracticePage() {
               ))}
               {problems.length === 0 && <li className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No coding problems yet.</li>}
             </ul>
+            </div>
 
             <div className="space-y-4">
               {selected === CUSTOM && (

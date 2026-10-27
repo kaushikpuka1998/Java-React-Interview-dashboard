@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { isLoggedIn } from '../lib/auth.js'
 import { runCode, runTests } from '../lib/code.js'
 import { trackClick } from '../lib/analytics.js'
-import CodeEditor, { BRACE_LANGUAGES, formatBraces } from './CodeEditor.jsx'
+import CodeEditor, { BRACE_LANGUAGES, FONTS, formatBraces } from './CodeEditor.jsx'
 
 const LANGUAGES = [
   { key: 'cpp', label: 'C++', starter: ['#include <iostream>', 'int main() {', '    std::cout << "Hello, world!" << std::endl;', '    return 0;', '}'] },
@@ -39,6 +39,8 @@ export default function CodeRunner({ problemId }) {
   const signedIn = isLoggedIn()
   const fileRef = useRef(null)
   const [status, setStatus] = useState('')
+  const [font, setFont] = useState(() => localStorage.getItem('ir_code_font') || 'consolas')
+  const chooseFont = key => { setFont(key); localStorage.setItem('ir_code_font', key) }
 
   // Loads a file into the editor. A recognised extension also switches the language.
   const onFile = e => {
@@ -117,6 +119,14 @@ export default function CodeRunner({ problemId }) {
           />
 
             <select
+            value={font}
+            onChange={e => chooseFont(e.target.value)}
+            aria-label="Editor font"
+            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+          >
+            {Object.entries(FONTS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
+          </select>
+            <select
             value={language}
             onChange={e => pickLanguage(e.target.value)}
             aria-label="Language"
@@ -127,7 +137,7 @@ export default function CodeRunner({ problemId }) {
         </div>
       </div>
 
-      <CodeEditor value={code} onChange={setCode} language={language} />
+      <CodeEditor value={code} onChange={setCode} language={language} font={font} />
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button

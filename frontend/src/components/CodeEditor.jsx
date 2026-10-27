@@ -56,9 +56,17 @@ function highlight(code, language) {
   return out + escapeHtml(code.slice(last)) + '\n'
 }
 
-const SHARED = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 14, lineHeight: '24px', padding: '16px 20px 16px 72px', tabSize: 4, margin: 0, whiteSpace: 'pre', letterSpacing: 0 }
+export const FONTS = {
+  consolas: { label: 'Consolas', family: "Consolas, 'Courier New', monospace" },
+  monaco: { label: 'Monaco', family: "Monaco, Menlo, monospace" },
+  courier: { label: 'Courier New', family: "'Courier New', Courier, monospace" },
+  system: { label: 'System mono', family: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
+}
 
-export default function CodeEditor({ value, onChange, language }) {
+const SHARED = { fontSize: 14, lineHeight: '24px', padding: '16px 20px 16px 72px', tabSize: 4, margin: 0, whiteSpace: 'pre', letterSpacing: 0 }
+
+export default function CodeEditor({ value, onChange, language, font = 'consolas' }) {
+  const fontFamily = (FONTS[font] || FONTS.consolas).family
   const area = useRef(null)
   const overlay = useRef(null)
   const gutter = useRef(null)
@@ -120,10 +128,10 @@ export default function CodeEditor({ value, onChange, language }) {
 
   return (
     <div className="relative h-[min(600px,75vh)] min-h-[420px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-inner focus-within:ring-2 focus-within:ring-blue-500">
-      <div ref={gutter} aria-hidden="true" className="absolute inset-y-0 left-0 w-14 select-none overflow-hidden border-r border-slate-800 bg-slate-900/80 pt-4 text-right font-mono text-[14px] leading-[24px] text-slate-500" style={{ paddingRight: 14 }}>
+      <div ref={gutter} aria-hidden="true" className="absolute inset-y-0 left-0 w-14 select-none overflow-hidden border-r border-slate-800 bg-slate-900/80 pt-4 text-right text-[14px] leading-[24px] text-slate-500" style={{ paddingRight: 14, fontFamily }}>
         {Array.from({ length: lines }, (_, i) => <div key={i}>{i + 1}</div>)}
       </div>
-      <pre ref={overlay} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden text-slate-100" style={SHARED} dangerouslySetInnerHTML={{ __html: highlight(value, language) }} />
+      <pre ref={overlay} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden text-slate-100" style={{ ...SHARED, fontFamily }} dangerouslySetInnerHTML={{ __html: highlight(value, language) }} />
       <textarea
         ref={area}
         value={value}
@@ -134,7 +142,7 @@ export default function CodeEditor({ value, onChange, language }) {
         wrap="off"
         aria-label="Code"
         className="absolute inset-0 h-full w-full resize-none bg-transparent text-transparent outline-none selection:bg-blue-500/40"
-        style={{ ...SHARED, caretColor: '#f8fafc' }}
+        style={{ ...SHARED, fontFamily, caretColor: '#f8fafc' }}
       />
     </div>
   )
