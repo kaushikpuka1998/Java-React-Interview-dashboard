@@ -96,7 +96,7 @@ export default function PracticePage() {
                       <Markdown text={detail.statement} />
                     </div>
                   </div>
-                  <CodeRunner key={detail.id} problemId={detail.id} />
+                  <CodeRunner key={detail.id} problemId={detail.id} starters={detail.starters || {}} />
                 </>
               )}
             </div>

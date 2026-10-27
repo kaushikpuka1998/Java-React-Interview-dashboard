@@ -40,13 +40,26 @@ async function waitFor(jobId, onStatus) {
 }
 
 // Runs a snippet through the queue. Returns { status, stdout, stderr, compileOutput, time, memoryKb }.
-export async function runCode({ language, code, stdin, onStatus }) {
-  const jobId = await submit('/code/run', { language, code, stdin })
+export async function runCode({ language, code, stdin, problemId = null, onStatus }) {
+  const jobId = await submit('/code/run', { language, code, stdin, problemId })
   return waitFor(jobId, onStatus)
 }
 
 // Runs the code against a coding problem's test cases. Returns { passed, total, results: [{ number, passed, status }] }.
-export async function runTests({ problemId, language, code, onStatus }) {
-  const jobId = await submit('/code/test', { problemId, language, code })
+export async function runTests({ problemId, language, code, submit: saveIt = false, onStatus }) {
+  const jobId = await submit('/code/test', { problemId, language, code, submit: saveIt })
   return waitFor(jobId, onStatus)
+}
+
+// The member's saved submissions for one problem, newest first.
+export async function fetchSubmissions(problemId) {
+  const res = await fetch(`${API_BASE}/code/submissions?problemId=${problemId}`, { headers: authHeaders() })
+  return res.ok ? res.json() : []
+}
+
+// One saved submission: its code, verdict, and per-test results.
+export async function fetchSubmission(id) {
+  const res = await fetch(`${API_BASE}/code/submissions/${id}`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('Could not open this submission.')
+  return res.json()
 }

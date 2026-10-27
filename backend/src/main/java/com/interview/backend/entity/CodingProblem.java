@@ -28,6 +28,18 @@ public class CodingProblem {
     @Column(name = "statement", columnDefinition = "TEXT", nullable = false)
     private String statement;
 
+    /** Code the member starts from, for example a class with an empty method. Shown to members. */
+    @Column(name = "starter_code", columnDefinition = "TEXT")
+    private String starterCode;
+
+    /** C++ code with main() that reads the input, calls the member's function and prints the result. Never sent to the browser. */
+    @Column(name = "driver", columnDefinition = "TEXT")
+    private String driver;
+
+    /** Per-language starter and driver, as JSON: {"cpp": {"starter": "...", "driver": "..."}, "python": {...}}. */
+    @Column(name = "templates", columnDefinition = "TEXT")
+    private String templates;
+
     /** JSON list of {"input": "...", "expected": "..."}. Never sent to the browser. */
     @Column(name = "test_cases", columnDefinition = "TEXT", nullable = false)
     private String testCases;

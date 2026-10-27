@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isLoggedIn } from '../lib/auth.js'
-import { runCode, runTests } from '../lib/code.js'
+import { runCode, runTests, fetchSubmissions, fetchSubmission } from '../lib/code.js'
 import { trackClick } from '../lib/analytics.js'
+import TestResults from './TestResults.jsx'
 import CodeEditor, { BRACE_LANGUAGES, FONTS, formatBraces } from './CodeEditor.jsx'
 
 const LANGUAGES = [
@@ -23,14 +24,25 @@ const EXTENSIONS = {
 }
 const MAX_FILE_BYTES = 100_000
 
+const languageLabel = key => LANGUAGES.find(l => l.key === key)?.label || key
+
 const starterFor = key => LANGUAGES.find(l => l.key === key).starter.join('\n')
 
 // Code box for practice problems. Runs on the server for signed-in members only.
-export default function CodeRunner({ problemId }) {
+export default function CodeRunner({ problemId, starters = null }) {
+  // Coding problems offer only the languages they have a starter for. Own-code practice offers all of them.
+  const starterKeys = starters ? Object.keys(starters) : []
+  const options = starters && starterKeys.length ? LANGUAGES.filter(l => starterKeys.includes(l.key)) : LANGUAGES
+  const firstLanguage = starters && options.length ? options[0].key : 'cpp'
   const [testResult, setTestResult] = useState(null)
   const [testing, setTesting] = useState(false)
-  const [language, setLanguage] = useState('cpp')
-  const [code, setCode] = useState(() => starterFor('cpp'))
+  const [language, setLanguage] = useState(firstLanguage)
+  // A coding problem starts from its starter for that language. Own-code practice starts from Hello world.
+  // Drafts are kept in the browser per problem and language, so a refresh does not lose the code.
+  const draftKey = lang => `ir_draft_${problemId ?? 'custom'}_${lang}`
+  const readDraft = lang => localStorage.getItem(draftKey(lang))
+  const [code, setCode] = useState(() => readDraft(firstLanguage) ?? (problemId ? (starters?.[firstLanguage] ?? '') : starterFor('cpp')))
+  const updateCode = (value, lang = language) => { setCode(value); localStorage.setItem(draftKey(lang), value) }
   const [stdin, setStdin] = useState('')
   const [showInput, setShowInput] = useState(false)
   const [result, setResult] = useState(null)
@@ -39,6 +51,7 @@ export default function CodeRunner({ problemId }) {
   const signedIn = isLoggedIn()
   const fileRef = useRef(null)
   const [status, setStatus] = useState('')
+  const [history, setHistory] = useState([])
   const [font, setFont] = useState(() => localStorage.getItem('ir_code_font') || 'consolas')
   const chooseFont = key => { setFont(key); localStorage.setItem('ir_code_font', key) }
 
@@ -53,7 +66,7 @@ export default function CodeRunner({ problemId }) {
       const name = file.name.toLowerCase()
       const match = LANGUAGES.find(l => (EXTENSIONS[l.key] || []).some(ext => name.endsWith(ext)))
       if (match) setLanguage(match.key)
-      setCode(String(reader.result))
+      updateCode(String(reader.result))
       setResult(null)
       setError('')
     }
@@ -63,15 +76,20 @@ export default function CodeRunner({ problemId }) {
   const pickLanguage = key => {
     trackClick(`code_language:${key}`)
     setLanguage(key)
-    setCode(starterFor(key))
+    setCode(readDraft(key) ?? (problemId ? (starters?.[key] ?? '') : starterFor(key)))
     setResult(null)
     setError('')
   }
 
-  const check = async () => {
+  const loadHistory = () => { if (problemId && isLoggedIn()) fetchSubmissions(problemId).then(setHistory) }
+  useEffect(loadHistory, [problemId])
+
+  // Run checks the visible tests. Submit checks every test and saves the attempt.
+  const check = async (saveIt = false) => {
     setTesting(true); setError(''); setTestResult(null)
     try {
-      setTestResult(await runTests({ problemId, language, code, onStatus: setStatus }))
+      setTestResult(await runTests({ problemId, language, code, submit: saveIt, onStatus: setStatus }))
+      if (saveIt) loadHistory()
     } catch (e) {
       setError(e.message)
     } finally {
@@ -82,9 +100,9 @@ export default function CodeRunner({ problemId }) {
 
   const run = async () => {
     trackClick(`code_run:${language}`)
-    setRunning(true); setError(''); setResult(null)
+    setRunning(true); setError(''); setResult(null); setTestResult(null)
     try {
-      setResult(await runCode({ language, code, stdin, onStatus: setStatus }))
+      setResult(await runCode({ language, code, stdin, problemId, onStatus: setStatus }))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -99,7 +117,7 @@ export default function CodeRunner({ problemId }) {
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Try it</h3>
         <div className="flex items-center gap-2">
           {BRACE_LANGUAGES.has(language) && (
-            <button type="button" onClick={() => setCode(formatBraces(code))} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">Format</button>
+            <button type="button" onClick={() => updateCode(formatBraces(code))} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">Format</button>
           )}
           <button
             type="button"
@@ -132,70 +150,98 @@ export default function CodeRunner({ problemId }) {
             aria-label="Language"
             className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
-            {LANGUAGES.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+            {options.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
           </select>
         </div>
       </div>
 
-      <CodeEditor value={code} onChange={setCode} language={language} font={font} />
+      <CodeEditor value={code} onChange={updateCode} language={language} font={font} />
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={run}
-          disabled={!signedIn || running || !code.trim()}
+          onClick={problemId ? () => check(false) : run}
+          disabled={!signedIn || running || testing || !code.trim()}
           data-track="code_run"
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {running ? 'Running…' : 'Run'}
+          {problemId ? (testing ? 'Checking…' : 'Run') : (running ? 'Running…' : 'Run')}
         </button>
         {problemId && (
           <button
             type="button"
-            onClick={check}
-            disabled={!signedIn || testing || !code.trim()}
-            data-track="code_run_tests"
-            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-blue-300 dark:hover:bg-blue-900/30"
+            onClick={run}
+            disabled={!signedIn || running || testing || !code.trim()}
+            data-track="code_run_custom"
+            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800"
           >
-            {testing ? 'Checking…' : 'Run tests'}
+            {running ? 'Running…' : 'Run custom input'}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setShowInput(v => !v)}
-          className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-        >
-          {showInput ? 'Hide input' : 'Add input'}
-        </button>
+        {problemId && (
+          <button
+            type="button"
+            onClick={() => check(true)}
+            disabled={!signedIn || testing || !code.trim()}
+            data-track="code_submit"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Submit
+          </button>
+        )}
+        {!problemId && (
+          <button
+            type="button"
+            onClick={() => setShowInput(v => !v)}
+            className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
+            {showInput ? 'Hide input' : 'Add input'}
+          </button>
+        )}
         {!signedIn && <span className="text-xs text-slate-500 dark:text-slate-400">Sign in to run code.</span>}
       </div>
 
-      {showInput && (
-        <textarea
-          value={stdin}
-          onChange={e => setStdin(e.target.value)}
-          rows={3}
-          placeholder="Input for your program (optional)"
-          aria-label="Program input"
-          className="mt-3 w-full rounded-lg border border-slate-300 bg-white p-2 font-mono text-[13px] text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-        />
+      {(problemId || showInput) && (
+        <div className="mt-3">
+          {problemId && (
+            <label htmlFor="custom-input" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Custom input <span className="font-normal text-slate-500 dark:text-slate-400">(used by Run custom input only)</span>
+            </label>
+          )}
+          <textarea
+            id="custom-input"
+            value={stdin}
+            onChange={e => setStdin(e.target.value)}
+            rows={3}
+            placeholder="Input for your program (optional)"
+            aria-label="Program input"
+            className="w-full rounded-lg border border-slate-300 bg-white p-2 font-mono text-[13px] text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+          />
+        </div>
       )}
 
       {status && <p className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400">{status}</p>}
       {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-      {testResult && (
-        <div className="mt-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
-          <p className={`text-sm font-semibold ${testResult.passed === testResult.total ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-            {testResult.passed} of {testResult.total} tests passed
-          </p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {testResult.results.map(r => (
-              <li key={r.number} className="flex items-center justify-between gap-3 text-slate-700 dark:text-slate-300">
-                <span>Test {r.number}</span>
-                <span className={r.passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                  {r.passed ? 'Passed' : `Failed · ${r.status}`}
-                </span>
+      {testResult && <TestResults data={testResult} />}
+
+      {problemId && history.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Your submissions</p>
+          <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+            {history.map(h => (
+              <li key={h.id}>
+                <button
+                  type="button"
+                  onClick={() => fetchSubmission(h.id).then(d => {
+                    updateCode(d.code, d.language); setLanguage(d.language); setResult(null)
+                    setTestResult({ passed: d.passed, total: d.total, results: d.results })
+                  })}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                >
+                  <span className={h.status === 'Accepted' ? 'font-semibold text-emerald-600 dark:text-emerald-400' : 'font-semibold text-rose-600 dark:text-rose-400'}>{h.status}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{h.passed}/{h.total} · {languageLabel(h.language)} · {new Date(h.createdAt).toLocaleString()}</span>
+                </button>
               </li>
             ))}
           </ul>

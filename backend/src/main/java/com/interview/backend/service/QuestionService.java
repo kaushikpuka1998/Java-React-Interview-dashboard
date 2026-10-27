@@ -22,9 +22,11 @@ import java.util.Optional;
 public class QuestionService {
 
     private final QuestionRepository questionRepository;
+    private final CacheMissLogger cacheMissLogger;
 
     @Cacheable("questionById")
     public Optional<Question> getById(String id) {
+        cacheMissLogger.record("questionById", id);
         return questionRepository.findById(id);
     }
 
@@ -48,16 +50,19 @@ public class QuestionService {
 
     @Cacheable("categories")
     public List<String> getCategoriesByTech(String tech) {
+        cacheMissLogger.record("categories", tech);
         return questionRepository.findCategoriesByTech(tech);
     }
 
     @Cacheable(value = "stats", key = "'total'")
     public long getTotalCount() {
+        cacheMissLogger.record("stats", "total");
         return questionRepository.countAll();
     }
 
     @Cacheable(value = "stats", key = "#tech")
     public long getCountByTech(String tech) {
+        cacheMissLogger.record("stats", tech);
         return questionRepository.countByTech(tech);
     }
 

@@ -1,11 +1,14 @@
 package com.interview.backend.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.backend.code.CodeJobs;
 import com.interview.backend.code.CodeLanguages;
 import com.interview.backend.code.CodeRunner;
+import com.interview.backend.entity.CodeSubmission;
 import com.interview.backend.entity.CodingProblem;
+import com.interview.backend.repository.CodeSubmissionRepository;
 import com.interview.backend.repository.FeatureFlagRepository;
 import com.interview.backend.repository.CodingProblemRepository;
 import org.slf4j.Logger;
@@ -30,23 +33,25 @@ public class CodeController {
 
     private static final Logger log = LoggerFactory.getLogger(CodeController.class);
 
-    public record RunRequest(String language, String code, String stdin) {}
-    public record TestRequest(Long problemId, String language, String code) {}
+    public record RunRequest(String language, String code, String stdin, Long problemId) {}
+    public record TestRequest(Long problemId, String language, String code, Boolean submit) {}
 
     private static final int MAX_CODE = 20_000;
     private static final int MAX_STDIN = 4_000;
     private static final int MAX_TESTS = 20;
-    private static final int RUNS_PER_MINUTE = 12;
+    private static final int RUNS_PER_MINUTE = 100_000;   // per signed-in user
 
     private final CodeRunner runner;
     private final CodingProblemRepository problems;
     private final CodeJobs jobs;
     private final FeatureFlagRepository flags;
+    private final CodeSubmissionRepository submissions;
     private final ObjectMapper json = new ObjectMapper();
     // user -> [windowStartMillis, count]
     private final Map<String, long[]> windows = new ConcurrentHashMap<>();
 
-    public CodeController(CodeRunner runner, CodingProblemRepository problems, CodeJobs jobs, FeatureFlagRepository flags) {
+    public CodeController(CodeRunner runner, CodingProblemRepository problems, CodeJobs jobs, FeatureFlagRepository flags, CodeSubmissionRepository submissions) {
+        this.submissions = submissions;
         this.runner = runner;
         this.problems = problems;
         this.jobs = jobs;
@@ -68,7 +73,17 @@ public class CodeController {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", "Too many runs. Wait a minute and try again."));
         }
         String stdin = req.stdin() == null ? "" : req.stdin();
-        return enqueue(auth.getName(), () -> runOnce(lang, req.code(), stdin));
+        // In a coding problem, custom input goes through the same driver as the tests, so the function is called with it.
+        String source = req.code();
+        if (req.problemId() != null) {
+            CodingProblem p = problems.findById(req.problemId()).orElse(null);
+            if (p == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Problem not found."));
+            String driver = CodingProblemController.driverFor(p, lang.key());
+            if (driver == null) return ResponseEntity.badRequest().body(Map.of("error", "This problem is not set up for " + lang.label() + " yet."));
+            source = sourceWithDriver(lang, req.code(), driver);
+        }
+        String toRun = source;
+        return enqueue(auth.getName(), () -> runOnce(lang, toRun, stdin));
     }
 
     /**
@@ -96,10 +111,88 @@ public class CodeController {
             return ResponseEntity.badRequest().body(Map.of("error", "This problem's test cases are not valid."));
         }
         if (tests.size() > MAX_TESTS) return ResponseEntity.badRequest().body(Map.of("error", "This problem has too many test cases."));
-        if (!allow(auth.getName(), tests.size())) {
+        // A problem with a driver runs the member's function through it, which is C++ only.
+        String source = req.code();
+        boolean hasTemplates = p.getTemplates() != null || p.getDriver() != null;
+        if (hasTemplates) {
+            String driver = CodingProblemController.driverFor(p, lang.key());
+            if (driver == null) return ResponseEntity.badRequest().body(Map.of("error", "This problem is not set up for " + lang.label() + " yet."));
+            source = sourceWithDriver(lang, req.code(), driver);
+        }
+        // Run uses only the visible tests. Submit uses every test, hidden ones included, and is saved.
+        boolean submit = Boolean.TRUE.equals(req.submit());
+        List<Map<String, Object>> runList = submit ? tests : tests.stream().filter(t -> !Boolean.TRUE.equals(t.get("hidden"))).toList();
+        if (runList.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "This problem has no visible tests. Submit to run all tests."));
+        // One press counts as one request, however many tests the problem has.
+        if (!allow(auth.getName(), 1)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", "Too many runs. Wait a minute and try again."));
         }
-        return enqueue(auth.getName(), () -> runTests(lang, req.code(), tests));
+        String toRun = source;
+        String user = auth.getName();
+        Long problemId = p.getId();
+        return enqueue(user, () -> {
+            CodeJobs.Outcome out = runTests(lang, toRun, runList);
+            if (!submit || out.httpStatus() != 200) return out;
+            int passed = ((Number) out.body().get("passed")).intValue();
+            int total = ((Number) out.body().get("total")).intValue();
+            CodeSubmission saved = new CodeSubmission();
+            saved.setUserEmail(user);
+            saved.setProblemId(problemId);
+            saved.setLanguage(lang.key());
+            saved.setCode(req.code());
+            saved.setPassed(passed);
+            saved.setTotal(total);
+            saved.setStatus(passed == total ? "Accepted" : "Wrong answer");
+            try {
+                saved.setResults(json.writeValueAsString(out.body().get("results")));
+            } catch (JsonProcessingException e) {
+                saved.setResults("[]");
+            }
+            submissions.save(saved);
+            Map<String, Object> body = new LinkedHashMap<>(out.body());
+            body.put("submissionId", saved.getId());
+            body.put("status", saved.getStatus());
+            return new CodeJobs.Outcome(200, body);
+        });
+    }
+
+    /** The member's last saved submissions for a problem, newest first. */
+    @GetMapping("/submissions")
+    public List<Map<String, Object>> listSubmissions(@RequestParam Long problemId, Authentication auth) {
+        return submissions.findTop20ByUserEmailAndProblemIdOrderByCreatedAtDesc(auth.getName(), problemId).stream().map(s -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", s.getId());
+            row.put("language", s.getLanguage());
+            row.put("status", s.getStatus());
+            row.put("passed", s.getPassed());
+            row.put("total", s.getTotal());
+            row.put("createdAt", s.getCreatedAt().toString());
+            return row;
+        }).toList();
+    }
+
+    /** One saved submission: its code and the per-test results. */
+    @GetMapping("/submissions/{id}")
+    public ResponseEntity<?> getSubmission(@PathVariable Long id, Authentication auth) {
+        return submissions.findByIdAndUserEmail(id, auth.getName()).<ResponseEntity<?>>map(s -> {
+            Map<String, Object> out = new LinkedHashMap<>();
+            out.put("id", s.getId());
+            out.put("language", s.getLanguage());
+            out.put("code", s.getCode());
+            out.put("status", s.getStatus());
+            out.put("passed", s.getPassed());
+            out.put("total", s.getTotal());
+            out.put("results", s.getResults() == null ? List.of() : parseList(s.getResults()));
+            return ResponseEntity.ok(out);
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private List<Object> parseList(String text) {
+        try {
+            return json.readValue(text, new TypeReference<List<Object>>() {});
+        } catch (IOException e) {
+            return List.of();
+        }
     }
 
     /** Status of a queued job: QUEUED (with its place in line), RUNNING, or DONE (with the result). */
@@ -135,6 +228,12 @@ public class CodeController {
         }
     }
 
+    /** Adds the problem's driver to the member's code. C++ solutions get the standard headers, so members don't have to write them. */
+    private static String sourceWithDriver(CodeLanguages.Language lang, String code, String driver) {
+        String header = "cpp".equals(lang.key()) ? "#include <bits/stdc++.h>\nusing namespace std;\n" : "";
+        return header + code + "\n" + driver;
+    }
+
     private CodeJobs.Outcome runOnce(CodeLanguages.Language lang, String code, String stdin) {
         try {
             CodeRunner.Result r = runner.run(lang, code, stdin);
@@ -166,10 +265,20 @@ public class CodeController {
                 CodeRunner.Result r = runner.run(lang, code, input);
                 boolean ok = "Accepted".equals(r.status()) && normalize(r.stdout()).equals(normalize(expected));
                 if (ok) passed++;
+                boolean hidden = Boolean.TRUE.equals(t.get("hidden"));
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("number", i + 1);
                 row.put("passed", ok);
                 row.put("status", r.status());
+                row.put("hidden", hidden);
+                // Visible tests show their details, like LeetCode. Hidden tests show only pass or fail.
+                if (!hidden) {
+                    row.put("input", input);
+                    row.put("expected", expected);
+                    row.put("actual", r.stdout() == null ? "" : r.stdout());
+                    row.put("stderr", r.stderr() == null ? "" : r.stderr());
+                    row.put("compileOutput", r.compileOutput() == null ? "" : r.compileOutput());
+                }
                 results.add(row);
             }
         } catch (IOException e) {
