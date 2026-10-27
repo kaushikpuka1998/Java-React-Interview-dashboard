@@ -74,7 +74,7 @@ export default function Sidebar({  questions, filtered, selectedId, query, setQu
           </div>
           <button
             onClick={onToggleDark}
-            className="tip flex-shrink-0 p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="tip relative flex-shrink-0 p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             aria-label="Toggle dark mode"
             data-tip="Toggle dark mode"
             aria-pressed={isDark}

@@ -154,7 +154,7 @@ export default function Markdown({ text }) {
                   {lang}
                 </div>
               )}
-              <pre className={`bg-slate-900 ${lang ? 'rounded-b-lg' : 'rounded-lg'} p-3 sm:p-4 ${lang ? 'text-[12px]' : 'text-[10px]'} sm:text-sm overflow-x-auto max-w-full border border-slate-700/50`}>
+              <pre className={`bg-slate-900 ${lang ? 'rounded-b-lg' : 'rounded-lg'} p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full border border-slate-700/50`}>
                 <code className={`text-slate-100 leading-relaxed font-mono ${lang ? 'whitespace-pre-wrap break-words sm:whitespace-pre sm:break-normal' : 'whitespace-pre'}`}>
                   {plain ? body : highlightCode(body.trim())}
                 </code>

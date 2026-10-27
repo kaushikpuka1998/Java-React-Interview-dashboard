@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { getUser, isLoggedIn } from '../lib/auth.js'
-import { runCode, runTests, fetchSubmissions, fetchSubmission } from '../lib/code.js'
+import { runCode, runTests, fetchSubmission } from '../lib/code.js'
 import { trackClick } from '../lib/analytics.js'
 import TestResults from './TestResults.jsx'
 import CodeEditor, { FONTS, formatCode } from './CodeEditor.jsx'
@@ -24,7 +24,7 @@ const EXTENSIONS = {
 }
 const MAX_FILE_BYTES = 100_000
 
-const languageLabel = key => LANGUAGES.find(l => l.key === key)?.label || key
+export const languageLabel = key => LANGUAGES.find(l => l.key === key)?.label || key
 
 const starterFor = key => LANGUAGES.find(l => l.key === key).starter.join('\n')
 
@@ -42,7 +42,7 @@ function IconButton({ label, icon, onClick, disabled = false }) {
       disabled={disabled}
       data-tip={label}
       aria-label={label}
-      className="tip rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+      className="tip relative rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
     >
       <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">{ICON_PATHS[icon]}</svg>
     </button>
@@ -50,7 +50,8 @@ function IconButton({ label, icon, onClick, disabled = false }) {
 }
 
 // Code box for practice problems. Runs on the server for signed-in members only.
-export default function CodeRunner({ problemId, starters = null }) {
+// `history` and `openRequest` come from the practice page: openRequest.id opens a saved submission in the editor.
+export default function CodeRunner({ problemId, starters = null, history = [], onSubmitted, openRequest, actionsRef, onBusyChange }) {
   // Coding problems offer only the languages they have a starter for. Own-code practice offers all of them.
   const starterKeys = starters ? Object.keys(starters) : []
   const options = starters && starterKeys.length ? LANGUAGES.filter(l => starterKeys.includes(l.key)) : LANGUAGES
@@ -73,7 +74,6 @@ export default function CodeRunner({ problemId, starters = null }) {
   const signedIn = isLoggedIn()
   const fileRef = useRef(null)
   const [status, setStatus] = useState('')
-  const [history, setHistory] = useState([])
   const [font, setFont] = useState(() => localStorage.getItem('ir_code_font') || 'consolas')
   const chooseFont = key => { setFont(key); localStorage.setItem('ir_code_font', key) }
 
@@ -103,11 +103,43 @@ export default function CodeRunner({ problemId, starters = null }) {
     setError('')
   }
 
-  const loadHistory = () => { if (problemId && isLoggedIn()) fetchSubmissions(problemId).then(setHistory) }
-  useEffect(loadHistory, [problemId])
+  // The page's bar calls these. Refreshed on every render so they always see the current code and language.
+  useEffect(() => {
+    if (actionsRef) actionsRef.current = { run: () => (problemId ? check(false) : run()), submit: () => check(true) }
+  })
+  useEffect(() => { onBusyChange?.(testing || running) }, [testing, running])
+
+  // A saved submission opened from the Submissions tab loads into the editor.
+  useEffect(() => {
+    if (!openRequest) return
+    fetchSubmission(openRequest.id).then(d => {
+      updateCode(d.code, d.language); setLanguage(d.language); setResult(null)
+      setTestResult({ passed: d.passed, total: d.total, results: d.results, verdict: d.status })
+    }).catch(e => setError(e.message))
+  }, [openRequest])
 
   // Reset drops the draft and goes back to the starter code for this language.
   const [confirmReset, setConfirmReset] = useState(false)
+  // Largest height of the part below the editor (Run, input, results, submissions). It shrinks to its content, so 0 means no limit.
+  const [bottomH, setBottomH] = useState(() => Number(localStorage.getItem('ir_code_bottom_h')) || 0)
+  const bottomRef = useRef(null)
+  const startBottomDrag = e => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = bottomH || bottomRef.current.offsetHeight
+    const move = ev => setBottomH(Math.min(window.innerHeight * 0.8, Math.max(120, startH + (startY - ev.clientY))))
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      setBottomH(value => { localStorage.setItem('ir_code_bottom_h', String(Math.round(value))); return value })
+    }
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
   // A short note under the toolbar, so each icon's click has a visible result.
   const [note, setNote] = useState('')
   const noteTimer = useRef(null)
@@ -121,10 +153,10 @@ export default function CodeRunner({ problemId, starters = null }) {
 
   // Loads the newest saved submission in this language, if there is one.
   const lastSubmission = history.find(h => h.language === language)
+  // Loads only the code. The test results are not fetched.
   const loadLastSubmission = () => fetchSubmission(lastSubmission.id).then(d => {
     updateCode(d.code, d.language)
     setResult(null)
-    setTestResult({ passed: d.passed, total: d.total, results: d.results, verdict: d.status })
     flash(`Loaded your last ${languageLabel(d.language)} submission (${d.status}).`)
   }).catch(e => setError(e.message))
 
@@ -139,7 +171,7 @@ export default function CodeRunner({ problemId, starters = null }) {
     setTesting(true); setError(''); setTestResult(null)
     try {
       setTestResult(await runTests({ problemId, language, code, submit: saveIt, onStatus: setStatus }))
-      if (saveIt) loadHistory()
+      if (saveIt) onSubmitted?.()
     } catch (e) {
       setError(e.message)
     } finally {
@@ -162,10 +194,36 @@ export default function CodeRunner({ problemId, starters = null }) {
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/40">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 xl:flex xl:h-full xl:flex-col dark:border-slate-700 dark:bg-slate-900/40">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Try it</h3>
-        <div className="flex items-center gap-2">
+        <select
+          value={language}
+          onChange={e => pickLanguage(e.target.value)}
+          aria-label="Language"
+          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+        >
+          {options.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+        </select>
+
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {problemId ? (
+            <button
+              type="button"
+              onClick={() => setShowInput(v => !v)}
+              aria-expanded={showInput}
+              className="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              {showInput ? 'Hide custom input' : 'Custom input'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowInput(v => !v)}
+              className="whitespace-nowrap text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
+              {showInput ? 'Hide input' : 'Add input'}
+            </button>
+          )}
           <IconButton label="Format code" icon="format" onClick={format} />
           {problemId && (
             <>
@@ -177,7 +235,7 @@ export default function CodeRunner({ problemId, starters = null }) {
             type="button"
             onClick={() => fileRef.current?.click()}
             data-track="code_upload"
-            className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600"
+            className="whitespace-nowrap rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600"
           >
             Upload file
           </button>
@@ -189,8 +247,7 @@ export default function CodeRunner({ problemId, starters = null }) {
             className="hidden"
             aria-label="Upload a code file"
           />
-
-            <select
+          <select
             value={font}
             onChange={e => chooseFont(e.target.value)}
             aria-label="Editor font"
@@ -198,65 +255,27 @@ export default function CodeRunner({ problemId, starters = null }) {
           >
             {Object.entries(FONTS).map(([key, f]) => <option key={key} value={key}>{f.label}</option>)}
           </select>
-            <select
-            value={language}
-            onChange={e => pickLanguage(e.target.value)}
-            aria-label="Language"
-            className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-          >
-            {options.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
-          </select>
         </div>
       </div>
 
       {note && <p className="mb-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">{note}</p>}
+
       <CodeEditor value={code} onChange={updateCode} language={language} font={font} />
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={problemId ? () => check(false) : run}
-          disabled={!signedIn || running || testing || !code.trim()}
-          data-track="code_run"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {problemId ? (testing ? 'Checking…' : 'Run') : (running ? 'Running…' : 'Run')}
-        </button>
-        {problemId && (
-          <button
-            type="button"
-            onClick={run}
-            disabled={!signedIn || running || testing || !code.trim()}
-            data-track="code_run_custom"
-            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800"
-          >
-            {running ? 'Running…' : 'Run custom input'}
-          </button>
-        )}
-        {problemId && (
-          <button
-            type="button"
-            onClick={() => check(true)}
-            disabled={!signedIn || testing || !code.trim()}
-            data-track="code_submit"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Submit
-          </button>
-        )}
-        {!problemId && (
-          <button
-            type="button"
-            onClick={() => setShowInput(v => !v)}
-            className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-          >
-            {showInput ? 'Hide input' : 'Add input'}
-          </button>
-        )}
-        {!signedIn && <span className="text-xs text-slate-500 dark:text-slate-400">Sign in to run code.</span>}
+
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize the panel below the editor"
+        onMouseDown={startBottomDrag}
+        className="mt-3 flex cursor-row-resize flex-col items-center gap-3 py-2"
+      >
+        <span className="h-1 w-16 rounded-full bg-slate-300 dark:bg-slate-700" />
       </div>
 
-      {(problemId || showInput) && (
+      <div ref={bottomRef} style={bottomH ? { maxHeight: bottomH } : undefined} className={`xl:min-h-0 xl:max-h-[45%] xl:overflow-y-auto ${bottomH ? 'overflow-y-auto pr-1' : ''}`}>
+
+      {(showInput || (problemId && stdin !== '')) && (
         <div className="mt-3">
           {problemId && (
             <label htmlFor="custom-input" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -272,6 +291,20 @@ export default function CodeRunner({ problemId, starters = null }) {
             aria-label="Program input"
             className="w-full rounded-lg border border-slate-300 bg-white p-2 font-mono text-[13px] text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
+        </div>
+      )}
+
+      {problemId && (showInput || stdin !== '') && (
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={run}
+            disabled={!signedIn || running || testing || !code.trim()}
+            data-track="code_run_custom"
+            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800"
+          >
+            {running ? 'Running…' : 'Run custom input'}
+          </button>
         </div>
       )}
 
@@ -293,29 +326,6 @@ export default function CodeRunner({ problemId, starters = null }) {
 
       {testResult && <TestResults data={testResult} />}
 
-      {problemId && history.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Your submissions</p>
-          <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
-            {history.map(h => (
-              <li key={h.id}>
-                <button
-                  type="button"
-                  onClick={() => fetchSubmission(h.id).then(d => {
-                    updateCode(d.code, d.language); setLanguage(d.language); setResult(null)
-                    setTestResult({ passed: d.passed, total: d.total, results: d.results, verdict: d.status })
-                  })}
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                >
-                  <span className={h.status === 'Accepted' ? 'font-semibold text-emerald-600 dark:text-emerald-400' : 'font-semibold text-rose-600 dark:text-rose-400'}>{h.status}</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{h.passed}/{h.total} · {languageLabel(h.language)} · {new Date(h.createdAt).toLocaleString()}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {result && (
         <div className="mt-3 space-y-2">
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -327,6 +337,7 @@ export default function CodeRunner({ problemId, starters = null }) {
           {!result.stdout && !result.stderr && !result.compileOutput && <p className="text-sm text-slate-500 dark:text-slate-400">No output.</p>}
         </div>
       )}
+      </div>
     </section>
   )
 }

@@ -149,7 +149,7 @@ export default function CodeEditor({ value, onChange, language, font = 'consolas
   }
 
   return (
-    <div className="relative h-[min(600px,75vh)] min-h-[420px] overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-inner focus-within:ring-2 focus-within:ring-blue-500">
+    <div className="relative h-[min(600px,75vh)] min-h-[420px] overflow-hidden rounded-xl xl:h-auto xl:min-h-[240px] xl:flex-1 border border-slate-700 bg-slate-950 shadow-inner focus-within:ring-2 focus-within:ring-blue-500">
       <div ref={gutter} aria-hidden="true" className="absolute inset-y-0 left-0 w-14 select-none overflow-hidden border-r border-slate-800 bg-slate-900/80 pt-4 text-right text-[14px] leading-[24px] text-slate-500" style={{ paddingRight: 14, fontFamily }}>
         {Array.from({ length: lines }, (_, i) => <div key={i}>{i + 1}</div>)}
       </div>

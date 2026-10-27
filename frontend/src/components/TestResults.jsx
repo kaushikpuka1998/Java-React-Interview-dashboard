@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-// LeetCode-style result panel: a summary, a progress bar, a button per test, and details for the selected test.
+// LeetCode-style result panel: a summary, a progress bar, a tab per test case, and the selected case's input and outputs.
 export default function TestResults({ data }) {
   const firstFailed = data.results.findIndex(r => !r.passed)
   const [active, setActive] = useState(firstFailed >= 0 ? firstFailed : 0)
@@ -32,9 +32,10 @@ export default function TestResults({ data }) {
               type="button"
               onClick={() => setActive(i)}
               aria-pressed={i === active}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${tone} ${i === active ? 'ring-2 ring-blue-500' : 'opacity-90 hover:opacity-100'}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${tone} ${i === active ? 'ring-2 ring-blue-500' : 'opacity-90 hover:opacity-100'}`}
             >
-              {r.hidden ? '🔒' : r.passed ? '✓' : '✕'} Test {r.number}
+              <span aria-hidden="true" className={`h-2 w-2 rounded-full ${r.passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              Case {r.number}
             </button>
           )
         })}
@@ -51,14 +52,18 @@ export default function TestResults({ data }) {
               This is a hidden test. Its input and expected output are not shown.
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Block label="Input" text={current.input} />
-              <Block label="Expected output" text={current.expected} />
-              <Block label="Your output" text={current.actual} tone={current.passed ? 'ok' : 'bad'} />
+            <>
+              <div className="space-y-2">
+                {(current.input || '').split('\n').filter(line => line.trim() !== '').map((line, i) => (
+                  <Field key={i} label={`Input ${i + 1}`} text={line} />
+                ))}
+              </div>
+              <Field label="Expected output" text={current.expected} />
+              <Field label="Your output" text={current.actual} tone={current.passed ? 'ok' : 'bad'} />
               {!current.passed && (current.compileOutput || current.stderr) && (
-                <Block label={current.compileOutput ? 'Compile error' : 'Error'} text={current.compileOutput || current.stderr} tone="bad" wide />
+                <Field label={current.compileOutput ? 'Compile error' : 'Error'} text={current.compileOutput || current.stderr} tone="bad" />
               )}
-            </div>
+            </>
           )}
         </div>
       )}
@@ -66,12 +71,12 @@ export default function TestResults({ data }) {
   )
 }
 
-function Block({ label, text, tone, wide }) {
-  const color = tone === 'bad' ? 'text-rose-300' : tone === 'ok' ? 'text-emerald-300' : 'text-slate-100'
+function Field({ label, text, tone }) {
+  const color = tone === 'bad' ? 'text-rose-600 dark:text-rose-300' : tone === 'ok' ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-900 dark:text-slate-100'
   return (
-    <div className={wide ? 'sm:col-span-2' : ''}>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-      <pre className={`overflow-x-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-3 font-mono text-xs ${color}`}>{text === '' || text == null ? '(empty)' : text}</pre>
+    <div>
+      <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <pre className={`overflow-x-auto whitespace-pre-wrap rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm dark:bg-slate-800 ${color}`}>{text === '' || text == null ? '(empty)' : text}</pre>
     </div>
   )
 }

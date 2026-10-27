@@ -75,7 +75,7 @@ export default function ImageLightbox({ src, alt, html, onClose }) {
         <button
           onClick={() => setZoomed(z => !z)}
           data-tip={zoomed ? 'Fit to screen' : 'Zoom to full size'}
-          className="tip p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          className="tip relative p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
         >
           {zoomed ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" /></svg>
@@ -88,14 +88,14 @@ export default function ImageLightbox({ src, alt, html, onClose }) {
           target="_blank"
           rel="noopener noreferrer"
           data-tip="Open the original in a new tab"
-          className="tip p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          className="tip relative p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
         </a>}
         <button
           onClick={onClose}
           data-tip="Close (Esc)"
-          className="tip p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          className="tip relative p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>

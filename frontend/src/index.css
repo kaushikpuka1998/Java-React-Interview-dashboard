@@ -227,8 +227,8 @@
 .jump-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .jump-input { -moz-appearance: textfield; appearance: textfield; }
 
-/* Instant tooltip for icon-only buttons. Shows on hover or keyboard focus with no delay, unlike the native title tooltip. */
-.tip { position: relative; }
+/* Instant tooltip for icon-only buttons. Shows on hover or keyboard focus with no delay, unlike the native title tooltip.
+   The element needs a position class (relative, absolute or fixed), which the tooltip is placed against. */
 .tip::after {
   content: attr(data-tip);
   position: absolute;
@@ -248,3 +248,7 @@
 }
 .tip:hover::after,
 .tip:focus-visible::after { opacity: 1; }
+
+/* Tooltip anchored to the right edge, for icons at the right edge of a narrow panel. */
+.tip-end::after { left: auto; right: 0; transform: none; }
+

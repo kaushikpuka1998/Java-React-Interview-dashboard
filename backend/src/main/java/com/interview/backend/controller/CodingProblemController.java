@@ -66,6 +66,7 @@ public class CodingProblemController {
             row.put("id", p.getId());
             row.put("title", p.getTitle());
             row.put("difficulty", p.getDifficulty() == null ? "" : p.getDifficulty());
+            row.put("createdAt", p.getCreatedAt());
             return row;
         }).toList();
     }

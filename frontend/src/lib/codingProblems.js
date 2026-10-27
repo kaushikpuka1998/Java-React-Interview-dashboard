@@ -10,6 +10,20 @@ async function parseError(res) {
 }
 
 // Public: id, title and difficulty of every coding problem.
+// When the member last opened the Practice page. Problems added after this, within a week, count as new.
+const SEEN_KEY = 'ir_practice_seen'
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+export function markPracticeSeen() {
+  localStorage.setItem(SEEN_KEY, String(Date.now()))
+}
+
+// How many problems were added in the last week and after the member last looked.
+export function newProblemCount(list) {
+  const cutoff = Math.max(Number(localStorage.getItem(SEEN_KEY) || 0), Date.now() - WEEK_MS)
+  return list.filter(p => p.createdAt && Date.parse(p.createdAt) > cutoff).length
+}
+
 export async function fetchCodingProblems() {
   const res = await fetch(`${API_BASE}/coding-problems`)
   if (!res.ok) throw new Error('Could not load the problems.')
