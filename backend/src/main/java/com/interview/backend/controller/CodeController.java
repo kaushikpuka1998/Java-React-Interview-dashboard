@@ -80,7 +80,7 @@ public class CodeController {
             if (p == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Problem not found."));
             String driver = CodingProblemController.driverFor(p, lang.key());
             if (driver == null) return ResponseEntity.badRequest().body(Map.of("error", "This problem is not set up for " + lang.label() + " yet."));
-            source = sourceWithDriver(lang, req.code(), driver);
+            source = sourceWithDriver(lang, req.code(), CodingProblemController.preludeFor(p, lang.key()), driver);
         }
         String toRun = source;
         return enqueue(auth.getName(), () -> runOnce(lang, toRun, stdin));
@@ -117,7 +117,7 @@ public class CodeController {
         if (hasTemplates) {
             String driver = CodingProblemController.driverFor(p, lang.key());
             if (driver == null) return ResponseEntity.badRequest().body(Map.of("error", "This problem is not set up for " + lang.label() + " yet."));
-            source = sourceWithDriver(lang, req.code(), driver);
+            source = sourceWithDriver(lang, req.code(), CodingProblemController.preludeFor(p, lang.key()), driver);
         }
         // Run uses only the visible tests. Submit uses every test, hidden ones included, and is saved.
         boolean submit = Boolean.TRUE.equals(req.submit());
@@ -251,10 +251,11 @@ public class CodeController {
         }
     }
 
-    /** Adds the problem's driver to the member's code. C++ solutions get the standard headers, so members don't have to write them. */
-    private static String sourceWithDriver(CodeLanguages.Language lang, String code, String driver) {
+    /** Adds the problem's prelude before the member's code and its driver after. C++ solutions get the standard headers, so members don't have to write them. */
+    private static String sourceWithDriver(CodeLanguages.Language lang, String code, String prelude, String driver) {
         String header = "cpp".equals(lang.key()) ? "#include <bits/stdc++.h>\nusing namespace std;\n" : "";
-        return header + code + "\n" + driver;
+        String before = prelude == null ? "" : prelude + "\n";
+        return header + before + code + "\n" + driver;
     }
 
     private CodeJobs.Outcome runOnce(CodeLanguages.Language lang, String code, String stdin) {
@@ -297,6 +298,8 @@ public class CodeController {
                 // Visible tests show their details, like LeetCode. Hidden tests show only pass or fail.
                 if (!hidden) {
                     row.put("input", input);
+                    // Tree inputs are drawn as a diagram in the results.
+                    row.put("treeInput", Boolean.TRUE.equals(t.get("treeInput")));
                     row.put("expected", expected);
                     row.put("actual", r.stdout() == null ? "" : r.stdout());
                     row.put("stderr", r.stderr() == null ? "" : r.stderr());

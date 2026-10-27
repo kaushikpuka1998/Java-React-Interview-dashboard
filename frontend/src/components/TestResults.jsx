@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import TreeDiagram, { parseTreeInput } from './TreeDiagram.jsx'
 
 // LeetCode-style result panel: a summary, a progress bar, a tab per test case, and the selected case's input and outputs.
 // Confetti pieces for a full pass: spread left and right, with a little delay between them.
@@ -76,6 +77,12 @@ export default function TestResults({ data }) {
               </p>
             ) : (
               <>
+                {current.treeInput && (
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">Tree</p>
+                    <TreeDiagram values={parseTreeInput(current.input)} />
+                  </div>
+                )}
                 <div className="space-y-2">
                   {(current.input || '').split('\n').filter(line => line.trim() !== '').map((line, i) => (
                     <Field key={i} label={`Input ${i + 1}`} text={line} />

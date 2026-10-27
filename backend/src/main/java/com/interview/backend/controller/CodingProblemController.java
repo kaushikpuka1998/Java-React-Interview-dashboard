@@ -176,6 +176,19 @@ public class CodingProblemController {
         return out;
     }
 
+    /** Code placed before the member's code, such as the TreeNode type for tree problems, or null. */
+    public static String preludeFor(CodingProblem p, String language) {
+        if (p.getTemplates() != null) {
+            try {
+                String pre = json.readTree(p.getTemplates()).path(language).path("prelude").asText(null);
+                return pre == null || pre.isBlank() ? null : pre;
+            } catch (JsonProcessingException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     /** The hidden driver for one language, or null when the problem has none for it. */
     public static String driverFor(CodingProblem p, String language) {
         if (p.getTemplates() != null) {

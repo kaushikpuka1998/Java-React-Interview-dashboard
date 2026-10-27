@@ -29,6 +29,7 @@ export default function PracticePage() {
   const [authOpen, setAuthOpen] = useState(false)
   // The top bar's Run and Submit call the code box through codeRef, and the code box reports whether it is busy.
   const codeRef = useRef(null)
+  const selectedRef = useRef(null)
   const [busy, setBusy] = useState(false)
   // The problem list can be collapsed to give the statement and the code box more room. The choice is remembered.
   const [listOpen, setListOpen] = useState(() => localStorage.getItem('ir_practice_list_open') !== 'false')
@@ -99,6 +100,14 @@ export default function PracticePage() {
       })
       .catch(e => { setError(e.message); setProblems([]); setSelected(CUSTOM) })
   }, [])
+
+  // Bring the selected problem into view in the list and focus it. The list scrolls on its own, and the page does not jump.
+  useEffect(() => {
+    const el = selectedRef.current
+    if (!el) return
+    el.scrollIntoView({ block: 'nearest' })
+    el.focus({ preventScroll: true })
+  }, [selected, problems, listOpen])
 
   useEffect(() => {
     if (selected == null || selected === CUSTOM) { setDetail(null); return }
@@ -175,6 +184,7 @@ export default function PracticePage() {
                 <li key={p.id}>
                   <button
                     type="button"
+                    ref={p.id === selected ? selectedRef : null}
                     onClick={() => setSelected(p.id)}
                     aria-pressed={p.id === selected}
                     className={`flex w-full items-start justify-between gap-3 px-4 py-3 text-left text-sm transition-colors ${p.id === selected ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/60'}`}
