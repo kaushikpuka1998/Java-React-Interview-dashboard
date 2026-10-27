@@ -5,6 +5,7 @@ import { getUser, isLoggedIn } from '../lib/auth.js'
 import { difficultyBadge } from '../lib/badges.js'
 import Markdown from './Markdown.jsx'
 import AuthModal from './AuthModal.jsx'
+import OnlineCount from './OnlineCount.jsx'
 import CodeRunner, { languageLabel } from './CodeRunner.jsx'
 
 const CUSTOM = 'custom'
@@ -314,6 +315,9 @@ export default function PracticePage() {
                     ) : (
                       <SubmissionList items={history} signedIn={isLoggedIn()} onOpen={id => setOpenRequest({ id, at: Date.now() })} />
                     )}
+                    <div className="sticky bottom-0 -mx-5 -mb-24 flex justify-end border-t border-slate-200 bg-white px-5 py-2 dark:border-slate-800 dark:bg-slate-950">
+                      <OnlineCount />
+                    </div>
                   </div>
                   <div
                     role="separator"

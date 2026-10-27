@@ -3,6 +3,7 @@ import { fetchCodingProblems } from '../lib/codingProblems.js'
 import { fetchSolvedIds, fetchAttemptedIds } from '../lib/code.js'
 import { isLoggedIn } from '../lib/auth.js'
 import { difficultyBadge } from '../lib/badges.js'
+import OnlineCount from './OnlineCount.jsx'
 
 const DIFFICULTIES = ['All', 'Basic', 'Intermediate', 'Advanced']
 const STATUSES = [['all', 'All'], ['solved', 'Solved'], ['todo', 'Not solved']]
@@ -68,6 +69,7 @@ export default function ProblemsPage() {
             </p>
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <OnlineCount />
             <a href="/practice" className="text-blue-600 hover:underline dark:text-blue-400">Practice coding</a>
             <a href="/" className="text-blue-600 hover:underline dark:text-blue-400">← Back to app</a>
           </div>

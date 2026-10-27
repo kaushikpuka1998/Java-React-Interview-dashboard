@@ -34,7 +34,7 @@ export function getUtm() {
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 const SESSION_KEY = 'ir_session_id'
 
-function sessionId() {
+export function sessionId() {
   let id = localStorage.getItem(SESSION_KEY)
   if (!id) {
     id = (crypto.randomUUID?.() || String(Math.random()).slice(2) + Date.now().toString(36))
