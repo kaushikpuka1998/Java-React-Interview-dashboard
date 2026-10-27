@@ -55,6 +55,17 @@ export async function saveCodingProblem(id, input) {
   return res.json()
 }
 
+// Admin: saves many problems from one list. Returns { saved, failed: [{ index, title, error }] }.
+export async function importCodingProblems(items) {
+  const res = await fetch(`${API_BASE}/admin/coding-problems/bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(items),
+  })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not import the problems.')
+  return res.json()
+}
+
 export async function deleteCodingProblem(id) {
   const res = await fetch(`${API_BASE}/admin/coding-problems/${id}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok && res.status !== 204) throw new Error('Could not delete the problem.')

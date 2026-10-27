@@ -23,6 +23,49 @@ public class CodingProblemController {
 
     public record ProblemInput(String title, String difficulty, String statement, String testCases, String starterCode, String driver, String templates) {}
 
+    // One problem in a bulk import file. Test cases and templates are written as real JSON, not as strings.
+    public record BulkProblem(String title, String difficulty, String statement, JsonNode testCases, JsonNode templates) {}
+
+    private static final int MAX_BULK = 200;
+
+    /** Admin: saves many problems at once. Each one is checked like a single problem; the ones that fail are skipped and listed. */
+    @PostMapping("/admin/coding-problems/bulk")
+    public ResponseEntity<?> bulkCreate(@RequestBody List<BulkProblem> items) {
+        if (items == null || items.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "The file has no problems."));
+        if (items.size() > MAX_BULK) return ResponseEntity.badRequest().body(Map.of("error", "Import at most " + MAX_BULK + " problems at a time."));
+        int saved = 0;
+        List<Map<String, Object>> failed = new ArrayList<>();
+        for (int i = 0; i < items.size(); i++) {
+            BulkProblem b = items.get(i);
+            String error;
+            try {
+                ProblemInput in = new ProblemInput(
+                        b.title(), b.difficulty(), b.statement(),
+                        jsonText(b.testCases()), null, null, jsonText(b.templates()));
+                error = validate(in);
+                if (error == null) {
+                    CodingProblem p = new CodingProblem();
+                    apply(p, in);
+                    problems.save(p);
+                    saved++;
+                    continue;
+                }
+            } catch (JsonProcessingException e) {
+                error = "Test cases or templates are not valid JSON.";
+            }
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("index", i);
+            row.put("title", b.title() == null ? "" : b.title());
+            row.put("error", error);
+            failed.add(row);
+        }
+        return ResponseEntity.ok(Map.of("saved", saved, "failed", failed));
+    }
+
+    private static String jsonText(JsonNode node) throws JsonProcessingException {
+        return node == null || node.isNull() ? null : json.writeValueAsString(node);
+    }
+
     // "Input: ... Output: ..." examples written in a statement, e.g. "Input: 4 / 2 7 11 15 / 9" then "Output: 0 1".
     private static final Pattern EXAMPLE = Pattern.compile("Input:\\s*(.*?)\\s*Output:\\s*([^\\n]*)", Pattern.DOTALL);
 

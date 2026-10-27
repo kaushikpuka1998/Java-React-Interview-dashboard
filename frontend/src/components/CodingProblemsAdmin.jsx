@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { fetchAdminCodingProblems, saveCodingProblem, deleteCodingProblem } from '../lib/codingProblems.js'
+import { useEffect, useRef, useState } from 'react'
+import { fetchAdminCodingProblems, saveCodingProblem, deleteCodingProblem, importCodingProblems } from '../lib/codingProblems.js'
 import Markdown from './Markdown.jsx'
 
 const TEMPLATE_LANGS = [['cpp', 'C++'], ['c', 'C'], ['python', 'Python'], ['ruby', 'Ruby'], ['rust', 'Rust'], ['csharp', 'C#'], ['php', 'PHP'], ['swift', 'Swift']]
@@ -30,6 +30,101 @@ function parseBulk(text) {
       hidden,
     }]
   })
+}
+
+// The format a bulk import file must follow. Shown on the admin page.
+const SAMPLE_IMPORT = JSON.stringify([
+  {
+    title: 'Two Sum',
+    difficulty: 'Basic',
+    statement: 'Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.',
+    testCases: [{ input: '4\n2 7 11 15\n9', expected: '0 1' }, { input: '3\n3 2 4\n6', expected: '1 2', hidden: true }],
+    templates: {
+      python: {
+        starter: 'class Solution:\n    def twoSum(self, nums, target):\n        pass',
+        driver: "import sys\n\ndata = sys.stdin.read().split()\nn = int(data[0])\nnums = [int(x) for x in data[1:1 + n]]\ntarget = int(data[1 + n])\nprint(*Solution().twoSum(nums, target))",
+      },
+    },
+  },
+], null, 2)
+
+// Imports many problems from one JSON file. Problems that fail the check are skipped and listed.
+function BulkImport({ onImported }) {
+  const fileRef = useRef(null)
+  const [items, setItems] = useState(null)
+  const [fileName, setFileName] = useState('')
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const onFile = e => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    setItems(null); setFileName(''); setResult(null); setError('')
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result))
+        if (!Array.isArray(parsed)) { setError('The file must hold a list of problems, in [ ... ] brackets.'); return }
+        setItems(parsed); setFileName(file.name)
+      } catch {
+        setError('That file is not valid JSON.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const importAll = async () => {
+    setBusy(true); setError(''); setResult(null)
+    try {
+      const r = await importCodingProblems(items)
+      setResult(r); setItems(null); setFileName('')
+      onImported()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/40">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Import problems (JSON)</h2>
+        <button type="button" onClick={() => fileRef.current?.click()} className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600">Choose file</button>
+      </div>
+      <input ref={fileRef} type="file" accept=".json,application/json" onChange={onFile} className="hidden" aria-label="Choose a JSON file of problems" />
+      <p className="text-sm text-slate-600 dark:text-slate-400">Up to 200 problems per file. Each needs a title, statement and test cases. Templates are optional.</p>
+      <details className="text-sm">
+        <summary className="cursor-pointer font-medium text-blue-600 dark:text-blue-400">Show the format</summary>
+        <pre className="mt-2 overflow-x-auto whitespace-pre rounded-lg bg-slate-950 p-3 font-mono text-xs text-slate-100">{SAMPLE_IMPORT}</pre>
+      </details>
+
+      {items && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-slate-700 dark:text-slate-300">{fileName}: {items.length} problem{items.length === 1 ? '' : 's'} ready.</p>
+          <button type="button" onClick={importAll} disabled={busy} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+            {busy ? 'Importing…' : `Import ${items.length} problem${items.length === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      )}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {result && (
+        <div className="space-y-2 text-sm">
+          <p className="font-medium text-emerald-700 dark:text-emerald-400">Imported {result.saved} problem{result.saved === 1 ? '' : 's'}.</p>
+          {result.failed.length > 0 && (
+            <>
+              <p className="text-red-600 dark:text-red-400">{result.failed.length} skipped:</p>
+              <ul className="list-disc space-y-1 pl-5 text-red-600 dark:text-red-400">
+                {result.failed.map(f => <li key={f.index}>#{f.index + 1} {f.title || '(no title)'}: {f.error}</li>)}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -169,6 +264,7 @@ export default function CodingProblemsAdmin() {
       </form>
 
       <div className="space-y-4">
+        <BulkImport onImported={load} />
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/40">
           <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Problems ({problems?.length ?? 0})</h2>
           {!problems && <p className="text-sm text-slate-500">Loading…</p>}
