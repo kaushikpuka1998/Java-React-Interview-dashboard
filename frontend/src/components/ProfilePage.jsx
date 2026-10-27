@@ -7,6 +7,7 @@ import AuthModal from './AuthModal.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
 import PieChart, { toHex, countBy } from './PieChart.jsx'
 import Markdown from './Markdown.jsx'
+import ActivityHeatmap from './ActivityHeatmap.jsx'
 import { resumeBuilderLink } from '../lib/analytics.js'
 import { updateUsername, fetchNotes, saveNote, removeNote } from '../lib/auth.js'
 
@@ -431,6 +432,11 @@ export default function ProfilePage() {
             { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
           ]}
         />
+      </div>
+
+      {/* Coding activity, like a LeetCode calendar */}
+      <div className="mb-6 sm:mb-8">
+        <ActivityHeatmap />
       </div>
 
       {/* Question lists */}

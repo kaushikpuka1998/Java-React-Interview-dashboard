@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchCodingProblems, fetchCodingProblem, markPracticeSeen } from '../lib/codingProblems.js'
-import { fetchSubmissions } from '../lib/code.js'
+import { fetchSubmissions, fetchSolvedIds, fetchAttemptedIds } from '../lib/code.js'
 import { getUser, isLoggedIn } from '../lib/auth.js'
 import { difficultyBadge } from '../lib/badges.js'
 import Markdown from './Markdown.jsx'
+import AuthModal from './AuthModal.jsx'
 import CodeRunner, { languageLabel } from './CodeRunner.jsx'
 
 const CUSTOM = 'custom'
@@ -19,6 +20,13 @@ export default function PracticePage() {
   const [tab, setTab] = useState('description')
   const [history, setHistory] = useState([])
   const [openRequest, setOpenRequest] = useState(null)
+  // Progress for the signed-in member, and the list's search and filters.
+  const [solvedIds, setSolvedIds] = useState(() => new Set())
+  const [attemptedIds, setAttemptedIds] = useState(() => new Set())
+  const [listQuery, setListQuery] = useState('')
+  const [listDifficulty, setListDifficulty] = useState('All')
+  const [listStatus, setListStatus] = useState('all')
+  const [authOpen, setAuthOpen] = useState(false)
   // The top bar's Run and Submit call the code box through codeRef, and the code box reports whether it is busy.
   const codeRef = useRef(null)
   const [busy, setBusy] = useState(false)
@@ -45,6 +53,22 @@ export default function PracticePage() {
     window.addEventListener('mousemove', move)
     window.addEventListener('mouseup', up)
   }
+  const refreshProgress = () => {
+    if (!isLoggedIn()) return
+    fetchSolvedIds().then(ids => setSolvedIds(new Set(ids))).catch(() => {})
+    fetchAttemptedIds().then(ids => setAttemptedIds(new Set(ids))).catch(() => {})
+  }
+  useEffect(refreshProgress, [])
+
+  // solved beats attempted; everything else is not attempted yet.
+  const statusOf = id => (solvedIds.has(id) ? 'solved' : attemptedIds.has(id) ? 'attempted' : 'todo')
+  const visibleProblems = (problems || []).filter(p => {
+    const q = listQuery.trim().toLowerCase()
+    if (listDifficulty !== 'All' && p.difficulty !== listDifficulty) return false
+    if (listStatus !== 'all' && statusOf(p.id) !== listStatus) return false
+    return !q || p.title.toLowerCase().includes(q)
+  })
+
   const loadHistory = () => { if (detail && isLoggedIn()) fetchSubmissions(detail.id).then(setHistory).catch(() => {}) }
   useEffect(() => {
     setTab('description')
@@ -66,7 +90,13 @@ export default function PracticePage() {
 
   useEffect(() => {
     fetchCodingProblems()
-      .then(list => { setProblems(list); setSelected(list[0]?.id ?? CUSTOM); markPracticeSeen() })
+      .then(list => {
+        // A link like /practice?id=12 opens that problem; otherwise the first one.
+        const wanted = Number(new URLSearchParams(window.location.search).get('id'))
+        setProblems(list)
+        setSelected(list.some(p => p.id === wanted) ? wanted : (list[0]?.id ?? CUSTOM))
+        markPracticeSeen()
+      })
       .catch(e => { setError(e.message); setProblems([]); setSelected(CUSTOM) })
   }, [])
 
@@ -78,18 +108,22 @@ export default function PracticePage() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-3 sm:p-4 xl:flex xl:h-screen xl:flex-col xl:overflow-hidden xl:pb-8 dark:bg-slate-900">
+      {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={() => window.location.reload()} />}
       <div className="mx-auto w-full max-w-[1800px] xl:flex xl:min-h-0 xl:flex-1 xl:flex-col">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-100">Practice coding</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">Solve a problem, or write your own code and run it.</p>
           </div>
-          <a href="/" className="text-sm text-blue-600 hover:underline dark:text-blue-400">← Back to app</a>
+          <div className="flex items-center gap-4 text-sm">
+            <a href="/problems" className="text-blue-600 hover:underline dark:text-blue-400">All problems</a>
+            <a href="/" className="text-blue-600 hover:underline dark:text-blue-400">← Back to app</a>
+          </div>
         </div>
 
         {!isLoggedIn() && (
           <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-            Sign in to run your code. You can still read the problems.
+            <button type="button" onClick={() => setAuthOpen(true)} className="font-semibold underline hover:no-underline">Sign in</button> to run your code. You can still read the problems.
           </p>
         )}
         {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -113,8 +147,31 @@ export default function PracticePage() {
               </li>
             </ul>
             <h2 className="px-1 pt-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Problems</h2>
+            <div className="space-y-2 rounded-2xl bg-white p-3 dark:bg-slate-950">
+              <input
+                type="search"
+                value={listQuery}
+                onChange={e => setListQuery(e.target.value)}
+                placeholder="Search problems"
+                aria-label="Search problems"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+              <div className="flex gap-2">
+                <select value={listDifficulty} onChange={e => setListDifficulty(e.target.value)} aria-label="Difficulty" className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
+                  {['All', 'Basic', 'Intermediate', 'Advanced'].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                {isLoggedIn() && (
+                  <select value={listStatus} onChange={e => setListStatus(e.target.value)} aria-label="Status" className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
+                    <option value="all">All</option>
+                    <option value="solved">Solved</option>
+                    <option value="attempted">Attempted</option>
+                    <option value="todo">Not attempted</option>
+                  </select>
+                )}
+              </div>
+            </div>
             <ul className="max-h-[70vh] divide-y divide-slate-200 overflow-y-auto rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
-              {problems.map(p => (
+              {visibleProblems.map(p => (
                 <li key={p.id}>
                   <button
                     type="button"
@@ -122,12 +179,17 @@ export default function PracticePage() {
                     aria-pressed={p.id === selected}
                     className={`flex w-full items-start justify-between gap-3 px-4 py-3 text-left text-sm transition-colors ${p.id === selected ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/60'}`}
                   >
-                    <span>{p.title}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      {isLoggedIn() && statusOf(p.id) === 'solved' && <span aria-label="Solved" className="shrink-0 text-emerald-500">✓</span>}
+                      {isLoggedIn() && statusOf(p.id) === 'attempted' && <span aria-label="Attempted" className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />}
+                      <span>{p.title}</span>
+                    </span>
                     {p.difficulty && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${difficultyBadge(p.difficulty)}`}>{p.difficulty}</span>}
                   </button>
                 </li>
               ))}
               {problems.length === 0 && <li className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No coding problems yet.</li>}
+              {problems.length > 0 && visibleProblems.length === 0 && <li className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No problems match.</li>}
             </ul>
             </>}
             </div>}
@@ -148,7 +210,7 @@ export default function PracticePage() {
                   <button type="button" onClick={toggleList} aria-label={listOpen ? 'Collapse problem list' : 'Expand problem list'} data-tip={listOpen ? 'Collapse problem list' : 'Expand problem list'} className={NAV_BTN}>
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16" /></svg>
                   </button>
-                  <span className="min-w-0 truncate px-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{selected === CUSTOM ? 'Playground' : detail?.title || 'Problems'}</span>
+                  <span className="min-w-0 truncate px-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Problems</span>
                   <button type="button" onClick={() => goToProblem(-1)} disabled={!canPrev} aria-label="Previous problem" data-tip="Previous problem" className={NAV_BTN}>
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
                   </button>
@@ -169,7 +231,9 @@ export default function PracticePage() {
                   data-track="code_run"
                   className="flex items-center gap-1.5 rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
                 >
-                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                  {busy
+                    ? <svg className="spin-ring h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+                    : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>}
                   {busy ? 'Running…' : 'Run'}
                 </button>
                 {selected !== CUSTOM && (
@@ -178,15 +242,16 @@ export default function PracticePage() {
                     onClick={() => codeRef.current?.submit()}
                     disabled={!isLoggedIn() || busy}
                     data-track="code_submit"
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
+                    {busy && <svg className="spin-ring h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" /></svg>}
                     Submit
                   </button>
                 )}
               </div>
 
               <div className="flex items-center justify-start gap-2 lg:justify-end">
-                {!isLoggedIn() && <span className="text-xs text-slate-500 dark:text-slate-400">Sign in to run code.</span>}
+                {!isLoggedIn() && <button type="button" onClick={() => setAuthOpen(true)} className="text-xs font-semibold text-blue-600 underline hover:no-underline dark:text-blue-400">Sign in to run code.</button>}
               </div>
             </div>
 
@@ -250,7 +315,7 @@ export default function PracticePage() {
                     <span className="h-16 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                   </div>
                   <div className="min-w-0 flex-1 xl:min-h-0 xl:overflow-y-auto">
-                    <CodeRunner key={`${detail.id}-${getUser()?.email ?? 'guest'}`} problemId={detail.id} starters={detail.starters || {}} history={history} onSubmitted={loadHistory} openRequest={openRequest} actionsRef={codeRef} onBusyChange={setBusy} />
+                    <CodeRunner key={`${detail.id}-${getUser()?.email ?? 'guest'}`} problemId={detail.id} starters={detail.starters || {}} history={history} onSubmitted={() => { loadHistory(); refreshProgress() }} openRequest={openRequest} actionsRef={codeRef} onBusyChange={setBusy} />
                   </div>
                 </>
               )}

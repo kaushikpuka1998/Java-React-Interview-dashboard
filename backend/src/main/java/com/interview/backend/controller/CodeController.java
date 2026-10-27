@@ -157,6 +157,29 @@ public class CodeController {
     }
 
     /** The member's last saved submissions for a problem, newest first. */
+    /** The member's submission times over the last year. The browser groups them by local date for the heatmap. */
+    @GetMapping("/activity")
+    public Map<String, Object> activity(Authentication auth) {
+        java.time.Instant since = java.time.Instant.now().minus(java.time.Duration.ofDays(366));
+        List<String> times = submissions.findByUserEmailAndCreatedAtAfter(auth.getName(), since).stream()
+                .map(s -> s.getCreatedAt().toString()).toList();
+        return Map.of("times", times);
+    }
+
+    /** Ids of every problem this member has submitted to, solved or not. Run alone does not count. */
+    @GetMapping("/attempted")
+    public List<Long> attempted(Authentication auth) {
+        return submissions.findByUserEmail(auth.getName()).stream()
+                .map(CodeSubmission::getProblemId).distinct().toList();
+    }
+
+    /** Ids of the problems this member has solved (an Accepted submission). */
+    @GetMapping("/solved")
+    public List<Long> solved(Authentication auth) {
+        return submissions.findByUserEmailAndStatus(auth.getName(), "Accepted").stream()
+                .map(CodeSubmission::getProblemId).distinct().toList();
+    }
+
     @GetMapping("/submissions")
     public List<Map<String, Object>> listSubmissions(@RequestParam Long problemId, Authentication auth) {
         return submissions.findTop20ByUserEmailAndProblemIdOrderByCreatedAtDesc(auth.getName(), problemId).stream().map(s -> {

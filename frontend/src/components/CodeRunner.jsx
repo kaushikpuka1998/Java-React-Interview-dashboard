@@ -42,7 +42,7 @@ function IconButton({ label, icon, onClick, disabled = false }) {
       disabled={disabled}
       data-tip={label}
       aria-label={label}
-      className="tip relative rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+      className="tip tip-below relative rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
     >
       <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">{ICON_PATHS[icon]}</svg>
     </button>
@@ -321,6 +321,11 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
         </div>
       )}
 
+      {(testing || running) && (
+        <div role="progressbar" aria-label="Running your code" className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+          <div className="run-sweep h-full w-1/3 rounded-full bg-blue-500" />
+        </div>
+      )}
       {status && <p className="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400">{status}</p>}
       {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 

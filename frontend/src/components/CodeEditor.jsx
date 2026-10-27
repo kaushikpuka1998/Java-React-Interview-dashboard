@@ -21,7 +21,8 @@ export function formatBraces(src) {
   let level = 0
   for (const raw of src.split('\n')) {
     const line = raw.trim()
-    if (!line) { out.push(''); continue }
+    // Runs of blank lines collapse to one, so formatting does not leave gaps.
+    if (!line) { if (out.length && out[out.length - 1] !== '') out.push(''); continue }
     const code = line.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\/\/.*$/g, '')
     const opens = (code.match(/[{[(]/g) || []).length
     const closes = (code.match(/[}\])]/g) || []).length
@@ -40,7 +41,7 @@ export function formatByIndent(src) {
   for (const raw of src.split('\n')) {
     const expanded = raw.replace(/\t/g, '    ')
     const text = expanded.trim()
-    if (!text) { out.push(''); continue }
+    if (!text) { if (out.length && out[out.length - 1] !== '') out.push(''); continue }
     const width = expanded.length - expanded.trimStart().length
     while (stack.length > 1 && width < stack[stack.length - 1]) stack.pop()
     if (width > stack[stack.length - 1]) stack.push(width)

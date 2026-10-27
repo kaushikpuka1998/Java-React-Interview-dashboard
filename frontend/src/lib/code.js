@@ -63,3 +63,21 @@ export async function fetchSubmission(id) {
   if (!res.ok) throw new Error('Could not open this submission.')
   return res.json()
 }
+
+// The member's submission times over the last year (ISO strings), for the activity heatmap.
+export async function fetchActivity() {
+  const res = await fetch(`${API_BASE}/code/activity`, { headers: authHeaders() })
+  return res.ok ? res.json() : { times: [] }
+}
+
+// Ids of every problem the member has submitted to (solved or not).
+export async function fetchAttemptedIds() {
+  const res = await fetch(`${API_BASE}/code/attempted`, { headers: authHeaders() })
+  return res.ok ? res.json() : []
+}
+
+// Ids of the problems the member has solved.
+export async function fetchSolvedIds() {
+  const res = await fetch(`${API_BASE}/code/solved`, { headers: authHeaders() })
+  return res.ok ? res.json() : []
+}

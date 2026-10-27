@@ -4,6 +4,7 @@ import App from './App.jsx'
 import AdminPage from './components/AdminPage.jsx'
 import ProfilePage from './components/ProfilePage.jsx'
 import PublicProfilePage from './components/PublicProfilePage.jsx'
+import ProblemsPage from './components/ProblemsPage.jsx'
 import LeaderboardPage from './components/LeaderboardPage.jsx'
 import ResumePage from './components/ResumePage.jsx'
 import ResumeEditor from './components/ResumeEditor.jsx'
@@ -73,6 +74,9 @@ function Router() {
 
   // Practice coding: questions with a code box that runs on the server.
   if (path === '/practice') return <Gate flag="code_practice" what="Practice coding"><PracticePage /></Gate>
+
+  // All coding problems on one page, with search and filters.
+  if (path === '/problems') return <Gate flag="code_practice" what="The problem list"><ProblemsPage /></Gate>
 
   // Resume builder: list, and one resume's editor.
   if (path === '/resume') return <Gate flag="resume_builder" what="The resume builder"><ResumePage /></Gate>
