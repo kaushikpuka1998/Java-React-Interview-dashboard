@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { getUser, isLoggedIn, logout } from '../lib/auth.js'
 import { createQuestion, createQuestionsBulk, updateQuestion, deleteQuestion, uploadImage } from '../lib/auth.js'
 import { fetchQuestions } from '../lib/api.js'
+import { fetchCodingProblemsExport } from '../lib/codingProblems.js'
 import AuthModal from './AuthModal.jsx'
 import Markdown from './Markdown.jsx'
 import AnalyticsPanel from './AnalyticsPanel.jsx'
@@ -190,6 +191,8 @@ export default function AdminPage() {
   const isAdmin = user && user.admin
 
   const [tab, setTab] = useState('single') // single | bulk | manage | suggestions | analytics
+  // Which dataset the Export JSON tab shows. Lifted so the Coding problems tab can preselect it.
+  const [exportSource, setExportSource] = useState('questions')
   const [form, setForm] = useState(EMPTY)
   const [editingId, setEditingId] = useState(null) // when set, form is editing an existing question
   const [bulk, setBulk] = useState('')
@@ -372,14 +375,14 @@ export default function AdminPage() {
       {tab === 'analytics' && <AnalyticsPanel />}
       {tab === 'emails' && <EmailCenter />}
       {tab === 'templates' && <ResumeTemplatesAdmin />}
-      {tab === 'coding' && <CodingProblemsAdmin />}
+      {tab === 'coding' && <CodingProblemsAdmin onExport={() => { setExportSource('coding'); setTab('export') }} />}
       {tab === 'features' && <FeatureFlagsPanel />}
 
       {tab === 'suggestions' && <SuggestionsPanel />}
 
       {tab === 'duplicates' && <DuplicatesPanel />}
 
-      {tab === 'export' && <ExportPanel tech={tech} setTech={setTech} search={search} setSearch={setSearch} />}
+      {tab === 'export' && <ExportPanel tech={tech} setTech={setTech} search={search} setSearch={setSearch} source={exportSource} setSource={setExportSource} />}
 
       {tab === 'manage' && (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-5 items-start">
@@ -512,7 +515,7 @@ function Shell({ children, tabWide }) {
   )
 }
 
-function ExportPanel({ tech, setTech, search, setSearch }) {
+function ExportPanel({ tech, setTech, search, setSearch, source, setSource }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -564,8 +567,13 @@ function ExportPanel({ tech, setTech, search, setSearch }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetchQuestions({ tech: tech === 'all' ? undefined : tech, search: search || undefined, page: 0, size: 100000 })
-      setData(res.content || [])
+      if (source === 'coding') {
+        // Already in the bulk import shape, so the file can be imported back without editing.
+        setData(await fetchCodingProblemsExport())
+      } else {
+        const res = await fetchQuestions({ tech: tech === 'all' ? undefined : tech, search: search || undefined, page: 0, size: 100000 })
+        setData(res.content || [])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -577,7 +585,7 @@ function ExportPanel({ tech, setTech, search, setSearch }) {
     if (unlocked) {
       loadData()
     }
-  }, [tech, search, unlocked])
+  }, [tech, search, unlocked, source])
 
   const handleDownload = () => {
     if (!data) return
@@ -585,7 +593,7 @@ function ExportPanel({ tech, setTech, search, setSearch }) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'exported_questions.json'
+    a.download = source === 'coding' ? 'coding_problems.json' : 'exported_questions.json'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -625,9 +633,24 @@ function ExportPanel({ tech, setTech, search, setSearch }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Export Questions</h2>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {source === 'coding' ? 'Export Coding Problems' : 'Export Questions'}
+          {data && <span className="ml-2 text-sm font-normal text-slate-500">{data.length} rows</span>}
+        </h2>
         <div className="flex gap-2">
-          <button 
+          <div className="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden">
+            {[['questions', 'Questions'], ['coding', 'Coding problems']].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => { setSource(value); setData(null) }}
+                className={`px-3 py-2 text-sm font-semibold transition-colors ${source === value ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
             onClick={loadData}
             disabled={loading}
             className="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors"
@@ -644,19 +667,26 @@ function ExportPanel({ tech, setTech, search, setSearch }) {
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-2">
-        <select value={tech} onChange={(e) => setTech(e.target.value)} className={inputCls}>
-          <option value="all">All Techs</option>
-          {TECHS.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className={`${inputCls} col-span-2`} />
-      </div>
-      
+      {source === 'coding' ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Every coding problem, in the bulk import shape, so this file can be imported back as-is.
+          Titles are not unique, so a problem with duplicate rows appears more than once.
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          <select value={tech} onChange={(e) => setTech(e.target.value)} className={inputCls}>
+            <option value="all">All Techs</option>
+            {TECHS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className={`${inputCls} col-span-2`} />
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      
+
       <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden h-[600px] flex flex-col">
         {loading && !data ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading questions...</div>
+          <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading {source === 'coding' ? 'coding problems' : 'questions'}…</div>
         ) : (
           <textarea 
             readOnly 

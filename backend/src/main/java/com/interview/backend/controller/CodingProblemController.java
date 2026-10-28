@@ -26,7 +26,7 @@ public class CodingProblemController {
     // One problem in a bulk import file. Test cases and templates are written as real JSON, not as strings.
     public record BulkProblem(String title, String difficulty, String statement, JsonNode testCases, JsonNode templates) {}
 
-    private static final int MAX_BULK = 200;
+    private static final int MAX_BULK = 1000;
 
     /** Admin: saves many problems at once. Each one is checked like a single problem; the ones that fail are skipped and listed. */
     @PostMapping("/admin/coding-problems/bulk")
@@ -132,6 +132,37 @@ public class CodingProblemController {
     @GetMapping("/admin/coding-problems")
     public List<CodingProblem> adminList() {
         return problems.findAllByOrderByIdAsc();
+    }
+
+    /**
+     * Admin: every problem as a bulk import file, so an export can be fed straight back into
+     * /admin/coding-problems/bulk or into another environment. This is not the same as adminList:
+     * that returns the rows as stored (id, createdAt, and JSON held in string columns), which the
+     * import does not accept. Here testCases and templates are real JSON and the row identity is
+     * dropped, leaving exactly the BulkProblem shape.
+     *
+     * Titles are not unique in the table, so duplicate rows export as duplicate entries. Importing
+     * that file into a database that already holds those titles adds copies, because bulkCreate
+     * always inserts; compare by title first.
+     */
+    @GetMapping("/admin/coding-problems/export")
+    public List<BulkProblem> exportBulk() {
+        List<BulkProblem> out = new ArrayList<>();
+        for (CodingProblem p : problems.findAllByOrderByIdAsc()) {
+            out.add(new BulkProblem(p.getTitle(), p.getDifficulty(), p.getStatement(),
+                    readJson(p.getTestCases()), readJson(p.getTemplates())));
+        }
+        return out;
+    }
+
+    /** Parses a JSON string column, or null when it is empty or not valid JSON. */
+    private static JsonNode readJson(String text) {
+        if (text == null || text.isBlank()) return null;
+        try {
+            return json.readTree(text);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     @PostMapping("/admin/coding-problems")

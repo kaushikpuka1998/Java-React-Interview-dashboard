@@ -44,6 +44,14 @@ export async function fetchAdminCodingProblems() {
   return res.json()
 }
 
+// Admin: every problem in the bulk import shape, for downloading. Unlike fetchAdminCodingProblems
+// this drops ids and returns testCases/templates as real JSON, so the file imports back as-is.
+export async function fetchCodingProblemsExport() {
+  const res = await fetch(`${API_BASE}/admin/coding-problems/export`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(await parseError(res) || 'Could not export the problems.')
+  return res.json()
+}
+
 // Admin: create (no id) or update (with id) a problem.
 export async function saveCodingProblem(id, input) {
   const res = await fetch(`${API_BASE}/admin/coding-problems${id ? `/${id}` : ''}`, {

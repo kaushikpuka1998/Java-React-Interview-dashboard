@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchAdminCodingProblems, saveCodingProblem, deleteCodingProblem, importCodingProblems } from '../lib/codingProblems.js'
 import Markdown from './Markdown.jsx'
 
-const TEMPLATE_LANGS = [['cpp', 'C++'], ['c', 'C'], ['python', 'Python'], ['ruby', 'Ruby'], ['rust', 'Rust'], ['csharp', 'C#'], ['php', 'PHP'], ['swift', 'Swift']]
+const TEMPLATE_LANGS = [['cpp', 'C++'], ['c', 'C'], ['python', 'Python'], ['ruby', 'Ruby'], ['rust', 'Rust'], ['csharp', 'C#'], ['php', 'PHP'], ['swift', 'Swift'], ['java', 'Java'], ['go', 'Go'], ['javascript', 'JavaScript']]
 const BLANK_TEMPLATE = { language: 'cpp', starter: '', driver: '' }
 const EMPTY = { title: '', difficulty: 'Basic', statement: '', templates: [BLANK_TEMPLATE], tests: [{ input: '', expected: '', hidden: false }] }
 
@@ -49,7 +49,7 @@ const SAMPLE_IMPORT = JSON.stringify([
 ], null, 2)
 
 // Imports many problems from one JSON file. Problems that fail the check are skipped and listed.
-function BulkImport({ onImported }) {
+function BulkImport({ onImported, onExport }) {
   const fileRef = useRef(null)
   const [items, setItems] = useState(null)
   const [fileName, setFileName] = useState('')
@@ -91,11 +91,18 @@ function BulkImport({ onImported }) {
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/40">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Import problems (JSON)</h2>
-        <button type="button" onClick={() => fileRef.current?.click()} className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600">Choose file</button>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Import / export problems (JSON)</h2>
+        <div className="flex gap-2">
+          {onExport && (
+            // Sends you to the Export JSON tab rather than downloading here, so bulk export stays
+            // behind the daily unlock code that tab already asks for.
+            <button type="button" onClick={onExport} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">Export all</button>
+          )}
+          <button type="button" onClick={() => fileRef.current?.click()} className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600">Choose file</button>
+        </div>
       </div>
       <input ref={fileRef} type="file" accept=".json,application/json" onChange={onFile} className="hidden" aria-label="Choose a JSON file of problems" />
-      <p className="text-sm text-slate-600 dark:text-slate-400">Up to 200 problems per file. Each needs a title, statement and test cases. Templates are optional.</p>
+      <p className="text-sm text-slate-600 dark:text-slate-400">Up to 1000 problems per file. Each needs a title, statement and test cases. Templates are optional.</p>
       <details className="text-sm">
         <summary className="cursor-pointer font-medium text-blue-600 dark:text-blue-400">Show the format</summary>
         <pre className="mt-2 overflow-x-auto whitespace-pre rounded-lg bg-slate-950 p-3 font-mono text-xs text-slate-100">{SAMPLE_IMPORT}</pre>
@@ -130,7 +137,7 @@ function BulkImport({ onImported }) {
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 // Admin editor for LeetCode-style problems. Kept separate from the normal question form.
-export default function CodingProblemsAdmin() {
+export default function CodingProblemsAdmin({ onExport }) {
   const [problems, setProblems] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [editingId, setEditingId] = useState(null)
@@ -264,7 +271,7 @@ export default function CodingProblemsAdmin() {
       </form>
 
       <div className="space-y-4">
-        <BulkImport onImported={load} />
+        <BulkImport onImported={load} onExport={onExport} />
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/40">
           <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Problems ({problems?.length ?? 0})</h2>
           {!problems && <p className="text-sm text-slate-500">Loading…</p>}
