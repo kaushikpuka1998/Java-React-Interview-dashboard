@@ -33,7 +33,8 @@ export default function PracticePage() {
   const selectedRef = useRef(null)
   const [busy, setBusy] = useState(false)
   // The problem list can be collapsed to give the statement and the code box more room. The choice is remembered.
-  const [listOpen, setListOpen] = useState(() => localStorage.getItem('ir_practice_list_open') !== 'false')
+  // Always starts collapsed; the member opens it when they want it. Not remembered between visits.
+  const [listOpen, setListOpen] = useState(false)
   // Width of the statement panel, as a percent of the row. Drag the divider to change it; the choice is remembered.
   const [split, setSplit] = useState(() => Number(localStorage.getItem('ir_practice_split')) || 38)
   const splitRef = useRef(null)
@@ -64,11 +65,13 @@ export default function PracticePage() {
 
   // solved beats attempted; everything else is not attempted yet.
   const statusOf = id => (solvedIds.has(id) ? 'solved' : attemptedIds.has(id) ? 'attempted' : 'todo')
+  // Numbered by position in the full list, as on ProblemsPage, so a problem keeps one number on both pages.
+  const numberOf = new Map((problems || []).map((p, i) => [p.id, i + 1]))
   const visibleProblems = (problems || []).filter(p => {
-    const q = listQuery.trim().toLowerCase()
+    const q = listQuery.trim().toLowerCase().replace(/^#/, '')
     if (listDifficulty !== 'All' && p.difficulty !== listDifficulty) return false
     if (listStatus !== 'all' && statusOf(p.id) !== listStatus) return false
-    return !q || p.title.toLowerCase().includes(q)
+    return !q || p.title.toLowerCase().includes(q) || String(numberOf.get(p.id)) === q
   })
 
   const loadHistory = () => { if (detail && isLoggedIn()) fetchSubmissions(detail.id).then(setHistory).catch(() => {}) }
@@ -88,7 +91,7 @@ export default function PracticePage() {
     const others = problems.filter(p => p.id !== selected)
     setSelected(others[Math.floor(Math.random() * others.length)].id)
   }
-  const toggleList = () => setListOpen(open => { localStorage.setItem('ir_practice_list_open', String(!open)); return !open })
+  const toggleList = () => setListOpen(open => !open)
 
   useEffect(() => {
     fetchCodingProblems()
@@ -102,18 +105,24 @@ export default function PracticePage() {
       .catch(e => { setError(e.message); setProblems([]); setSelected(CUSTOM) })
   }, [])
 
-  // Bring the selected problem into view in the list and focus it. The list scrolls on its own, and the page does not jump.
+  // Centre the selected problem in the list. Only the list scrolls: scrollIntoView would also scroll
+  // the page to reach it, which made the whole layout jump on Next/Previous.
   useEffect(() => {
     const el = selectedRef.current
-    if (!el) return
-    el.scrollIntoView({ block: 'nearest' })
+    const list = el?.closest('ul')
+    if (!el || !list) return
+    const offset = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
+    list.scrollTo({ top: offset - (list.clientHeight - el.offsetHeight) / 2, behavior: 'smooth' })
     el.focus({ preventScroll: true })
   }, [selected, problems, listOpen])
 
   useEffect(() => {
     if (selected == null || selected === CUSTOM) { setDetail(null); return }
-    setDetail(null)
-    fetchCodingProblem(selected).then(setDetail).catch(e => setError(e.message))
+    // Keep showing the current problem until the next one arrives, so moving between problems does
+    // not blank the panel. A response for a problem the member has already moved past is dropped.
+    let stale = false
+    fetchCodingProblem(selected).then(d => { if (!stale) setDetail(d) }).catch(e => { if (!stale) setError(e.message) })
+    return () => { stale = true }
   }, [selected])
 
   return (
@@ -162,16 +171,31 @@ export default function PracticePage() {
                 type="search"
                 value={listQuery}
                 onChange={e => setListQuery(e.target.value)}
-                placeholder="Search problems"
+                placeholder="Search by title or #number"
                 aria-label="Search problems"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
-              <div className="flex gap-2">
-                <select value={listDifficulty} onChange={e => setListDifficulty(e.target.value)} aria-label="Difficulty" className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
-                  {['All', 'Basic', 'Intermediate', 'Advanced'].map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
+              <div className="space-y-2">
+                <div role="group" aria-label="Difficulty" className="flex flex-wrap gap-1.5">
+                  {['All', 'Basic', 'Intermediate', 'Advanced'].map(d => {
+                    const n = d === 'All' ? problems.length : problems.filter(p => p.difficulty === d).length
+                    const active = listDifficulty === d
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setListDifficulty(d)}
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'}`}
+                      >
+                        <span>{d}</span>
+                        <span className={`rounded-full px-1.5 text-[10px] tabular-nums ${active ? 'bg-white/20 text-white' : 'bg-white text-slate-500 dark:bg-slate-900 dark:text-slate-400'}`}>{n}</span>
+                      </button>
+                    )
+                  })}
+                </div>
                 {isLoggedIn() && (
-                  <select value={listStatus} onChange={e => setListStatus(e.target.value)} aria-label="Status" className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
+                  <select value={listStatus} onChange={e => setListStatus(e.target.value)} aria-label="Status" className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
                     <option value="all">All</option>
                     <option value="solved">Solved</option>
                     <option value="attempted">Attempted</option>
@@ -190,10 +214,17 @@ export default function PracticePage() {
                     aria-pressed={p.id === selected}
                     className={`flex w-full items-start justify-between gap-3 px-4 py-3 text-left text-sm transition-colors ${p.id === selected ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/60'}`}
                   >
-                    <span className="flex min-w-0 items-center gap-2">
-                      {isLoggedIn() && statusOf(p.id) === 'solved' && <span aria-label="Solved" className="shrink-0 text-emerald-500">✓</span>}
-                      {isLoggedIn() && statusOf(p.id) === 'attempted' && <span aria-label="Attempted" className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />}
-                      <span>{p.title}</span>
+                    {/* Fixed columns, each one line tall (h-5 / leading-5 = the title's first line): the status
+                        slot is always there, empty when not started, so numbers and titles line up on every row. */}
+                    <span className="flex min-w-0 items-start gap-1.5">
+                      {isLoggedIn() && (
+                        <span className="flex h-5 w-4 shrink-0 items-center justify-center">
+                          {statusOf(p.id) === 'solved' && <span aria-label="Solved" className="text-sm leading-none text-emerald-500">✓</span>}
+                          {statusOf(p.id) === 'attempted' && <span aria-label="Attempted" className="h-2 w-2 rounded-full bg-amber-400" />}
+                        </span>
+                      )}
+                      <span className="w-8 shrink-0 text-xs leading-5 tabular-nums text-slate-400 dark:text-slate-500">#{numberOf.get(p.id)}</span>
+                      <span className="min-w-0 leading-5">{p.title}</span>
                     </span>
                     {p.difficulty && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${difficultyBadge(p.difficulty)}`}>{p.difficulty}</span>}
                   </button>
@@ -202,6 +233,9 @@ export default function PracticePage() {
               {problems.length === 0 && <li className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No coding problems yet.</li>}
               {problems.length > 0 && visibleProblems.length === 0 && <li className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No problems match.</li>}
             </ul>
+            <p className="px-1 text-xs tabular-nums text-slate-500 dark:text-slate-400" aria-live="polite">
+              Showing {visibleProblems.length} of {problems.length} problem{problems.length === 1 ? '' : 's'}
+            </p>
             </>}
             </div>}
 
@@ -290,7 +324,7 @@ export default function PracticePage() {
               )}
               {selected !== CUSTOM && detail && (
                 <>
-                  <div className="min-w-0 rounded-2xl bg-white p-5 pb-24 dark:bg-slate-950 xl:w-[var(--split)] xl:shrink-0 xl:overflow-y-auto">
+                  <div className="flex min-w-0 flex-col rounded-2xl bg-white p-5 pb-0 dark:bg-slate-950 xl:w-[var(--split)] xl:shrink-0 xl:overflow-y-auto">
                     <div role="tablist" className="mb-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
                       {[['description', 'Description'], ['submissions', `Submissions${history.length ? ` (${history.length})` : ''}`]].map(([key, label]) => (
                         <button
@@ -307,7 +341,10 @@ export default function PracticePage() {
                     </div>
                     {tab === 'description' ? (
                       <>
-                        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">{detail.title}</h2>
+                        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                          {numberOf.has(detail.id) && <><span className="font-normal tabular-nums text-slate-400 dark:text-slate-500">#{numberOf.get(detail.id)}</span>{' '}</>}
+                          {detail.title}
+                        </h2>
                         <div className="text-sm text-slate-700 dark:text-slate-300">
                           <Markdown text={detail.statement} />
                         </div>
@@ -315,7 +352,11 @@ export default function PracticePage() {
                     ) : (
                       <SubmissionList items={history} signedIn={isLoggedIn()} onOpen={id => setOpenRequest({ id, at: Date.now() })} />
                     )}
-                    <div className="sticky bottom-0 -mx-5 -mb-24 flex justify-end border-t border-slate-200 bg-white px-5 py-2 dark:border-slate-800 dark:bg-slate-950">
+                    {/* The panel has no bottom padding: a sticky footer stops at the padding edge, so padding here would
+                        float it above the bottom. The spacer keeps text off the footer; mt-auto pins the footer
+                        down when the statement is short, and sticky keeps it there when the statement scrolls. */}
+                    <div aria-hidden="true" className="h-5 shrink-0" />
+                    <div className="sticky bottom-0 -mx-5 mt-auto flex justify-end border-t border-slate-200 bg-white px-5 py-2 dark:border-slate-800 dark:bg-slate-950">
                       <OnlineCount />
                     </div>
                   </div>
