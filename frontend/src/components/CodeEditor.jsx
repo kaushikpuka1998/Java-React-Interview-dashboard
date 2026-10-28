@@ -9,11 +9,16 @@ const KEYWORDS = {
   csharp: 'abstract as base bool break byte case catch char class const continue decimal default do double else enum false float for foreach if in int interface long namespace new null object out override private protected public readonly ref return static string struct switch this throw true try typeof using var virtual void while Console',
   php: 'abstract and array as break case catch class const continue default do echo else elseif extends false final for foreach function if implements include namespace new null or private protected public return static switch this throw true try use var while',
   swift: 'let var func class struct enum protocol if else for while return import guard switch case default true false nil self in print init',
+  java: 'abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for if implements import instanceof int interface long native new null package private protected public return short static strictfp super switch synchronized this throw throws transient true false try void volatile while var record String System',
+  javascript: 'async await break case catch class const continue debugger default delete do else export extends false finally for function if import in instanceof let new null of return static super switch this throw true try typeof undefined var void while with yield console',
+  go: 'append break cap case chan close complex const continue copy default defer delete else fallthrough false float64 for func go goto if import int int64 interface len make map new nil package panic print println range recover return select string struct switch true type var fmt',
 }
 const HASH_COMMENTS = ['python', 'ruby', 'php']
 
 const PAIRS = { '{': '}', '(': ')', '[': ']', '"': '"', "'": "'" }
-export const BRACE_LANGUAGES = new Set(['cpp', 'c', 'csharp', 'rust', 'php', 'swift'])
+// Go belongs here because it is brace-based; note the Format button will re-indent it with spaces,
+// not the tabs gofmt would use. Judge0 compiles it either way.
+export const BRACE_LANGUAGES = new Set(['cpp', 'c', 'csharp', 'rust', 'php', 'swift', 'java', 'javascript', 'go'])
 
 // Re-indents brace-based code: four spaces per open brace, and a closing brace goes back one level.
 export function formatBraces(src) {

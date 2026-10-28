@@ -6,9 +6,12 @@ import TestResults from './TestResults.jsx'
 import CodeEditor, { FONTS, formatCode } from './CodeEditor.jsx'
 
 const LANGUAGES = [
+  { key: 'java', label: 'Java', starter: ['public class Main {', '    public static void main(String[] args) {', '        System.out.println("Hello, world!");', '    }', '}'] },
   { key: 'cpp', label: 'C++', starter: ['#include <iostream>', 'int main() {', '    std::cout << "Hello, world!" << std::endl;', '    return 0;', '}'] },
   { key: 'c', label: 'C', starter: ['#include <stdio.h>', 'int main(void) {', '    printf("Hello, world!\\n");', '    return 0;', '}'] },
   { key: 'python', label: 'Python', starter: ['print("Hello, world!")'] },
+  { key: 'javascript', label: 'JavaScript', starter: ['console.log("Hello, world!")'] },
+  { key: 'go', label: 'Go', starter: ['package main', '', 'import "fmt"', '', 'func main() {', '\tfmt.Println("Hello, world!")', '}'] },
   { key: 'ruby', label: 'Ruby', starter: ['puts "Hello, world!"'] },
   { key: 'rust', label: 'Rust', starter: ['fn main() {', '    println!("Hello, world!");', '}'] },
   { key: 'csharp', label: 'C#', starter: ['using System;', 'class Program {', '    static void Main() {', '        Console.WriteLine("Hello, world!");', '    }', '}'] },
@@ -21,6 +24,7 @@ const LANGUAGES = [
 const EXTENSIONS = {
   cpp: ['.cpp', '.cc', '.cxx', '.hpp', '.h'], c: ['.c', '.h'], python: ['.py'], go: ['.go'], ruby: ['.rb'],
   rust: ['.rs'], kotlin: ['.kt', '.kts'], csharp: ['.cs'], php: ['.php'], swift: ['.swift'], java: ['.java'],
+  javascript: ['.js', '.mjs', '.cjs'],
 }
 const MAX_FILE_BYTES = 100_000
 
@@ -53,6 +57,8 @@ function IconButton({ label, icon, onClick, disabled = false }) {
 // `history` and `openRequest` come from the practice page: openRequest.id opens a saved submission in the editor.
 export default function CodeRunner({ problemId, starters = null, history = [], onSubmitted, openRequest, actionsRef, onBusyChange }) {
   // Coding problems offer only the languages they have a starter for. Own-code practice offers all of them.
+  // A coding problem opens in the first of its own options, so LANGUAGES order sets the default: Java leads
+  // the array deliberately. Problems without a Java starter (tree and linked list ones) fall through to C++.
   const starterKeys = starters ? Object.keys(starters) : []
   const options = starters && starterKeys.length ? LANGUAGES.filter(l => starterKeys.includes(l.key)) : LANGUAGES
   const firstLanguage = starters && options.length ? options[0].key : 'cpp'
