@@ -45,6 +45,7 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
   const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase()
   const path = typeof window !== 'undefined' ? window.location.pathname : ''
   const onProfile = path === '/profile' || path.startsWith('/profile/')
+  const goAdmin = onAdmin || (() => { window.location.href = '/admin' })
   const doLogout = onLogout || (() => logout({ redirect: '/' }))
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
@@ -67,8 +68,8 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
             </button>
           )}
           {signedIn && <Notifications />}
-          {signedIn && user?.admin && onAdmin && (
-            <button onClick={onAdmin} title="Open the admin dashboard" className="rounded-md bg-blue-600/10 px-2.5 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-600/20 dark:text-blue-300">Admin</button>
+          {signedIn && user?.admin && (
+            <button onClick={goAdmin} title="Open the admin dashboard" className="rounded-md bg-blue-600/10 px-2.5 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-600/20 dark:text-blue-300">Admin</button>
           )}
           {signedIn ? (
             <>

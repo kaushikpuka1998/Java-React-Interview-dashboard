@@ -197,6 +197,13 @@ export async function fetchAnalytics(days = 30) {
   return res.json()
 }
 
+// Admin: who is online right now. Members by name and email, visitors as a count.
+export async function fetchOnline() {
+  const res = await fetch(`${API_BASE}/analytics/online`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('Failed to load who is online')
+  return res.json()
+}
+
 export async function fetchSignups(since, limit = 20) {
   const q = new URLSearchParams({ limit: String(limit) })
   if (since) q.set('since', since)

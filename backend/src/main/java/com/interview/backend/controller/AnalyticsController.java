@@ -31,6 +31,7 @@ public class AnalyticsController {
     private final QuestionRepository questions;
     private final UserProgressRepository progress;
     private final UserEventRepository events;
+    private final PresenceController presence;
 
     /** A member counts as "reading" once they spend this long on, or scroll this far into, an answer. */
     private static final int READ_SECONDS = 30, READ_SCROLL = 50;
@@ -300,6 +301,24 @@ public class AnalyticsController {
     private static long perSession(Object totalSeconds, Object sessions) {
         long n = sessions == null ? 0 : ((Number) sessions).longValue();
         return n == 0 ? 0 : ((Number) totalSeconds).longValue() / n;
+    }
+
+    /** Who is online right now: signed-in members by name, plus how many anonymous visitors. Admin only (under /analytics/**). */
+    @GetMapping("/online")
+    public Map<String, Object> online() {
+        Map<String, Object> snap = presence.snapshot();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> members = (List<Map<String, Object>>) snap.get("members");
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Map<String, Object> m : members) {
+            Map<String, Object> row = new LinkedHashMap<>(m);
+            users.findByEmail((String) m.get("email")).ifPresent(u -> {
+                row.put("name", u.getName() == null ? "" : u.getName());
+                row.put("username", u.getUsername() == null ? "" : u.getUsername());
+            });
+            out.add(row);
+        }
+        return Map.of("members", out, "visitors", snap.get("visitors"));
     }
 
     /** Recent signups feed. `since` is an ISO instant so the UI can badge new ones. */

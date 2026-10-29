@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAnalytics, fetchSignups } from '../lib/analytics.js'
+import { fetchAnalytics, fetchSignups, fetchOnline } from '../lib/analytics.js'
 
 // When the admin last acknowledged the signup list — used to badge new joiners.
 const SEEN_KEY = 'ir_signups_seen_at'
@@ -301,6 +301,52 @@ function EngagementBlock({ engagement, topQuestions }) {
   )
 }
 
+// Live "who is online" card for the admin: signed-in members by name, anonymous visitors as a number. Refreshes every 15 seconds.
+function OnlineNow() {
+  const [online, setOnline] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const tick = () => fetchOnline().then(d => { if (alive) setOnline(d) }).catch(() => {})
+    tick()
+    const timer = setInterval(tick, 15000)
+    return () => { alive = false; clearInterval(timer) }
+  }, [])
+  if (!online) return null
+  const ago = iso => {
+    const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000))
+    return s < 60 ? `${s}s ago` : `${Math.round(s / 60)}m ago`
+  }
+  const total = online.members.length + online.visitors
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/40">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" /> Online now
+        </h3>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{total} total · {online.members.length} signed in · {online.visitors} visitor{online.visitors === 1 ? '' : 's'}</span>
+      </div>
+      {online.members.length === 0 ? (
+        <p className="text-sm text-slate-400">No signed-in members online right now.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+          {online.members.map(m => (
+            <li key={m.email} className="flex items-center justify-between gap-3 py-1.5 text-sm">
+              <span className="min-w-0 truncate text-slate-800 dark:text-slate-100">
+                {m.name || m.email}
+                {m.name && <span className="ml-2 text-xs text-slate-400">{m.email}</span>}
+              </span>
+              <span className="flex flex-shrink-0 items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                {m.username && <a href={`/u/${m.username}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">profile ↗</a>}
+                {ago(m.lastSeen)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export default function AnalyticsPanel() {
   const [days, setDays] = useState(30)
   const [data, setData] = useState(null)
@@ -348,6 +394,8 @@ export default function AnalyticsPanel() {
           </button>
         </div>
       )}
+
+      <OnlineNow />
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-1">

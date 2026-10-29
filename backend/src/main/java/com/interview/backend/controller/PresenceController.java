@@ -39,6 +39,24 @@ public class PresenceController {
         return Map.of("online", lastSeen.size());
     }
 
+    /** For the admin analytics page only (see AnalyticsController): who is online, newest activity first. Members by email, visitors only as a number. */
+    public Map<String, Object> snapshot() {
+        Instant cutoff = Instant.now().minus(WINDOW);
+        lastSeen.values().removeIf(seen -> seen.isBefore(cutoff));
+        java.util.List<Map<String, Object>> members = new java.util.ArrayList<>();
+        int visitors = 0;
+        for (Map.Entry<String, Instant> e : lastSeen.entrySet()) {
+            if (e.getKey().startsWith("u:")) {
+                Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("email", e.getKey().substring(2));
+                m.put("lastSeen", e.getValue().toString());
+                members.add(m);
+            } else visitors++;
+        }
+        members.sort((a, b) -> ((String) b.get("lastSeen")).compareTo((String) a.get("lastSeen")));
+        return Map.of("members", members, "visitors", visitors);
+    }
+
     private String visitorKey(String sessionId) {
         String email = signedInEmail();
         if (email != null) return "u:" + email;
