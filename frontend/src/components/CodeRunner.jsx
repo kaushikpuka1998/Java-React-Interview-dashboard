@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getUser, isLoggedIn } from '../lib/auth.js'
 import { runCode, runTests, fetchSubmission } from '../lib/code.js'
+import { paramsOf, exampleOf, toFields, toStdin } from '../lib/testcases.js'
 import { trackClick } from '../lib/analytics.js'
 import TestResults from './TestResults.jsx'
+import TreeDiagram, { ListDiagram, parseTreeInput } from './TreeDiagram.jsx'
 import CodeEditor, { FONTS, formatCode } from './CodeEditor.jsx'
 
 const LANGUAGES = [
@@ -55,7 +57,10 @@ function IconButton({ label, icon, onClick, disabled = false }) {
 
 // Code box for practice problems. Runs on the server for signed-in members only.
 // `history` and `openRequest` come from the practice page: openRequest.id opens a saved submission in the editor.
-export default function CodeRunner({ problemId, starters = null, history = [], onSubmitted, openRequest, actionsRef, onBusyChange }) {
+const MAX_CASES = 6
+const sameOutput = (a, b) => String(a ?? '').split('\n').map(l => l.trimEnd()).join('\n').trim() === String(b ?? '').split('\n').map(l => l.trimEnd()).join('\n').trim()
+
+export default function CodeRunner({ problemId, statement = '', starters = null, history = [], onSubmitted, openRequest, actionsRef, onBusyChange }) {
   // Coding problems offer only the languages they have a starter for. Own-code practice offers all of them.
   // A coding problem opens in the first of its own options, so LANGUAGES order sets the default: Java leads
   // the array deliberately. Problems without a Java starter (tree and linked list ones) fall through to C++.
@@ -74,6 +79,29 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
   const updateCode = (value, lang = language) => { setCode(value); localStorage.setItem(draftKey(lang), value) }
   const [stdin, setStdin] = useState('')
   const [showInput, setShowInput] = useState(false)
+  // Custom cases for a coding problem, one field per parameter. Case 1 starts as the statement's example;
+  // a case keeps its expected output only until one of its fields is edited.
+  const params = useMemo(() => paramsOf(statement), [statement])
+  const nextCaseId = useRef(1)
+  const [cases, setCases] = useState(() => {
+    const ex = exampleOf(statement)
+    const p = paramsOf(statement)
+    return [{ id: 0, fields: ex ? toFields(p, ex.input) : (p || [null]).map(() => ''), expected: ex?.expected ?? null }]
+  })
+  const [activeCase, setActiveCase] = useState(0)
+  const [caseResults, setCaseResults] = useState(null)
+  const [activeResult, setActiveResult] = useState(0)
+  const editField = (j, value) => setCases(cs => cs.map((c, i) => (i === activeCase ? { ...c, fields: c.fields.map((f, k) => (k === j ? value : f)), expected: null } : c)))
+  const addCase = () => {
+    setCases(cs => [...cs, { ...cs[activeCase], id: nextCaseId.current++ }])
+    setActiveCase(cases.length)
+    setCaseResults(null)
+  }
+  const removeCase = i => {
+    setCases(cs => cs.filter((_, k) => k !== i))
+    setActiveCase(a => Math.max(0, a >= i ? a - 1 : a))
+    setCaseResults(null)
+  }
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [running, setRunning] = useState(false)
@@ -199,6 +227,23 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
     }
   }
 
+  // Runs every custom case at once. Each result remembers its case's expected output, if known.
+  const runCases = async () => {
+    trackClick(`code_run_cases:${language}`)
+    setRunning(true); setError(''); setResult(null); setTestResult(null); setCaseResults(null)
+    try {
+      const out = await Promise.all(cases.map(c =>
+        runCode({ language, code, stdin: toStdin(params, c.fields), problemId, onStatus: setStatus }).then(r => ({ ...r, expected: c.expected }))))
+      setCaseResults(out)
+      setActiveResult(Math.min(activeCase, out.length - 1))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setRunning(false)
+      setStatus('')
+    }
+  }
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 xl:flex xl:h-full xl:flex-col dark:border-slate-700 dark:bg-slate-900/40">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -281,15 +326,73 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
 
       <div ref={bottomRef} style={bottomH ? { maxHeight: bottomH } : undefined} className={`xl:min-h-0 xl:max-h-[45%] xl:overflow-y-auto ${bottomH ? 'overflow-y-auto pr-1' : ''}`}>
 
-      {(showInput || (problemId && stdin !== '')) && (
+      {problemId && showInput && (
+        <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-1 overflow-x-auto px-2 pt-2" role="tablist" aria-label="Custom test cases">
+            {cases.map((c, i) => (
+              <div key={c.id} className="group relative shrink-0">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={i === activeCase}
+                  onClick={() => setActiveCase(i)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${i === activeCase ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}`}
+                >
+                  Case {i + 1}
+                </button>
+                {cases.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeCase(i)}
+                    aria-label={`Remove case ${i + 1}`}
+                    className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-slate-500 text-[11px] leading-none text-white group-hover:flex group-focus-within:flex"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            {cases.length < MAX_CASES && (
+              <button type="button" onClick={addCase} aria-label="Add a case (copies the current one)" title="Add a case" className="shrink-0 rounded-lg px-2 py-1 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">+</button>
+            )}
+          </div>
+          <div className="space-y-3 p-3">
+            {params ? params.map((p, j) => (
+              <label key={p.name} className="block">
+                <span className="mb-1 block font-mono text-xs text-slate-500 dark:text-slate-400">{p.name} =</span>
+                <input
+                  value={cases[activeCase]?.fields[j] ?? ''}
+                  onChange={e => editField(j, e.target.value)}
+                  spellCheck={false}
+                  placeholder={p.type === 'tree' ? '[1,2,3,null,4]' : p.type === 'list' || p.type === 'int[]' ? '[1,2,3]' : ''}
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-[13px] text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                />
+                {(p.type === 'tree' || p.type === 'list') && (
+                  <div className="mt-2 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                    {p.type === 'tree'
+                      ? <TreeDiagram values={parseTreeInput(cases[activeCase]?.fields[j])} />
+                      : <ListDiagram values={parseTreeInput(cases[activeCase]?.fields[j])} />}
+                  </div>
+                )}
+              </label>
+            )) : (
+              <textarea
+                value={cases[activeCase]?.fields[0] ?? ''}
+                onChange={e => editField(0, e.target.value)}
+                rows={3}
+                spellCheck={false}
+                aria-label="Program input"
+                className="w-full rounded-lg border border-slate-300 bg-slate-50 p-2 font-mono text-[13px] text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              />
+            )}
+            {params?.some(p => p.type === 'tree') && <p className="text-xs text-slate-500 dark:text-slate-400">Trees are level order with null for a missing child, e.g. [2,3,1,null,1].</p>}
+          </div>
+        </div>
+      )}
+
+      {!problemId && showInput && (
         <div className="mt-3">
-          {problemId && (
-            <label htmlFor="custom-input" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Custom input <span className="font-normal text-slate-500 dark:text-slate-400">(used by Run custom input only)</span>
-            </label>
-          )}
           <textarea
-            id="custom-input"
             value={stdin}
             onChange={e => setStdin(e.target.value)}
             rows={3}
@@ -300,16 +403,16 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
         </div>
       )}
 
-      {problemId && (showInput || stdin !== '') && (
+      {problemId && showInput && (
         <div className="mt-3 flex justify-end">
           <button
             type="button"
-            onClick={run}
+            onClick={runCases}
             disabled={!signedIn || running || testing || !code.trim()}
             data-track="code_run_custom"
             className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800"
           >
-            {running ? 'Running…' : 'Run custom input'}
+            {running ? 'Running…' : cases.length > 1 ? `Run ${cases.length} custom cases` : 'Run custom case'}
           </button>
         </div>
       )}
@@ -337,6 +440,8 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
 
       {testResult && <TestResults data={testResult} />}
 
+      {caseResults && <CaseResults results={caseResults} active={activeResult} onPick={setActiveResult} />}
+
       {result && (
         <div className="mt-3 space-y-2">
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -350,5 +455,46 @@ export default function CodeRunner({ problemId, starters = null, history = [], o
       )}
       </div>
     </section>
+  )
+}
+
+// Results of the custom cases: a tab per case, green or red when the case has a known expected output.
+function CaseResults({ results, active, onPick }) {
+  const r = results[active] || results[0]
+  const verdict = x => (x.expected == null || x.compileOutput || x.stderr ? null : sameOutput(x.stdout, x.expected))
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Custom case results">
+        {results.map((x, i) => {
+          const v = verdict(x)
+          return (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              onClick={() => onPick(i)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${i === active ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+            >
+              {v !== null && <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${v ? 'bg-emerald-500' : 'bg-rose-500'}`} />}
+              Case {i + 1}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        {r.status}{r.time ? ` · ${r.time}s` : ''}{r.memoryKb ? ` · ${Math.round(r.memoryKb / 1024)} MB` : ''}
+      </p>
+      {r.compileOutput && <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-red-950 p-3 text-xs text-red-200">{r.compileOutput}</pre>}
+      {r.stderr && <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-red-950 p-3 text-xs text-red-200">{r.stderr}</pre>}
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Output</p>
+      <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-3 text-xs text-emerald-300">{r.stdout || ' '}</pre>
+      {r.expected != null && (
+        <>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Expected</p>
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-slate-950 p-3 text-xs text-slate-200">{r.expected || ' '}</pre>
+        </>
+      )}
+    </div>
   )
 }

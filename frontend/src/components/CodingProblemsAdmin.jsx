@@ -10,7 +10,7 @@ const EMPTY = { title: '', difficulty: 'Basic', statement: '', templates: [BLANK
 function templatesOf(p) {
   if (p.templates) {
     try {
-      const rows = Object.entries(JSON.parse(p.templates)).map(([language, t]) => ({ language, starter: t.starter || '', driver: t.driver || '' }))
+      const rows = Object.entries(JSON.parse(p.templates)).map(([language, t]) => ({ language, starter: t.starter || '', driver: t.driver || '', prelude: t.prelude || '' }))
       if (rows.length) return rows
     } catch { /* fall through to the old fields */ }
   }
@@ -187,7 +187,8 @@ export default function CodingProblemsAdmin({ onExport }) {
       .map(t => ({ input: t.input, expected: t.expected, ...(t.hidden ? { hidden: true } : {}) }))
     try {
       const byLanguage = {}
-      form.templates.forEach(t => { if (t.starter.trim() || t.driver.trim()) byLanguage[t.language] = { starter: t.starter, driver: t.driver } })
+      // prelude is not editable here, but tree and list problems need it (it declares TreeNode/ListNode), so carry it through.
+      form.templates.forEach(t => { if (t.starter.trim() || t.driver.trim()) byLanguage[t.language] = { starter: t.starter, driver: t.driver, ...(t.prelude ? { prelude: t.prelude } : {}) } })
       await saveCodingProblem(editingId, { title: form.title, difficulty: form.difficulty, statement: form.statement, templates: Object.keys(byLanguage).length ? JSON.stringify(byLanguage) : '', testCases: JSON.stringify(tests) })
       setMsg({ ok: true, text: editingId ? 'Problem updated.' : 'Problem added.' })
       reset()
