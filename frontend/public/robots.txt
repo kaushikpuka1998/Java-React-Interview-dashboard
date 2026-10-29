@@ -5,5 +5,6 @@ Allow: /
 # Application routes with no standalone content
 Disallow: /admin
 Disallow: /profile
+Disallow: /u/
 
 Sitemap: https://interviewreader.up.railway.app/sitemap.xml

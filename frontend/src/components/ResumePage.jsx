@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import { isLoggedIn } from '../lib/auth.js'
 import { fetchTemplates, fetchResumes, createResume, deleteResume } from '../lib/resume.js'
@@ -8,6 +9,7 @@ const input = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text
 
 // Resume list: open, create (from a template, blank or from the sample), delete.
 export default function ResumePage() {
+  useEffect(() => { setPageSeo({ title: 'Free Resume Builder with LaTeX Templates and PDF Export | Interview Reader', description: 'Build an ATS-friendly resume from free LaTeX templates and download it as a PDF in one click.', path: '/resume', jsonLd: undefined }) }, [])
   const [resumes, setResumes] = useState(null)
   const [templates, setTemplates] = useState([])
   const [creating, setCreating] = useState(false)

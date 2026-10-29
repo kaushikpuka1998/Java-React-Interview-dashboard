@@ -65,9 +65,7 @@ export default function Sidebar({  questions, filtered, selectedId, query, setQu
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="logo w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0">
-              IR
-            </div>
+            <img src="/logo.svg" alt="" className="logo w-10 h-10 rounded-xl shadow-lg flex-shrink-0" />
             <div className="min-w-0">
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">Interview Reader</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{getBannerText()}</p>

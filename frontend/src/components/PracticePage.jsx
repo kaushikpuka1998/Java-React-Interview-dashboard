@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import { fetchCodingProblems, fetchCodingProblem, markPracticeSeen } from '../lib/codingProblems.js'
 import { fetchSubmissions, fetchSolvedIds, fetchAttemptedIds } from '../lib/code.js'
@@ -14,6 +15,7 @@ const NAV_BTN = 'tip relative flex h-8 w-8 shrink-0 items-center justify-center 
 
 // Practice coding: LeetCode-style problems on the left, plus a free code box for writing your own program.
 export default function PracticePage() {
+  useEffect(() => { setPageSeo({ title: 'Practice Coding Online: Run Java, Python, C++ and Go | Interview Reader', description: 'Solve coding interview problems in an online editor, run them against test cases, and see your submissions. Supports Java, Python, C++, Go, JavaScript, Rust, C#, PHP, Ruby, Swift and C.', path: '/practice', jsonLd: undefined }) }, [])
   const [problems, setProblems] = useState(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const CHUNK = 50

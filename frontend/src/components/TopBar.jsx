@@ -50,7 +50,7 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
       <div className="flex h-14 items-center gap-4 px-4">
         <a href="/" className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100" aria-label="Interview Reader home">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white">IR</span>
+          <img src="/logo.svg" alt="" className="h-8 w-8 rounded-lg" />
           <span className="hidden sm:inline">Interview Reader</span>
         </a>
         <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm" aria-label="Main">

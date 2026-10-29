@@ -159,3 +159,22 @@ export function setDefaultSeo(total) {
   })
   setJsonLd('ld-breadcrumb', null)
 }
+
+/**
+ * Title, description, canonical and social tags for the app's other public pages
+ * (problem list, practice, leaderboard, resume builder). `jsonLd` adds structured data for that page.
+ */
+export function setPageSeo({ title, description, path, jsonLd }) {
+  const url = `${SITE_URL}${path}`
+  document.title = title
+  upsertMeta('meta[name="description"]', { name: 'description', content: description })
+  upsertLink('canonical', url)
+  upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title })
+  upsertMeta('meta[property="og:description"]', { property: 'og:description', content: description })
+  upsertMeta('meta[property="og:url"]', { property: 'og:url', content: url })
+  upsertMeta('meta[property="og:type"]', { property: 'og:type', content: 'website' })
+  upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title })
+  upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: description })
+  setJsonLd('ld-qa', jsonLd ? { ...jsonLd, url: jsonLd.url?.startsWith('/') ? SITE_URL + jsonLd.url : jsonLd.url } : null)
+  setJsonLd('ld-breadcrumb', null)
+}

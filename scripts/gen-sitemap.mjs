@@ -49,6 +49,9 @@ function sitemapXml(questions) {
   const today = new Date().toISOString().slice(0, 10)
   const urls = [
     `  <url>\n    <loc>${SITE_URL}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>`,
+    // The app's other public pages.
+    ...[['/problems', 'daily', '0.9'], ['/practice', 'weekly', '0.7'], ['/leaderboard', 'daily', '0.5'], ['/resume', 'monthly', '0.6']].map(([path, freq, prio]) =>
+      `  <url>\n    <loc>${SITE_URL}${path}</loc>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`),
     ...questions.map(q => {
       const slug = slugify(q.question || q.title)
       if (!slug) return null
@@ -74,6 +77,7 @@ Allow: /
 # Application routes with no standalone content
 Disallow: /admin
 Disallow: /profile
+Disallow: /u/
 
 Sitemap: ${SITE_URL}/sitemap.xml
 `
@@ -86,7 +90,7 @@ async function main() {
   await writeFile(join(publicDir, 'sitemap.xml'), sitemapXml(questions))
   await writeFile(join(publicDir, 'robots.txt'), robotsTxt())
 
-  console.log(`sitemap.xml  ${questions.length + 1} urls`)
+  console.log(`sitemap.xml  ${questions.length + 5} urls`)
   if (!AUTH_TOKEN) {
     console.warn('NOTE: no AUTH_TOKEN set — gated topics were excluded.')
     console.warn('      Set AUTH_TOKEN=<admin jwt> to list every question.')

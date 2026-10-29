@@ -2,10 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3,000+ Interview Questions with Answers | Interview Reader</title>
     <meta name="description" content="Free interview questions and detailed answers for Java, React, Node.js, Go, SQL, System Design, Kafka and Microservices. Track what you have read and solved." />
+    <meta name="keywords" content="interview questions, interview preparation, Java interview questions, React interview questions, Node.js, SQL, system design, Kafka, microservices, coding problems, leetcode practice" />
+    <meta name="theme-color" content="#be185d" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <link rel="canonical" href="https://interviewreader.up.railway.app/" />
 
@@ -15,9 +17,18 @@
     <meta property="og:title" content="3,000+ Interview Questions with Answers" />
     <meta property="og:description" content="Java, React, Node.js, Go, SQL, System Design, Kafka and Microservices — with real answers, code examples and diagrams." />
     <meta property="og:url" content="https://interviewreader.up.railway.app/" />
+    <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="3,000+ Interview Questions with Answers" />
     <meta name="twitter:description" content="Java, React, Node.js, Go, SQL, System Design, Kafka and Microservices — with real answers." />
+
+    <!-- Structured data present before any JavaScript runs: who runs the site, and its search box -->
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@graph":[
+        {"@type":"Organization","@id":"https://interviewreader.up.railway.app/#org","name":"Interview Reader","url":"https://interviewreader.up.railway.app/","logo":"https://interviewreader.up.railway.app/logo.svg"},
+        {"@type":"WebSite","@id":"https://interviewreader.up.railway.app/#site","url":"https://interviewreader.up.railway.app/","name":"Interview Reader","publisher":{"@id":"https://interviewreader.up.railway.app/#org"},"inLanguage":"en"}
+      ]}
+    </script>
 
     <!-- Speeds up the first API call, which gates the largest-contentful-paint -->
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
@@ -37,6 +48,16 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>Interview Reader: 3,000+ interview questions with answers</h1>
+      <p>Free interview questions and detailed answers for Java, React, Node.js, Go, SQL, system design, Kafka and microservices, plus coding problems you can run online. Enable JavaScript to read them.</p>
+      <ul>
+        <li><a href="/problems">Coding problems</a></li>
+        <li><a href="/practice">Practice coding online</a></li>
+        <li><a href="/leaderboard">Leaderboard</a></li>
+        <li><a href="/resume">Free resume builder</a></li>
+      </ul>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

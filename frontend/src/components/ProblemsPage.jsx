@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import { fetchCodingProblems } from '../lib/codingProblems.js'
 import { fetchSolvedIds, fetchAttemptedIds } from '../lib/code.js'
@@ -11,6 +12,7 @@ const STATUSES = [['all', 'All'], ['solved', 'Solved'], ['todo', 'Not solved']]
 
 // Every coding problem on one page, with search and filters. Each row opens the problem in the practice page.
 export default function ProblemsPage() {
+  useEffect(() => { setPageSeo({ title: 'Coding Problems with Test Cases in 11 Languages | Interview Reader', description: 'Practice 1,500+ coding interview problems — arrays, strings, linked lists, trees, graphs and dynamic programming. Write and run your solution online in Java, Python, C++, Go, JavaScript and more.', path: '/problems', jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Coding Problems with Test Cases in 11 Languages | Interview Reader', description: 'Practice 1,500+ coding interview problems — arrays, strings, linked lists, trees, graphs and dynamic programming. Write and run your solution online in Java, Python, C++, Go, JavaScript and more.', url: '/problems' } }) }, [])
   const [problems, setProblems] = useState(null)
   const [solved, setSolved] = useState(() => new Set())
   const [attempted, setAttempted] = useState(() => new Set())
