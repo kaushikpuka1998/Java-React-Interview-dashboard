@@ -10,7 +10,7 @@ import { useFeature } from '../lib/features.js'
  * Sidebar component
  */
 export default function Sidebar({  questions, filtered, selectedId, query, setQuery, tech, setTech, category, setCategory, difficulty, setDifficulty, status, setStatus, onSelect, onToggleDark, isDark, isMobile = false, sidebarWidth = 360, questionListRef, hasMore, onLoadMore, loading, visited, read, categories, company, setCompany, companies = [], user, onLoginClick, onLogout, onAdminClick, freeTechs = [], onLockedTech, stats, totalCount }) {
-  const [filtersOpen, setFiltersOpen] = useState(!isMobile) // closed on mobile by default
+  const [filtersOpen, setFiltersOpen] = useState(false) // collapsed by default; opens when the member taps Filters
   const resumeOn = useFeature('resume_builder')
   const sentinelRef = useRef(null)
   // Fallback ref so the mobile instance (which isn't given a questionListRef) still works
@@ -61,6 +61,7 @@ export default function Sidebar({  questions, filtered, selectedId, query, setQu
       className={`sidebar sidebar-responsive h-full flex flex-col overflow-y-auto bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 ${isMobile ? '' : 'hidden lg:flex'}`}
       style={{ width: `${sidebarWidth}px`, minWidth: '280px', maxWidth: '600px', flexShrink: 0 }}
     >
+      {isMobile && <>
       <div className="brand p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -96,7 +97,7 @@ export default function Sidebar({  questions, filtered, selectedId, query, setQu
           {user ? (
             <>
               <a href="/profile" className="flex items-center gap-2 min-w-0 hover:opacity-80" title="View your profile">
-                <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm">
                   {(user.name || user.email || '?').trim().charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm text-slate-600 dark:text-slate-300 truncate hover:underline">{user.name || user.email}</span>
@@ -157,6 +158,7 @@ export default function Sidebar({  questions, filtered, selectedId, query, setQu
 
       {/* Practice coding: shown only when coding problems exist */}
       <PracticeCard />
+      </>}
 
       {/* Search always visible */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">

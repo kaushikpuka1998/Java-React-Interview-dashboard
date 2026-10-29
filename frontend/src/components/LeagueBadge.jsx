@@ -12,12 +12,13 @@ const TIERS = {
 const OUTER = '50,2 96,28 96,82 50,108 4,82 4,28'
 const INNER = '50,11 88,33 88,77 50,99 12,77 12,33'
 
-// size "md" (profile) shows the tier name; "sm" (lists) shows just the initial to stay legible.
+// size "md" shows the tier name; "sm" (lists) and "xs" (compact profile row) show just the initial to stay legible.
 export default function LeagueBadge({ league = 'Unranked', size = 'md' }) {
   const id = useId()
   const tier = TIERS[league] || TIERS.Unranked
   const label = league === 'Unranked' ? '—' : league.toUpperCase()
-  const dims = size === 'sm' ? 'w-6 h-[27px]' : 'w-14 h-16'
+  const dims = size === 'sm' ? 'w-6 h-[27px]' : size === 'xs' ? 'w-8 h-9' : 'w-14 h-16'
+  const initialOnly = size === 'sm' || size === 'xs'
   return (
     <span role="img" aria-label={`${league} league`} title={`${league} league`} className={`inline-block align-middle ${dims} drop-shadow-md`}>
       <svg viewBox="0 0 100 110" className="h-full w-full" aria-hidden="true">
@@ -28,7 +29,7 @@ export default function LeagueBadge({ league = 'Unranked', size = 'md' }) {
         </defs>
         <polygon points={OUTER} fill={`url(#${id}-rim)`} />
         <polygon points={INNER} fill="#1e293b" />
-        {size === 'sm' ? (
+        {initialOnly ? (
           <text x="50" y="66" textAnchor="middle" fontSize="46" fontWeight="700" fill={tier.text} fontFamily="ui-sans-serif, system-ui">{league[0]}</text>
         ) : (
           <>

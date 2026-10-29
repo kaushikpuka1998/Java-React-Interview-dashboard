@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchAdminCodingProblems, saveCodingProblem, deleteCodingProblem, importCodingProblems } from '../lib/codingProblems.js'
+import { fetchAdminCodingProblems, fetchAdminCodingProblem, saveCodingProblem, deleteCodingProblem, importCodingProblems } from '../lib/codingProblems.js'
 import Markdown from './Markdown.jsx'
 
 const TEMPLATE_LANGS = [['cpp', 'C++'], ['c', 'C'], ['python', 'Python'], ['ruby', 'Ruby'], ['rust', 'Rust'], ['csharp', 'C#'], ['php', 'PHP'], ['swift', 'Swift'], ['java', 'Java'], ['go', 'Go'], ['javascript', 'JavaScript']]
@@ -139,6 +139,10 @@ const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:borde
 // Admin editor for LeetCode-style problems. Kept separate from the normal question form.
 export default function CodingProblemsAdmin({ onExport }) {
   const [problems, setProblems] = useState(null)
+  const [page, setPage] = useState(0)
+  const [q, setQ] = useState('')
+  const PAGE = 25
+  const shown = (problems || []).filter(p => p.title.toLowerCase().includes(q.trim().toLowerCase()))
   const [form, setForm] = useState(EMPTY)
   const [editingId, setEditingId] = useState(null)
   const [msg, setMsg] = useState(null)
@@ -163,7 +167,9 @@ export default function CodingProblemsAdmin({ onExport }) {
   const addTpl = () => setForm(f => ({ ...f, templates: [...f.templates, { ...BLANK_TEMPLATE, language: 'python' }] }))
   const removeTpl = i => setForm(f => ({ ...f, templates: f.templates.filter((_, j) => j !== i) }))
 
-  const edit = p => {
+  const edit = async summary => {
+    let p
+    try { p = await fetchAdminCodingProblem(summary.id) } catch (e) { setMsg({ ok: false, text: e.message }); return }
     let tests = []
     try { tests = JSON.parse(p.testCases) } catch { tests = [] }
     setForm({
@@ -275,10 +281,18 @@ export default function CodingProblemsAdmin({ onExport }) {
         <BulkImport onImported={load} onExport={onExport} />
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/40">
           <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Problems ({problems?.length ?? 0})</h2>
+          <input
+            type="search"
+            value={q}
+            onChange={e => { setQ(e.target.value); setPage(0) }}
+            placeholder="Search problems"
+            aria-label="Search problems"
+            className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          />
           {!problems && <p className="text-sm text-slate-500">Loading…</p>}
           {problems?.length === 0 && <p className="text-sm text-slate-500">No coding problems yet. Practice coding stays hidden until you add one.</p>}
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-            {problems?.map(p => (
+            {shown.slice(page * PAGE, (page + 1) * PAGE).map(p => (
               <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="text-slate-800 dark:text-slate-200">{p.title} <span className="text-xs text-slate-400">· {p.difficulty}</span></span>
                 <span className="flex gap-3">
@@ -288,6 +302,13 @@ export default function CodingProblemsAdmin({ onExport }) {
               </li>
             ))}
           </ul>
+          {shown.length > PAGE && (
+            <div className="mt-3 flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+              <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)} className="rounded-lg border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-slate-600">Previous</button>
+              <span className="tabular-nums">Page {page + 1} of {Math.ceil(shown.length / PAGE)} · {shown.length} problems</span>
+              <button type="button" disabled={(page + 1) * PAGE >= shown.length} onClick={() => setPage(page + 1)} className="rounded-lg border border-slate-300 px-3 py-1 disabled:opacity-40 dark:border-slate-600">Next</button>
+            </div>
+          )}
         </div>
         {form.statement && (
           <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900/40">

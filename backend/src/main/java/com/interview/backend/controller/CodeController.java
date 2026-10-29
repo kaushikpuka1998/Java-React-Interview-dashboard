@@ -160,7 +160,7 @@ public class CodeController {
     /** The member's submission times over the last year. The browser groups them by local date for the heatmap. */
     @GetMapping("/activity")
     public Map<String, Object> activity(Authentication auth) {
-        java.time.Instant since = java.time.Instant.now().minus(java.time.Duration.ofDays(366));
+        java.time.Instant since = java.time.Instant.EPOCH;   // all of it: the calendar lets the member pick any past year
         List<String> times = submissions.findByUserEmailAndCreatedAtAfter(auth.getName(), since).stream()
                 .map(s -> s.getCreatedAt().toString()).toList();
         return Map.of("times", times);

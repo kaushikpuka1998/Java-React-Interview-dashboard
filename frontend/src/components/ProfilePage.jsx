@@ -5,6 +5,7 @@ import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
+import TopBar from './TopBar.jsx'
 import PieChart, { toHex, countBy } from './PieChart.jsx'
 import Markdown from './Markdown.jsx'
 import ActivityHeatmap from './ActivityHeatmap.jsx'
@@ -228,7 +229,27 @@ export function ProgressBar({ label, total, solved, color }) {
 
 // Fixed height so the lists line up; long lists scroll inside their card.
 // fixed={false} sizes the card to its contents (used for the full-width Important card).
-function QuestionList({ title, items, emptyText, fixed = true }) {
+function QuestionList({ title, items, emptyText, fixed = true, bare = false }) {
+  if (bare) {
+    // Inside the tabbed panel: no card or heading, just the rows filling the panel and scrolling.
+    return items.length === 0
+      ? <p className="text-sm text-slate-400">{emptyText}</p>
+      : (
+        <ul className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
+          {items.map(q => (
+            <li key={q.id}>
+              <a href={`/${slugify(q.question || q.title)}?id=${q.id}`} className="group flex items-center justify-between gap-3 py-1.5">
+                <span className="truncate text-sm font-medium text-slate-800 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">{q.title}</span>
+                <span className="flex flex-shrink-0 gap-1.5">
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${techBadge(q.tech)}`}>{techLabel(q.tech)}</span>
+                  {q.difficulty && <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${difficultyBadge(q.difficulty)}`}>{q.difficulty}</span>}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+  }
   return (
     <div className={`flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 ${fixed ? 'h-[26rem]' : ''}`}>
       <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">{title} <span className="text-slate-400 font-normal">({items.length})</span></h3>
@@ -275,7 +296,7 @@ export default function ProfilePage() {
   const [solved, setSolved] = useState(() => cache?.solved ?? [])
   const [visited, setVisited] = useState(() => cache?.visited ?? [])
   const [visitedLoaded, setVisitedLoaded] = useState(false)   // the visited list loads when its tab is opened
-  const [listFilter, setListFilter] = useState('solved')   // which of the two lists to show
+  const [listFilter, setListFilter] = useState('solved')   // which tab of the bottom panel is open
   useEffect(() => {
     if (listFilter !== 'visited' || visitedLoaded) return
     let alive = true
@@ -325,148 +346,113 @@ export default function ProfilePage() {
   }
   const solvedPct = totalQuestions ? Math.round((solvedCount / totalQuestions) * 100) : 0
 
+  const tabs = [
+    ['solved', 'Solved', solved.length], ['visited', 'Visited', visitedCount], ['flagged', 'Flagged', flagged.length],
+    ['important', 'Important', important.length], ['notes', 'Notes'],
+  ]
+  const topics = byTech.filter(t => t.solved > 0).sort((x, y) => y.solved - x.solved)
+
+  // One screen on desktop: identity, six small stats, two breakdown cards, then a tabbed panel that scrolls inside itself.
   return (
     <Shell>
-      {/* Identity header */}
-      <div className="relative flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
-        {/* Avatar and league badge both open the leaderboard */}
-        <a href="/leaderboard" title="View leaderboard" className="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl sm:text-2xl font-bold hover:opacity-90">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+        <a href="/leaderboard" title="View leaderboard" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xl font-bold text-white hover:opacity-90">
           {(name || email || '?').trim().charAt(0).toUpperCase()}
         </a>
-        {profile.league && (
-          <a href="/leaderboard" title="View leaderboard" className="absolute right-0 top-0 hover:opacity-80">
-            <LeagueBadge league={profile.league} />
-          </a>
-        )}
-        <div className={`min-w-0 ${profile.league ? 'pr-24 sm:pr-28' : ''}`}>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 break-words">{name || 'Learner'}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 break-all">{email}</p>
-
-          {profile.league && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-              <span className="text-slate-500 dark:text-slate-400">{profile.weeklyXp} XP this week</span>
-            </div>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{name || 'Learner'}</h1>
+            <span className="break-all text-xs text-slate-500 dark:text-slate-400">{email}</span>
+            {memberSince && <span className="text-xs text-slate-400">since {new Date(memberSince).toLocaleDateString()}</span>}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <UsernameEditor username={handle} onSaved={setHandle} />
             {handle && (
-              <button
-                onClick={copyLink}
-                className="rounded-lg border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30"
-              >
-                {copied ? 'Link copied!' : 'Copy link'}
-              </button>
+              <>
+                <button onClick={copyLink} className="rounded-lg border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">
+                  {copied ? 'Link copied!' : 'Copy link'}
+                </button>
+                <a href={`/u/${handle}`} target="_blank" rel="noopener noreferrer" aria-label="Open your public profile" title="Open your public profile" className="rounded-lg border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">
+                  Open ↗
+                </a>
+              </>
             )}
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-            {memberSince && <span>Member since {new Date(memberSince).toLocaleDateString()}</span>}
-            <LocationEditor profile={profile} />
+            <span className="text-xs text-slate-500 dark:text-slate-400"><LocationEditor profile={profile} /></span>
           </div>
         </div>
-      </div>
-
-      <div className="mb-6 sm:mb-8">
-        <div className="mb-4 flex justify-stretch sm:justify-end">
-          <a href={resumeBuilderLink('profile')} className="w-full sm:w-auto text-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-blue-600/20 hover:opacity-95">Build your resume →</a>
-        </div>
-        <PersonalNotes />
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-        <StatCard label="Solved" value={solvedCount} sub={`${solvedPct}% of all`} accent="text-green-600 dark:text-green-400" />
-        <StatCard label="Visited" value={visitedCount} accent="text-blue-600 dark:text-blue-400" />
-        <StatCard label="Flagged" value={flagged.length} accent="text-amber-600 dark:text-amber-400" />
-        <StatCard label="Important" value={important.length} accent="text-rose-600 dark:text-rose-400" />
-        <StatCard label="Total questions" value={totalQuestions} />
-        <StatCard label="Remaining" value={Math.max(totalQuestions - solvedCount, 0)} />
-      </div>
-
-      {/* Overall progress bar */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-8">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="font-semibold text-slate-900 dark:text-slate-100">Overall progress</span>
-          <span className="text-slate-500 dark:text-slate-400">{solvedCount}/{totalQuestions} solved · {solvedPct}%</span>
-        </div>
-        <div className="h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: `${solvedPct}%` }} />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {profile.league && (
+            <a href="/leaderboard" title="View leaderboard" className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">
+              <LeagueBadge league={profile.league} size="xs" />
+              <span className="leading-tight">
+                <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">{profile.league}</span>
+                <span className="block text-[11px] tabular-nums text-slate-500 dark:text-slate-400">{profile.weeklyXp} XP this week</span>
+              </span>
+            </a>
+          )}
+          <a href={resumeBuilderLink('profile')} className="whitespace-nowrap rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-95">Build your resume →</a>
         </div>
       </div>
 
-      {/* Breakdowns: technology + difficulty side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <PieChart
-          title="Solved by technology"
-          empty="Nothing solved yet."
-          slices={[
-            ...byTech.filter(t => t.solved > 0).map(t => ({ label: techLabel(t.tech), value: t.solved, color: toHex(TECH_COLOR[t.tech]) })),
-            { label: 'Not solved', value: Math.max(totalQuestions - solvedCount, 0), color: '#94a3b8' },
-          ]}
-        />
-        <PieChart
-          title="Solved by difficulty"
-          empty="Nothing solved yet."
-          slices={[
-            ...byDifficulty.filter(d => d.solved > 0).map(d => ({ label: d.difficulty, value: d.solved, color: toHex(DIFF_COLOR[d.difficulty]) })),
-            { label: 'Not solved', value: Math.max(totalQuestions - solvedCount, 0), color: '#94a3b8' },
-          ]}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <PieChart
-          title="Visited by technology"
-          empty="No visited questions yet."
-          slices={[
-            ...(profile.visitedByTech || []).map(({ tech, count }) => ({ label: techLabel(tech), value: count, color: toHex(TECH_COLOR[tech]) })),
-            { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
-          ]}
-        />
-        <PieChart
-          title="Visited by difficulty"
-          empty="No visited questions yet."
-          slices={[
-            ...(profile.visitedByDifficulty || []).map(({ difficulty, count }) => ({ label: difficulty, value: count, color: toHex(DIFF_COLOR[difficulty]) })),
-            { label: 'Not visited', value: Math.max(totalQuestions - visitedCount, 0), color: '#94a3b8' },
-          ]}
-        />
-      </div>
-
-      {/* Coding activity, like a LeetCode calendar */}
-      <div className="mb-6 sm:mb-8">
-        <ActivityHeatmap />
-      </div>
-
-      {/* Question lists */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Your questions</h2>
-        <div className="inline-flex rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800" role="group" aria-label="Show">
-        {[['solved', 'Solved', solved.length], ['visited', 'Visited', visitedCount]].map(([key, label, count]) => (
-          <button
-            key={key}
-            onClick={() => setListFilter(key)}
-            aria-pressed={listFilter === key}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
-              listFilter === key
-                ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-blue-300'
-                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
-            }`}
-          >
-            {label} <span className="tabular-nums opacity-70">({count})</span>
-          </button>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+        {[
+          ['Solved', solvedCount, `${solvedPct}% of ${totalQuestions}`, 'text-green-600 dark:text-green-400'],
+          ['Visited', visitedCount, `of ${totalQuestions}`, 'text-blue-600 dark:text-blue-400'],
+          ['Flagged', flagged.length, '', 'text-amber-600 dark:text-amber-400'],
+          ['Important', important.length, '', 'text-rose-600 dark:text-rose-400'],
+          ['Remaining', Math.max(totalQuestions - solvedCount, 0), '', ''],
+          ['Topics', topics.length, `of ${byTech.length}`, 'text-violet-600 dark:text-violet-400'],
+        ].map(([label, value, sub, accent]) => (
+          <div key={label} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+            <p className={`text-2xl font-bold leading-tight tabular-nums ${accent || 'text-slate-900 dark:text-slate-100'}`}>{value}</p>
+            <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">{sub || '\u00a0'}</p>
+          </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+          <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Solved by technology</h3>
+          {topics.length === 0 ? <p className="text-sm text-slate-400">Nothing solved yet.</p> : (
+            <div className="max-h-24 space-y-1.5 overflow-y-auto pr-1">
+              {topics.map(t => <ProgressBar key={t.tech} label={techLabel(t.tech)} solved={t.solved} total={t.total} color={TECH_COLOR[t.tech]} />)}
+            </div>
+          )}
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+          <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Solved by difficulty</h3>
+          <div className="max-h-24 space-y-1.5 overflow-y-auto pr-1">
+            {['Basic', 'Intermediate', 'Advanced'].map(d => byDifficulty.find(x => x.difficulty === d)).filter(Boolean).map(d => (
+              <ProgressBar key={d.difficulty} label={d.difficulty} solved={d.solved} total={d.total} color={DIFF_COLOR[d.difficulty]} />
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        {listFilter === 'solved'
-          ? <QuestionList title="Solved questions" items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />
-          : <QuestionList title="Visited questions" items={visited} emptyText={visitedLoaded ? 'No visited questions yet.' : 'Loading visited questions…'} />}
-        <QuestionList title="Flagged questions" items={flagged} emptyText="No flagged questions yet." />
-        <div className="lg:col-span-2">
-          <QuestionList title="Important questions" items={important} emptyText="No questions marked important yet." fixed={false} />
+      {/* Always visible: the activity calendar sits above the tabs */}
+      <div className="flex"><ActivityHeatmap compact /></div>
+
+      <div className="flex h-36 min-h-[7.5rem] flex-col rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950 lg:h-auto lg:flex-1">
+        <div className="mb-2 flex flex-wrap gap-1" role="tablist" aria-label="Your activity">
+          {tabs.map(([key, label, count]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={listFilter === key}
+              onClick={() => setListFilter(key)}
+              className={`rounded-lg px-3 py-1 text-sm font-medium transition-colors ${listFilter === key ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'}`}
+            >
+              {label}{count !== undefined && <span className="tabular-nums opacity-80"> ({count})</span>}
+            </button>
+          ))}
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {listFilter === 'solved' && <QuestionList bare items={solved} emptyText="Nothing solved yet — mark questions as read to track them." />}
+          {listFilter === 'visited' && <QuestionList bare items={visited} emptyText={visitedLoaded ? 'No visited questions yet.' : 'Loading visited questions…'} />}
+          {listFilter === 'flagged' && <QuestionList bare items={flagged} emptyText="No flagged questions yet." />}
+          {listFilter === 'important' && <QuestionList bare items={important} emptyText="No questions marked important yet." />}
+          {listFilter === 'notes' && <PersonalNotes />}
         </div>
       </div>
     </Shell>
@@ -505,15 +491,9 @@ function ProfileSkeleton() {
 
 function Shell({ children }) {
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">Your Profile</h1>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <a href="/" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Back to app</a>
-            {isLoggedIn() && <button onClick={() => logout({ redirect: '/' })} className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-red-600/30 transition-colors hover:bg-red-700 hover:shadow-md hover:shadow-red-600/40 dark:bg-red-600 dark:hover:bg-red-500">Log out</button>}
-          </div>
-        </div>
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+      <TopBar />
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 p-4">
         {children}
       </div>
     </div>

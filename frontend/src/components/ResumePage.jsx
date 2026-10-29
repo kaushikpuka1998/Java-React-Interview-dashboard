@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import TopBar from './TopBar.jsx'
 import { isLoggedIn } from '../lib/auth.js'
 import { fetchTemplates, fetchResumes, createResume, deleteResume } from '../lib/resume.js'
 import { sampleResumeData, blankResumeData } from '../lib/resumeSample.js'
@@ -97,6 +98,8 @@ export default function ResumePage() {
 
 function Shell({ children }) {
   return (
+    <>
+      <TopBar />
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 dark:bg-slate-900">
       <div className="mx-auto max-w-3xl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
@@ -108,5 +111,6 @@ function Shell({ children }) {
         {children}
       </div>
     </div>
+    </>
   )
 }

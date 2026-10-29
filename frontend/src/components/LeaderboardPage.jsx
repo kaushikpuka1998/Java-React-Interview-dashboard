@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import TopBar from './TopBar.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
@@ -17,6 +18,8 @@ export default function LeaderboardPage() {
   }, [])
 
   return (
+    <>
+      <TopBar />
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-6">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
@@ -84,5 +87,6 @@ export default function LeaderboardPage() {
         )}
       </div>
     </div>
+    </>
   )
 }

@@ -1,0 +1,85 @@
+import { isLoggedIn, getUser, logout } from '../lib/auth.js'
+import { useEffect, useState } from 'react'
+import { useFeature } from '../lib/features.js'
+import { fetchCodingProblems, newProblemCount } from '../lib/codingProblems.js'
+import Notifications from './Notifications.jsx'
+
+// Shared top bar (LeetCode style): brand and page links on the left, theme toggle, notifications, avatar and log out on the right.
+// Used on every full page. The home reader passes its own user and handlers (props below); other pages use the stored session.
+const NAV = [
+  ['Questions', '/'],
+  ['Problems (Coding)', '/problems', 'code_practice'],
+  ['Practice', '/practice', 'code_practice'],
+  ['Leaderboard', '/leaderboard'],
+  ['Resume', '/resume', 'resume_builder'],
+]
+
+function NavLink({ label, href, flag, path }) {
+  const on = useFeature(flag || 'code_practice')
+  // The Problems link announces a new batch: problems added in the last week, since the member last opened Practice.
+  const [fresh, setFresh] = useState(0)
+  useEffect(() => {
+    if (href !== '/problems' || !on) return
+    fetchCodingProblems().then(list => setFresh(newProblemCount(list))).catch(() => {})
+  }, [href, on])
+  if (flag && !on) return null
+  const active = path === href
+  return (
+    <a href={href} aria-current={active ? 'page' : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${active ? 'bg-blue-600/10 font-semibold text-blue-700 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'}`}>{label}{fresh > 0 && <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-950" title={`${fresh} new problems this week`}>New</span>}</a>
+  )
+}
+
+export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDark: onToggleProp, onLogin, onLogout, onAdmin }) {
+  // The theme switch is on every page. The home reader passes its own state; elsewhere the bar flips the same
+  // `dark` class and saved 'theme' value that the reader uses, so the choice carries between pages.
+  const [ownDark, setOwnDark] = useState(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+  const isDark = onToggleProp ? isDarkProp : ownDark
+  const onToggleDark = onToggleProp || (() => {
+    const next = !ownDark
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+    document.documentElement.classList.toggle('dark', next)
+    setOwnDark(next)
+  })
+  const user = userProp !== undefined ? userProp : getUser()
+  const signedIn = userProp !== undefined ? !!userProp : isLoggedIn()
+  const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase()
+  const path = typeof window !== 'undefined' ? window.location.pathname : ''
+  const onProfile = path === '/profile' || path.startsWith('/profile/')
+  const doLogout = onLogout || (() => logout({ redirect: '/' }))
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+      <div className="flex h-14 items-center gap-4 px-4">
+        <a href="/" className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100" aria-label="Interview Reader home">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white">IR</span>
+          <span className="hidden sm:inline">Interview Reader</span>
+        </a>
+        <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm" aria-label="Main">
+          {NAV.map(([label, href, flag]) => <NavLink key={href} label={label} href={href} flag={flag} path={path} />)}
+        </nav>
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          {(
+            <button onClick={onToggleDark} aria-label="Toggle dark mode" aria-pressed={isDark} title="Toggle dark mode" className="rounded-lg bg-slate-100 p-2 text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+              {isDark ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
+            </button>
+          )}
+          {signedIn && <Notifications />}
+          {signedIn && user?.admin && onAdmin && (
+            <button onClick={onAdmin} title="Open the admin dashboard" className="rounded-md bg-blue-600/10 px-2.5 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-600/20 dark:text-blue-300">Admin</button>
+          )}
+          {signedIn ? (
+            <>
+              <a href="/profile" aria-label="Your profile" title="Your profile" className={`flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white dark:bg-blue-500 ${onProfile ? 'ring-2 ring-blue-300/60' : ''}`}>{initial}</a>
+              <button onClick={doLogout} className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-700 dark:hover:bg-red-500">Log out</button>
+            </>
+          ) : onLogin ? (
+            <button onClick={onLogin} className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-95">Log in / Sign up</button>
+          ) : null}
+        </div>
+      </div>
+    </header>
+  )
+}

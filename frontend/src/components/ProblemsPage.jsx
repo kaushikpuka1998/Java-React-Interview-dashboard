@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import TopBar from './TopBar.jsx'
 import { fetchCodingProblems } from '../lib/codingProblems.js'
 import { fetchSolvedIds, fetchAttemptedIds } from '../lib/code.js'
 import { isLoggedIn } from '../lib/auth.js'
@@ -17,6 +18,10 @@ export default function ProblemsPage() {
   const [query, setQuery] = useState('')
   const [difficulty, setDifficulty] = useState('All')
   const [status, setStatus] = useState('all')
+  // Rows are drawn 50 at a time; a sentinel below the list loads the next batch as it nears the screen.
+  const CHUNK = 50
+  const [shownCount, setShownCount] = useState(CHUNK)
+  const sentinel = useRef(null)
   const signedIn = isLoggedIn()
 
   useEffect(() => {
@@ -42,6 +47,15 @@ export default function ProblemsPage() {
     })
   }, [problems, query, difficulty, status, solved, numberOf])
 
+  useEffect(() => { setShownCount(CHUNK) }, [query, difficulty, status])
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) setShownCount(c => c + CHUNK) }, { rootMargin: '600px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [rows.length, shownCount])
+
   const segment = (items, active, onPick, label) => (
     <div className="inline-flex flex-wrap rounded-xl bg-slate-200/70 p-1 dark:bg-slate-800" role="group" aria-label={label}>
       {items.map(([key, text]) => (
@@ -59,6 +73,8 @@ export default function ProblemsPage() {
   )
 
   return (
+    <>
+      <TopBar />
     <div className="min-h-screen bg-slate-100 p-3 sm:p-4 dark:bg-slate-900">
       <div className="mx-auto w-full max-w-4xl">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -95,7 +111,7 @@ export default function ProblemsPage() {
 
         {rows.length > 0 && (
           <ul className="divide-y divide-slate-200 overflow-hidden rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
-            {rows.map(p => (
+            {rows.slice(0, shownCount).map(p => (
               <li key={p.id}>
                 <a href={`/practice?id=${p.id}`} className="flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60">
                   <span className="w-12 shrink-0 text-slate-400 dark:text-slate-500">#{numberOf.get(p.id)}</span>
@@ -108,7 +124,9 @@ export default function ProblemsPage() {
             ))}
           </ul>
         )}
+        {rows.length > shownCount && <div ref={sentinel} className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">Loading more…</div>}
       </div>
     </div>
+    </>
   )
 }

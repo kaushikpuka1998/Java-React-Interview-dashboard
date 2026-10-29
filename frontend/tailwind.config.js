@@ -1,3 +1,5 @@
+import colors from 'tailwindcss/colors'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -9,19 +11,29 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Soft pink theme: the neutral greys carry a light rose tint, and the blue/indigo
+        // accents used across components map to pink/rose.
+        // ponytail: remapping the names keeps this one file; rename the classes if blue is ever needed again.
         slate: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
+          50: '#fdf7f9',
+          100: '#f9eef2',
+          200: '#f1dfe6',
+          300: '#e4c8d3',
+          400: '#a07d8c',   // muted text: ~3.8:1 on white, still ~5:1 on the dark surfaces
+          500: '#79596a',
+          600: '#5c4150',
+          700: '#523d47',
+          800: '#3a2b33',
+          900: '#261c22',
+          950: '#160f13',
         },
+        // Deeper pinks than stock pink so white button text keeps WCAG AA contrast (500+ is >= 4.6:1) and
+        // pink text on dark surfaces (300/400) stays bright.
+        blue: {
+          50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4', 400: '#f472b6',
+          500: '#db2777', 600: '#be185d', 700: '#9d174d', 800: '#831843', 900: '#500724', 950: '#3b0418',
+        },
+        indigo: colors.rose,
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],

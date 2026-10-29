@@ -7,10 +7,10 @@ const HEX = {
 // Converts the Tailwind colour classes used by the progress bars into hex for the chart.
 export const toHex = (cls) => HEX[cls] || '#64748b'
 
-export default function PieChart({ title, slices, empty }) {
+export default function PieChart({ title, slices, empty, compact = false }) {
   const data = slices.filter(s => s.value > 0)
   const total = data.reduce((sum, s) => sum + s.value, 0)
-  const card = 'rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5'
+  const card = `rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 ${compact ? 'p-3' : 'p-5'}`
   if (total === 0) {
     return (
       <div className={card}>
@@ -37,15 +37,15 @@ export default function PieChart({ title, slices, empty }) {
 
   return (
     <div className={card}>
-      <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">{title}</h3>
-      <div className="flex items-center gap-5">
-        <svg viewBox="0 0 120 120" className="w-32 h-32 flex-shrink-0" role="img" aria-label={title}>
+      <h3 className={`font-semibold text-slate-900 dark:text-slate-100 ${compact ? 'mb-2 text-sm' : 'mb-4'}`}>{title}</h3>
+      <div className={`flex items-center ${compact ? 'gap-3' : 'gap-5'}`}>
+        <svg viewBox="0 0 120 120" className={`${compact ? 'w-24 h-24' : 'w-32 h-32'} flex-shrink-0`} role="img" aria-label={title}>
           {drawn.map(s => s.path
             ? <path key={s.label} d={s.path} fill={s.color} stroke="white" strokeWidth="1" className="dark:stroke-slate-950"><title>{`${s.label}: ${s.value} (${s.pct}%)`}</title></path>
             : <circle key={s.label} cx={cx} cy={cy} r={r} fill={s.color}><title>{`${s.label}: ${s.value} (100%)`}</title></circle>
           )}
         </svg>
-        <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
+        <ul className={`min-w-0 flex-1 text-sm ${compact ? 'space-y-0.5 text-xs max-h-24 overflow-y-auto' : 'space-y-1.5'}`}>
           {drawn.map(s => (
             <li key={s.label} className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 min-w-0">

@@ -37,7 +37,14 @@ export async function fetchCodingProblem(id) {
   return res.json()
 }
 
-// Admin: every problem, including test cases, for editing.
+// Admin: one full problem, including test cases, fetched when it is opened for editing.
+export async function fetchAdminCodingProblem(id) {
+  const res = await fetch(`${API_BASE}/admin/coding-problems/${id}`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('Could not load this problem.')
+  return res.json()
+}
+
+// Admin: id, title, difficulty of every problem (no statements or test cases).
 export async function fetchAdminCodingProblems() {
   const res = await fetch(`${API_BASE}/admin/coding-problems`, { headers: authHeaders() })
   if (!res.ok) throw new Error('Could not load the problems.')

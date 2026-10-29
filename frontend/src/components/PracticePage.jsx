@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import TopBar from './TopBar.jsx'
 import { fetchCodingProblems, fetchCodingProblem, markPracticeSeen } from '../lib/codingProblems.js'
 import { fetchSubmissions, fetchSolvedIds, fetchAttemptedIds } from '../lib/code.js'
 import { getUser, isLoggedIn } from '../lib/auth.js'
@@ -14,6 +15,9 @@ const NAV_BTN = 'tip relative flex h-8 w-8 shrink-0 items-center justify-center 
 // Practice coding: LeetCode-style problems on the left, plus a free code box for writing your own program.
 export default function PracticePage() {
   const [problems, setProblems] = useState(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const CHUNK = 50
+  const [shownCount, setShownCount] = useState(CHUNK)
   const [selected, setSelected] = useState(null)   // CUSTOM, or a problem id
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState('')
@@ -74,6 +78,15 @@ export default function PracticePage() {
     return !q || p.title.toLowerCase().includes(q) || String(numberOf.get(p.id)) === q
   })
 
+  // Rows are drawn 50 at a time as the list is scrolled; filters start again from the top.
+  useEffect(() => { setShownCount(CHUNK) }, [listQuery, listDifficulty, listStatus])
+  const selectedIdx = visibleProblems.findIndex(p => p.id === selected)
+  const renderCount = Math.max(shownCount, selectedIdx + 1)
+  const onListScroll = e => {
+    const el = e.currentTarget
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200) setShownCount(c => (c < visibleProblems.length ? c + CHUNK : c))
+  }
+
   const loadHistory = () => { if (detail && isLoggedIn()) fetchSubmissions(detail.id).then(setHistory).catch(() => {}) }
   useEffect(() => {
     setTab('description')
@@ -126,20 +139,11 @@ export default function PracticePage() {
   }, [selected])
 
   return (
-    <div className="min-h-screen bg-slate-100 p-3 sm:p-4 xl:flex xl:h-screen xl:flex-col xl:overflow-hidden xl:pb-8 dark:bg-slate-900">
+    <>
+      <TopBar />
+    <div className="min-h-[calc(100vh-3.6rem)] bg-slate-100 p-3 sm:p-4 xl:flex xl:h-[calc(100vh-3.6rem)] xl:flex-col xl:overflow-hidden xl:pb-8 dark:bg-slate-900">
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={() => window.location.reload()} />}
       <div className="mx-auto w-full max-w-[1800px] xl:flex xl:min-h-0 xl:flex-1 xl:flex-col">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-100">Practice coding</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Solve a problem, or write your own code and run it.</p>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <a href="/problems" className="text-blue-600 hover:underline dark:text-blue-400">All problems</a>
-            <a href="/" className="text-blue-600 hover:underline dark:text-blue-400">← Back to app</a>
-          </div>
-        </div>
-
         {!isLoggedIn() && (
           <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
             <button type="button" onClick={() => setAuthOpen(true)} className="font-semibold underline hover:no-underline">Sign in</button> to run your code. You can still read the problems.
@@ -175,7 +179,11 @@ export default function PracticePage() {
                 aria-label="Search problems"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
-              <div className="space-y-2">
+              <button type="button" onClick={() => setFiltersOpen(o => !o)} aria-expanded={filtersOpen} className="flex w-full items-center justify-between rounded-lg px-1 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                <span>Filters{(listDifficulty !== 'All' || listStatus !== 'all') ? ' •' : ''}</span>
+                <span aria-hidden="true">{filtersOpen ? '▴' : '▾'}</span>
+              </button>
+              {filtersOpen && <div className="space-y-2">
                 <div role="group" aria-label="Difficulty" className="flex flex-wrap gap-1.5">
                   {['All', 'Basic', 'Intermediate', 'Advanced'].map(d => {
                     const n = d === 'All' ? problems.length : problems.filter(p => p.difficulty === d).length
@@ -202,10 +210,10 @@ export default function PracticePage() {
                     <option value="todo">Not attempted</option>
                   </select>
                 )}
-              </div>
+              </div>}
             </div>
-            <ul className="max-h-[70vh] divide-y divide-slate-200 overflow-y-auto rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
-              {visibleProblems.map(p => (
+            <ul onScroll={onListScroll} className="h-[60vh] divide-y divide-slate-200 overflow-y-auto rounded-2xl bg-white dark:divide-slate-800 dark:bg-slate-950">
+              {visibleProblems.slice(0, renderCount).map(p => (
                 <li key={p.id}>
                   <button
                     type="button"
@@ -223,7 +231,7 @@ export default function PracticePage() {
                           {statusOf(p.id) === 'attempted' && <span aria-label="Attempted" className="h-2 w-2 rounded-full bg-amber-400" />}
                         </span>
                       )}
-                      <span className="w-8 shrink-0 text-xs leading-5 tabular-nums text-slate-400 dark:text-slate-500">#{numberOf.get(p.id)}</span>
+                      <span className="w-11 shrink-0 text-xs leading-5 tabular-nums text-slate-400 dark:text-slate-500">#{numberOf.get(p.id)}</span>
                       <span className="min-w-0 leading-5">{p.title}</span>
                     </span>
                     {p.difficulty && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${difficultyBadge(p.difficulty)}`}>{p.difficulty}</span>}
@@ -380,6 +388,7 @@ export default function PracticePage() {
         )}
       </div>
     </div>
+    </>
   )
 }
 

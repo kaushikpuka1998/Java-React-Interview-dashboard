@@ -104,7 +104,7 @@ public class CodingProblemController {
     /** Public list: id, title and difficulty only. */
     @GetMapping("/coding-problems")
     public List<Map<String, Object>> list() {
-        return problems.findAllByOrderByIdAsc().stream().map(p -> {
+        return problems.findSummariesByOrderByIdAsc().stream().map(p -> {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id", p.getId());
             row.put("title", p.getTitle());
@@ -130,8 +130,14 @@ public class CodingProblemController {
 
     /** Admin: full problems, including test cases, for editing. */
     @GetMapping("/admin/coding-problems")
-    public List<CodingProblem> adminList() {
-        return problems.findAllByOrderByIdAsc();
+    public List<Map<String, Object>> adminList() {
+        return list();
+    }
+
+    /** Admin: one full problem (statement, test cases, templates), loaded only when it is opened for editing. */
+    @GetMapping("/admin/coding-problems/{id}")
+    public ResponseEntity<?> adminDetail(@PathVariable Long id) {
+        return problems.findById(id).<ResponseEntity<?>>map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**

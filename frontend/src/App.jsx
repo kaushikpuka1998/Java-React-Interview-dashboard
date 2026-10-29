@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import TopBar from './components/TopBar.jsx'
 import { PAGE, fetchQuestions, fetchQuestion, fetchCategories, fetchStats } from './lib/api.js'
 import { saveAllQuestions, getLastSyncedAt, clearQuestionCache } from './lib/offlineStore.js'
 import { initOfflineSync, sendOrQueue } from './lib/offlineSync.js'
@@ -502,12 +503,17 @@ function App({ path = '/', onPathChange = () => {} }) {
   }
 
   return (
-    <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
+    <div className="app-shell h-screen overflow-hidden bg-slate-100 dark:bg-slate-900 flex flex-col">
       {!online && (
         <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-amber-950 text-xs font-semibold text-center py-1">
           You're offline — showing cached questions. Marking read/visited and flags are saved now and will sync automatically when you're back online. Suggestions and login still need a connection.
         </div>
       )}
+      {/* Desktop top bar; phones keep the slide-out menu, which still has the account controls. */}
+      <div className="hidden flex-shrink-0 lg:block">
+        <TopBar user={user} isDark={isDark} onToggleDark={toggleDarkMode} onLogin={() => setAuthOpen(true)} onLogout={handleLogout} onAdmin={() => { window.location.href = '/admin' }} />
+      </div>
+      <div className="flex min-h-0 flex-1">
       <Sidebar {...sidebarProps} sidebarWidth={sidebarWidth} questionListRef={questionListRef} />
 
       {/* Mobile sidebar spacer - pushes content when menu open */}
@@ -519,7 +525,7 @@ function App({ path = '/', onPathChange = () => {} }) {
 
       {/* Resizable divider - desktop only, single neutral color */}
       <div
-        className="hidden lg:block w-1 cursor-col-resize bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors flex-shrink-0 select-none"
+        className="hidden lg:block w-1 cursor-col-resize bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors flex-shrink-0 select-none"
         onMouseDown={handleDividerMouseDown}
         role="separator"
         aria-label="Resize sidebar"
@@ -560,6 +566,7 @@ function App({ path = '/', onPathChange = () => {} }) {
         onToggleImportant={handleToggleImportant}
       />
       )}
+      </div>
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
       {promoOpen && <ResumePromo onClose={() => { setPromoOpen(false); if (practiceAllowed) setPracticePromoOpen(true) }} />}
