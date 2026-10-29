@@ -21,7 +21,10 @@ public class FeatureFlagController {
             "resume_promo", true,
             "resume_builder", true,
             "code_practice", true,
-            "code_practice_promo", true);
+            "code_practice_promo", true,
+            // A "New" badge on the matching top-bar links; off until an admin announces something.
+            "new_badge_resume_builder", false,
+            "new_badge_code_practice", false);
 
     private final FeatureFlagRepository flags;
 

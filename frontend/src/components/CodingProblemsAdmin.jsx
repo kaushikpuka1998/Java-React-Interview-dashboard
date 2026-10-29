@@ -142,7 +142,10 @@ export default function CodingProblemsAdmin({ onExport }) {
   const [page, setPage] = useState(0)
   const [q, setQ] = useState('')
   const PAGE = 25
-  const shown = (problems || []).filter(p => p.title.toLowerCase().includes(q.trim().toLowerCase()))
+  // Numbered by position in the full list, the same as the Problems and Practice pages, so a problem keeps one number everywhere.
+  const numberOf = new Map((problems || []).map((p, i) => [p.id, i + 1]))
+  const needle = q.trim().toLowerCase().replace(/^#/, '')
+  const shown = (problems || []).filter(p => !needle || p.title.toLowerCase().includes(needle) || String(numberOf.get(p.id)) === needle)
   const [form, setForm] = useState(EMPTY)
   const [editingId, setEditingId] = useState(null)
   const [msg, setMsg] = useState(null)
@@ -285,7 +288,7 @@ export default function CodingProblemsAdmin({ onExport }) {
             type="search"
             value={q}
             onChange={e => { setQ(e.target.value); setPage(0) }}
-            placeholder="Search problems"
+            placeholder="Search by title or #number"
             aria-label="Search problems"
             className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
@@ -294,7 +297,7 @@ export default function CodingProblemsAdmin({ onExport }) {
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {shown.slice(page * PAGE, (page + 1) * PAGE).map(p => (
               <li key={p.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <span className="text-slate-800 dark:text-slate-200">{p.title} <span className="text-xs text-slate-400">· {p.difficulty}</span></span>
+                <span className="min-w-0 text-slate-800 dark:text-slate-200"><span className="mr-2 inline-block w-12 text-xs tabular-nums text-slate-400">#{numberOf.get(p.id)}</span>{p.title} <span className="text-xs text-slate-400">· {p.difficulty}</span></span>
                 <span className="flex gap-3">
                   <button type="button" onClick={() => edit(p)} className="text-blue-600 hover:underline dark:text-blue-400">Edit</button>
                   <button type="button" onClick={() => remove(p)} className="text-red-600 hover:underline dark:text-red-400">Delete</button>

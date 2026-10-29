@@ -33,3 +33,14 @@ export function useFeature(key) {
   }, [key])
   return on
 }
+
+// All flags at once, for components that read several (the top bar). "new_badge_*" flags are off until the server says on.
+export function useFeatures() {
+  const [flags, setFlags] = useState({})
+  useEffect(() => {
+    let alive = true
+    fetchFeatures().then(f => { if (alive) setFlags(f) })
+    return () => { alive = false }
+  }, [])
+  return flags
+}

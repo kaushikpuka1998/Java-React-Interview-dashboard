@@ -1,37 +1,34 @@
 import { isLoggedIn, getUser, logout } from '../lib/auth.js'
-import { useEffect, useState } from 'react'
-import { useFeature } from '../lib/features.js'
-import { fetchCodingProblems, newProblemCount } from '../lib/codingProblems.js'
+import { useState } from 'react'
+import { useFeatures } from '../lib/features.js'
 import Notifications from './Notifications.jsx'
 
 // Shared top bar (LeetCode style): brand and page links on the left, theme toggle, notifications, avatar and log out on the right.
 // Used on every full page. The home reader passes its own user and handlers (props below); other pages use the stored session.
+// [label, href, feature flag that must be on, flag that turns on the "New" badge]
 const NAV = [
   ['Questions', '/'],
-  ['Problems (Coding)', '/problems', 'code_practice'],
-  ['Practice', '/practice', 'code_practice'],
+  ['Problems (Coding)', '/problems', 'code_practice', 'new_badge_code_practice'],
+  ['Practice', '/practice', 'code_practice', 'new_badge_code_practice'],
   ['Leaderboard', '/leaderboard'],
-  ['Resume', '/resume', 'resume_builder'],
+  ['Resume', '/resume', 'resume_builder', 'new_badge_resume_builder'],
 ]
 
-function NavLink({ label, href, flag, path }) {
-  const on = useFeature(flag || 'code_practice')
-  // The Problems link announces a new batch: problems added in the last week, since the member last opened Practice.
-  const [fresh, setFresh] = useState(0)
-  useEffect(() => {
-    if (href !== '/problems' || !on) return
-    fetchCodingProblems().then(list => setFresh(newProblemCount(list))).catch(() => {})
-  }, [href, on])
-  if (flag && !on) return null
+function NavLink({ label, href, flag, badge, path, features }) {
+  if (flag && features[flag] === false) return null
   const active = path === href
   return (
-    <a href={href} aria-current={active ? 'page' : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${active ? 'bg-blue-600/10 font-semibold text-blue-700 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'}`}>{label}{fresh > 0 && <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-950" title={`${fresh} new problems this week`}>New</span>}</a>
+    <a href={href} aria-current={active ? 'page' : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${active ? 'bg-blue-600/10 font-semibold text-blue-700 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'}`}>
+      {label}
+      {badge && features[badge] === true && <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-950">New</span>}
+    </a>
   )
 }
 
 export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDark: onToggleProp, onLogin, onLogout, onAdmin }) {
   // The theme switch is on every page. The home reader passes its own state; elsewhere the bar flips the same
   // `dark` class and saved 'theme' value that the reader uses, so the choice carries between pages.
+  const features = useFeatures()
   const [ownDark, setOwnDark] = useState(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
   const isDark = onToggleProp ? isDarkProp : ownDark
   const onToggleDark = onToggleProp || (() => {
@@ -55,7 +52,7 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
           <span className="hidden sm:inline">Interview Reader</span>
         </a>
         <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm" aria-label="Main">
-          {NAV.map(([label, href, flag]) => <NavLink key={href} label={label} href={href} flag={flag} path={path} />)}
+          {NAV.map(([label, href, flag, badge]) => <NavLink key={href} label={label} href={href} flag={flag} badge={badge} path={path} features={features} />)}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           {(

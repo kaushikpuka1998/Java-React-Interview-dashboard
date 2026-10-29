@@ -3,9 +3,9 @@ import { fetchFeatures, setFeature } from '../lib/features.js'
 
 // Each entry is a flag the server knows about (see FeatureFlagController).
 const FLAGS = [
-  { key: 'resume_builder', label: 'Resume builder', help: 'Turns the whole resume builder on or off: sidebar entry, page, and new resumes.' },
+  { key: 'resume_builder', badgeKey: 'new_badge_resume_builder', badgeHelp: 'Show a "New" badge on the Resume link in the top bar.', label: 'Resume builder', help: 'Turns the whole resume builder on or off: sidebar entry, page, and new resumes.' },
   { key: 'resume_promo', label: 'Resume builder login promo', help: 'Shows the resume builder card to members right after they log in.' },
-  { key: 'code_practice', label: 'Code practice', help: 'Turns code practice on or off. When off, the page is hidden and new runs are refused.' },
+  { key: 'code_practice', badgeKey: 'new_badge_code_practice', badgeHelp: 'Show a "New" badge on the Problems (Coding) and Practice links in the top bar. Turn it on when you add a new batch.', label: 'Code practice', help: 'Turns code practice on or off. When off, the page is hidden and new runs are refused.' },
   { key: 'code_practice_promo', label: 'Code practice login promo', help: 'Shows the code practice card to members after they log in.' },
 ]
 
@@ -33,12 +33,28 @@ export default function FeatureFlagsPanel() {
     <div className="space-y-3">
       {FLAGS.map(f => {
         const on = flags[f.key] !== false
+        const badgeOn = f.badgeKey ? flags[f.badgeKey] === true : false
         return (
           <div key={f.key} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-3 sm:p-4">
             <div className="min-w-0">
               <p className="font-semibold text-slate-900 dark:text-slate-100">{f.label}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400">{f.help}</p>
               <p className="mt-1 break-all text-[11px] font-mono text-slate-400">{f.key}</p>
+              {f.badgeKey && (
+                <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={badgeOn}
+                    disabled={saving === f.badgeKey}
+                    onChange={() => toggle(f.badgeKey)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-pink-600"
+                  />
+                  <span>
+                    {f.badgeHelp}
+                    <span className="ml-1 rounded-full bg-amber-400 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-950">New</span>
+                  </span>
+                </label>
+              )}
             </div>
             <button
               type="button"
