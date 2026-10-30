@@ -49,6 +49,12 @@ export default function HomePage() {
           <a href="/questions" className="mt-6 inline-block rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">Start reading</a>
         </section>
 
+        {features.mock_interview !== false && features.new_badge_interview === true && (
+          <a href="/interview" aria-label="Book a free mock interview" className="mt-10 block overflow-hidden rounded-3xl shadow-lg transition hover:shadow-xl">
+            <img src="/promo/mock-interview.png" alt="Free for 2 weeks: mock interviews with a real person. Book yours free." className="block h-auto w-full" />
+          </a>
+        )}
+
         {topics.length > 0 && (
           <section className="mt-12" aria-labelledby="topics">
             <h2 id="topics" className="mb-4 text-xl font-bold text-slate-900 dark:text-slate-100">Browse by topic</h2>

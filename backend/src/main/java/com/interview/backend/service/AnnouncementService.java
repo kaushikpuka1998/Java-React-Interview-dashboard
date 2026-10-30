@@ -34,7 +34,8 @@ public class AnnouncementService {
         return text.replace("{{name}}", name)
                 .replace("{{profile_link}}", frontendUrl + "/profile")
                 .replace("{{resume_link}}", frontendUrl + "/resume")
-                .replace("{{practice_link}}", frontendUrl + "/practice");
+                .replace("{{practice_link}}", frontendUrl + "/practice")
+                .replace("{{interview_link}}", frontendUrl + "/interview");
     }
 
     public List<User> audience(String audience) {

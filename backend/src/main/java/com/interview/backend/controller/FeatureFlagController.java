@@ -22,6 +22,11 @@ public class FeatureFlagController {
             "resume_builder", true,
             "code_practice", true,
             "code_practice_promo", true,
+            // The mock interview feature, and a "New" badge on its top-bar link.
+            "mock_interview", true,
+            "new_badge_interview", false,
+            // When on, any member can interview candidates; when off only admins can (see MockInterviewController).
+            "interviewer_open", false,
             // A "New" badge on the matching top-bar links; off until an admin announces something.
             "new_badge_resume_builder", false,
             "new_badge_code_practice", false);

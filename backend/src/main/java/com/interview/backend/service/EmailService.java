@@ -45,6 +45,10 @@ public class EmailService {
     @Value("${app.public-base-url:http://localhost:8082}")
     private String backendUrl;
 
+    /** Where email pictures are loaded from. Mail apps cannot reach localhost, so this is always the public site (override with app.email-asset-url). */
+    @Value("${app.email-asset-url:https://interviewreader.cloud}")
+    private String emailAssetUrl;
+
     @Value("${app.jwt.secret}")
     private String signingSecret;
 
@@ -154,7 +158,7 @@ public class EmailService {
     public void sendAnnouncement(String toEmail, String subject, String body) {
         String unsubscribe = backendUrl + "/api/auth/unsubscribe?email=" + URLEncoder.encode(toEmail, StandardCharsets.UTF_8) +
                 "&sig=" + unsubscribeSig(toEmail);
-        String plain = body + "\n\n---\nDon't want these emails? Unsubscribe: " + unsubscribe;
+        String plain = body.replace(INTERVIEW_PROMO, interviewPromoPlain()) + "\n\n---\nDon't want these emails? Unsubscribe: " + unsubscribe;
         try {
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8"); // multipart: plain text + HTML
@@ -173,11 +177,35 @@ public class EmailService {
         StringBuilder html = new StringBuilder("<div style=\"font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;max-width:560px\">");
         for (String paragraph : body.split("\\n\\s*\\n")) {
             String text = paragraph.strip();
+            if (INTERVIEW_PROMO.equals(text)) { html.append(interviewPromoCard()); continue; }
             if (!text.isEmpty()) html.append("<p style=\"margin:0 0 14px\">").append(linkify(text)).append("</p>");
         }
         html.append("<p style=\"margin-top:24px;font-size:12px;color:#64748b\">Don't want these emails? <a href=\"")
                 .append(escapeHtml(unsubscribe)).append("\">Unsubscribe</a></p></div>");
         return html.toString();
+    }
+
+    /** Put this on its own line in an announcement to get the designed "free mock interview" card in the HTML email. */
+    public static final String INTERVIEW_PROMO = "[[interview-promo]]";
+
+    private String interviewPromoPlain() {
+        return "FREE mock interviews for 2 weeks\n"
+                + "- Coding, system design or resume discussion, with a real interviewer.\n"
+                + "- You pick the date and time. You get a Google Meet link and a shared whiteboard.\n"
+                + "Book yours: " + frontendUrl + "/interview";
+    }
+
+    // Table layout with inline styles only: that is what mail apps render reliably. The pictures are hosted with the site
+    // (frontend/public/promo), so they appear once that is deployed; with images blocked the alt text and the button still work.
+    private String interviewPromoCard() {
+        String url = escapeHtml(frontendUrl + "/interview");
+        String img = escapeHtml(emailAssetUrl.replaceAll("/+$", "")) + "/promo/";
+        String imgStyle = "display:block;width:100%;height:auto;border:0;font-size:18px;line-height:1.3;font-weight:bold;color:#be185d";
+        return "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin:8px 0 22px;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#ffffff\">"
+                + "<tr><td style=\"padding:0;line-height:0\"><a href=\"" + url + "\"><img src=\"" + img + "mock-interview.png\" width=\"100%\" alt=\"FREE for 2 weeks: mock interviews with a real person\" style=\"" + imgStyle + "\"></a></td></tr>"
+                + "<tr><td style=\"padding:0;line-height:0\"><img src=\"" + img + "interview-types.png\" width=\"100%\" alt=\"Choose your interview: coding, system design or resume discussion\" style=\"" + imgStyle + "\"></td></tr>"
+                + "<tr><td style=\"padding:0;line-height:0\"><img src=\"" + img + "how-it-works.png\" width=\"100%\" alt=\"Book in 3 steps: pick a slot, get matched, join and practise\" style=\"" + imgStyle + "\"></td></tr>"
+                + "<tr><td align=\"center\" style=\"padding:22px 24px 26px;background:#ffffff\"><a href=\"" + url + "\" style=\"display:inline-block;padding:14px 32px;border-radius:10px;background:linear-gradient(90deg,#f97316,#ec4899,#7c3aed);color:#ffffff;text-decoration:none;font-weight:bold;font-size:16px\">Book your free mock interview</a></td></tr></table>";
     }
 
     private static final Pattern WEB_ADDRESS = Pattern.compile("https?://[^\\s<]+");

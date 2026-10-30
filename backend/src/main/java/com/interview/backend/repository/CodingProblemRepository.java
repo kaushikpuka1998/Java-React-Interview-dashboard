@@ -10,6 +10,8 @@ public interface CodingProblemRepository extends JpaRepository<CodingProblem, Lo
 
     List<CodingProblem> findByTopicsIsNull();
 
+    List<CodingProblem> findTop15ByTitleContainingIgnoreCaseOrderByIdAsc(String title);
+
     List<CodingProblem> findByCompaniesIsNullOrCompanies(String empty);
 
     /** Listing row: only these columns are read, so statements, test cases and templates stay in the database. */

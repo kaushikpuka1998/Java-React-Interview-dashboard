@@ -20,6 +20,10 @@ public interface QuestionRepository extends JpaRepository<Question, String> {
 
     List<Question> findByTech(String tech);
 
+    /** Interview question search: titles or question text containing the text, optionally limited to one tech. */
+    @Query("select q from Question q where (:tech is null or q.tech = :tech) and (lower(q.title) like :p or lower(q.question) like :p or lower(q.id) like :p) order by q.tech, q.sortKey")
+    List<Question> searchForInterview(@Param("tech") String tech, @Param("p") String pattern, org.springframework.data.domain.Pageable page);
+
     /** Questions published in a window — feeds the daily new-questions email. */
     /** Questions edited in the window that already existed before it (their creation isn't news). */
     List<Question> findByUpdatedAtGreaterThanEqualAndUpdatedAtLessThanAndCreatedAtLessThanOrderByTechAscSortKeyAsc(

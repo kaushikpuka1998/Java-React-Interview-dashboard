@@ -121,7 +121,23 @@ Kaushik
 InterviewReader`,
 }
 
-const PLACEHOLDERS = ['{{name}}', '{{profile_link}}', '{{resume_link}}', '{{practice_link}}']
+const INTERVIEW_TEMPLATE = {
+  subject: 'Free mock interviews on InterviewReader for 2 weeks',
+  body: `Hi {{name}},
+
+For the next 2 weeks, mock interviews on InterviewReader are free. Practise with a real person, at a time you choose.
+
+[[interview-promo]]
+
+Book yours before the offer ends:
+{{interview_link}}
+
+Good luck!
+Kaushik
+InterviewReader`,
+}
+
+const PLACEHOLDERS = ['{{name}}', '{{profile_link}}', '{{resume_link}}', '{{practice_link}}', '{{interview_link}}', '[[interview-promo]]']
 
 // Shows the email as one member would see it, with sample values filled in.
 function Preview({ subject, body }) {
@@ -130,11 +146,28 @@ function Preview({ subject, body }) {
     .replaceAll('{{profile_link}}', `${window.location.origin}/profile`)
     .replaceAll('{{resume_link}}', `${window.location.origin}/resume`)
     .replaceAll('{{practice_link}}', `${window.location.origin}/practice`)
+    .replaceAll('{{interview_link}}', `${window.location.origin}/interview`)
+  // The designed card is three pictures and a button; show the real ones in the preview, in place of the marker.
+  const promo = (
+    <div className="my-3 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700">
+      {['mock-interview', 'interview-types', 'how-it-works'].map(n => <img key={n} src={`/promo/${n}.png`} alt="" className="block h-auto w-full" />)}
+      <div className="py-4 text-center">
+        <span className="inline-block rounded-lg bg-gradient-to-r from-orange-500 via-pink-500 to-violet-600 px-6 py-2.5 text-sm font-bold text-white">Book your free mock interview</span>
+      </div>
+    </div>
+  )
+  const parts = fill(body).split('[[interview-promo]]')
+  const text = 'whitespace-pre-wrap font-sans text-sm text-slate-700 dark:text-slate-300 selection:bg-blue-500/30 selection:text-slate-900 dark:selection:text-slate-100'
   return (
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
       <p className="text-xs text-slate-400">Preview (sample name)</p>
       <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{fill(subject) || '(no subject)'}</p>
-      <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-700 dark:text-slate-300 selection:bg-blue-500/30 selection:text-slate-900 dark:selection:text-slate-100">{fill(body) || '(no message)'}</pre>
+      {parts.length === 1 && !parts[0] ? <pre className={`mt-2 ${text}`}>(no message)</pre> : parts.map((p, i) => (
+        <div key={i}>
+          {p && <pre className={`mt-2 ${text}`}>{i > 0 ? p.replace(/^\n+/, '') : p.replace(/\n+$/, '')}</pre>}
+          {i < parts.length - 1 && promo}
+        </div>
+      ))}
       <p className="mt-3 text-xs text-slate-400">An unsubscribe link is added to the bottom of every email.</p>
     </div>
   )
@@ -163,6 +196,12 @@ function Compose({ onSent }) {
   const useResumeTemplate = () => {
     setSubject(RESUME_TEMPLATE.subject)
     setBody(RESUME_TEMPLATE.body)
+    setAudience('all')
+    setShowPreview(true)
+  }
+  const useInterviewTemplate = () => {
+    setSubject(INTERVIEW_TEMPLATE.subject)
+    setBody(INTERVIEW_TEMPLATE.body)
     setAudience('all')
     setShowPreview(true)
   }
@@ -197,6 +236,7 @@ function Compose({ onSent }) {
         <button type="button" onClick={useTemplate} className="rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white">Use "complete your profile" template</button>
         <button type="button" onClick={useResumeTemplate} className="rounded-lg bg-emerald-600 px-3 py-1.5 font-semibold text-white">Use "resume builder" launch template</button>
         <button type="button" onClick={usePracticeTemplate} className="rounded-lg bg-orange-500 px-3 py-1.5 font-semibold text-white">Use "code practice" launch template</button>
+        <button type="button" onClick={useInterviewTemplate} className="rounded-lg bg-pink-600 px-3 py-1.5 font-semibold text-white">Use "free mock interview" template</button>
         <span className="text-slate-400">Insert:</span>
         {PLACEHOLDERS.map(p => (
           <button key={p} type="button" onClick={() => insert(p)} className="rounded-md bg-slate-100 px-2 py-1 font-mono text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200">{p}</button>

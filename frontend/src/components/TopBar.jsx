@@ -11,13 +11,14 @@ const NAV = [
   ['Questions', '/questions'],
   ['Problems (Coding)', '/problems', 'code_practice', 'new_badge_code_practice'],
   ['Practice', '/practice', 'code_practice', 'new_badge_code_practice'],
+  ['Interview', '/interview', 'mock_interview', 'new_badge_interview'],
   ['Leaderboard', '/leaderboard'],
   ['Resume', '/resume', 'resume_builder', 'new_badge_resume_builder'],
 ]
 
 function NavLink({ label, href, flag, badge, path, features }) {
   if (flag && features[flag] === false) return null
-  const active = href === '/questions' ? !['/', '/problems', '/practice', '/leaderboard', '/resume', '/terms'].some(p => path === p || path.startsWith(p + '/')) && !['/admin', '/profile', '/u'].some(p => path.startsWith(p)) : path === href
+  const active = href === '/questions' ? !['/', '/problems', '/practice', '/leaderboard', '/resume', '/terms', '/interview'].some(p => path === p || path.startsWith(p + '/')) && !['/admin', '/profile', '/u'].some(p => path.startsWith(p)) : path === href
   const handleClick = (e) => {
     if (href === '/practice' && typeof window !== 'undefined' && window.location.pathname === '/practice' && window.location.search) {
       e.preventDefault()
