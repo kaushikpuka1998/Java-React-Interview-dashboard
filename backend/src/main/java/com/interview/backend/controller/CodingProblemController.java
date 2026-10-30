@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.backend.entity.CodingProblem;
 import com.interview.backend.repository.CodingProblemRepository;
+import com.interview.backend.service.ProblemCompanyBackfill;
 import com.interview.backend.service.TopicTagger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -111,6 +112,7 @@ public class CodingProblemController {
             row.put("title", p.getTitle());
             row.put("difficulty", p.getDifficulty() == null ? "" : p.getDifficulty());
             row.put("topics", topicList(p.getTopics()));
+            row.put("companies", topicList(p.getCompanies()));
             row.put("createdAt", p.getCreatedAt());
             return row;
         }).toList();
@@ -118,6 +120,19 @@ public class CodingProblemController {
 
     private static List<String> topicList(String csv) {
         return csv == null || csv.isBlank() ? List.of() : List.of(csv.split(","));
+    }
+
+    /** Public: companies with how many problems each asks, most first. Feeds the home page and the company filter. */
+    @GetMapping("/coding-problems/companies")
+    public List<Map<String, Object>> companies() {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (var p : problems.findSummariesByOrderByIdAsc()) {
+            for (String name : topicList(p.getCompanies())) counts.merge(name, 1, Integer::sum);
+        }
+        return counts.entrySet().stream()
+                .sorted((a, b) -> b.getValue() - a.getValue())
+                .map(e -> Map.<String, Object>of("name", e.getKey(), "count", e.getValue()))
+                .toList();
     }
 
     /** Public detail: the statement, without test cases. */
@@ -250,6 +265,7 @@ public class CodingProblemController {
         p.setTitle(in.title().trim());
         p.setDifficulty(in.difficulty() == null || in.difficulty().isBlank() ? "Basic" : in.difficulty().trim());
         p.setStatement(in.statement().trim());
+        if (p.getCompanies() == null || p.getCompanies().isEmpty()) p.setCompanies(ProblemCompanyBackfill.companiesFor(in.title()));
         String topics = TopicTagger.normalize(in.topics());
         p.setTopics(topics != null ? topics : TopicTagger.infer(in.title(), in.statement()));
         p.setTestCases(resolveTests(in));

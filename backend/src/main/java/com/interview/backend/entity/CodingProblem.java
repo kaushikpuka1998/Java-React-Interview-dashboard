@@ -48,6 +48,10 @@ public class CodingProblem {
     @Column(name = "topics", length = 300)
     private String topics;
 
+    /** Comma separated companies that ask this problem, e.g. "Google,Amazon". Empty when none is known. */
+    @Column(name = "companies", columnDefinition = "TEXT")
+    private String companies;
+
     @Column(name = "created_at", updatable = false)
     private Instant createdAt = Instant.now();
 }

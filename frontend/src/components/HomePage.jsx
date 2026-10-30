@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import TopBar from './TopBar.jsx'
 import Footer from './Footer.jsx'
 import { fetchStats } from '../lib/api.js'
+import { fetchCompanies } from '../lib/codingProblems.js'
 import { techBadge, techLabel } from '../lib/badges.js'
 import { setDefaultSeo } from '../lib/seo.js'
 import { useFeatures } from '../lib/features.js'
@@ -16,7 +17,8 @@ const LINKS = [
 export default function HomePage() {
   const features = useFeatures()
   const [stats, setStats] = useState(null)
-  useEffect(() => { fetchStats().then(setStats).catch(() => {}) }, [])
+  const [companies, setCompanies] = useState([])
+  useEffect(() => { fetchStats().then(setStats).catch(() => {}); fetchCompanies().then(setCompanies).catch(() => {}) }, [])
   useEffect(() => { setDefaultSeo(stats?.total) }, [stats?.total])
 
   const topics = Object.entries(stats?.byTech || {}).sort((a, b) => b[1] - a[1])
@@ -44,6 +46,22 @@ export default function HomePage() {
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${techBadge(tech)}`}>{techLabel(tech)}</span>
                   <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-slate-100">{count.toLocaleString()}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">questions</p>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {companies.length > 0 && features.code_practice !== false && (
+          <section className="mt-12" aria-labelledby="companies">
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 id="companies" className="text-xl font-bold text-slate-900 dark:text-slate-100">Coding problems by company</h2>
+              <a href="/problems" className="text-sm text-blue-600 hover:underline dark:text-blue-400">All problems →</a>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {companies.slice(0, 24).map(c => (
+                <a key={c.name} href={`/problems?company=${encodeURIComponent(c.name)}`} className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:shadow-md dark:bg-slate-950 dark:text-slate-100">
+                  {c.name} <span className="text-slate-400">{c.count}</span>
                 </a>
               ))}
             </div>

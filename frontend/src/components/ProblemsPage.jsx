@@ -20,7 +20,9 @@ export default function ProblemsPage() {
   const [query, setQuery] = useState('')
   const [difficulty, setDifficulty] = useState('All')
   const [status, setStatus] = useState('all')
-  const [topic, setTopic] = useState('')   // '' = all topics
+  const urlParams = new URLSearchParams(window.location.search)
+  const [topic, setTopic] = useState(urlParams.get('topic') || '')   // '' = all topics
+  const [company, setCompany] = useState(urlParams.get('company') || '')   // '' = all companies
   // Rows are drawn 50 at a time; a sentinel below the list loads the next batch as it nears the screen.
   const CHUNK = 50
   const [shownCount, setShownCount] = useState(CHUNK)
@@ -45,20 +47,27 @@ export default function ProblemsPage() {
     return [...m.entries()].sort((a, b) => b[1] - a[1])
   }, [problems])
 
+  const companyCounts = useMemo(() => {
+    const m = new Map()
+    for (const p of problems || []) for (const c of p.companies || []) m.set(c, (m.get(c) || 0) + 1)
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }, [problems])
+
   const rows = useMemo(() => {
     if (!problems) return []
     const q = query.trim().toLowerCase().replace(/^#/, '')
     return problems.filter(p => {
       if (difficulty !== 'All' && p.difficulty !== difficulty) return false
       if (topic && !(p.topics || []).includes(topic)) return false
+      if (company && !(p.companies || []).includes(company)) return false
       if (status === 'solved' && !solved.has(p.id)) return false
       if (status === 'todo' && solved.has(p.id)) return false
       if (!q) return true
       return p.title.toLowerCase().includes(q) || String(numberOf.get(p.id)) === q
     })
-  }, [problems, query, difficulty, status, topic, solved, numberOf])
+  }, [problems, query, difficulty, status, topic, company, solved, numberOf])
 
-  useEffect(() => { setShownCount(CHUNK) }, [query, difficulty, status, topic])
+  useEffect(() => { setShownCount(CHUNK) }, [query, difficulty, status, topic, company])
   useEffect(() => {
     const el = sentinel.current
     if (!el) return
@@ -127,6 +136,15 @@ export default function ProblemsPage() {
           <div className="flex flex-wrap items-center gap-3">
             {segment(DIFFICULTIES.map(d => [d, d]), difficulty, setDifficulty, 'Difficulty')}
             {signedIn && segment(STATUSES, status, setStatus, 'Status')}
+            {companyCounts.length > 0 && (
+              <select
+                value={company} onChange={e => setCompany(e.target.value)} aria-label="Company"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              >
+                <option value="">All companies</option>
+                {companyCounts.map(([c, n]) => <option key={c} value={c}>{c} ({n})</option>)}
+              </select>
+            )}
           </div>
         </div>
 

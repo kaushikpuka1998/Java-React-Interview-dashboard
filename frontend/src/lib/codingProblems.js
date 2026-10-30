@@ -30,6 +30,13 @@ export async function fetchCodingProblems() {
   return res.json()
 }
 
+// Public: companies with the number of problems each asks, most first.
+export async function fetchCompanies() {
+  const res = await fetch(`${API_BASE}/coding-problems/companies`)
+  if (!res.ok) return []
+  return res.json()
+}
+
 // Public: one problem's statement (never its test cases).
 export async function fetchCodingProblem(id) {
   const res = await fetch(`${API_BASE}/coding-problems/${id}`)
