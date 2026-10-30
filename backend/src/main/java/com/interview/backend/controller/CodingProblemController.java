@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interview.backend.entity.CodingProblem;
 import com.interview.backend.repository.CodingProblemRepository;
+import com.interview.backend.service.TopicTagger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,10 +22,10 @@ import java.util.regex.Pattern;
 @RestController
 public class CodingProblemController {
 
-    public record ProblemInput(String title, String difficulty, String statement, String testCases, String starterCode, String driver, String templates) {}
+    public record ProblemInput(String title, String difficulty, String statement, String testCases, String starterCode, String driver, String templates, String topics) {}
 
     // One problem in a bulk import file. Test cases and templates are written as real JSON, not as strings.
-    public record BulkProblem(String title, String difficulty, String statement, JsonNode testCases, JsonNode templates) {}
+    public record BulkProblem(String title, String difficulty, String statement, JsonNode testCases, JsonNode templates, String topics) {}
 
     private static final int MAX_BULK = 1000;
 
@@ -41,7 +42,7 @@ public class CodingProblemController {
             try {
                 ProblemInput in = new ProblemInput(
                         b.title(), b.difficulty(), b.statement(),
-                        jsonText(b.testCases()), null, null, jsonText(b.templates()));
+                        jsonText(b.testCases()), null, null, jsonText(b.templates()), b.topics());
                 error = validate(in);
                 if (error == null) {
                     CodingProblem p = new CodingProblem();
@@ -109,9 +110,14 @@ public class CodingProblemController {
             row.put("id", p.getId());
             row.put("title", p.getTitle());
             row.put("difficulty", p.getDifficulty() == null ? "" : p.getDifficulty());
+            row.put("topics", topicList(p.getTopics()));
             row.put("createdAt", p.getCreatedAt());
             return row;
         }).toList();
+    }
+
+    private static List<String> topicList(String csv) {
+        return csv == null || csv.isBlank() ? List.of() : List.of(csv.split(","));
     }
 
     /** Public detail: the statement, without test cases. */
@@ -122,6 +128,7 @@ public class CodingProblemController {
             out.put("id", p.getId());
             out.put("title", p.getTitle());
             out.put("difficulty", p.getDifficulty() == null ? "" : p.getDifficulty());
+            out.put("topics", topicList(p.getTopics()));
             out.put("statement", p.getStatement());
             out.put("starters", startersOf(p));
             return ResponseEntity.ok(out);
@@ -156,7 +163,7 @@ public class CodingProblemController {
         List<BulkProblem> out = new ArrayList<>();
         for (CodingProblem p : problems.findAllByOrderByIdAsc()) {
             out.add(new BulkProblem(p.getTitle(), p.getDifficulty(), p.getStatement(),
-                    readJson(p.getTestCases()), readJson(p.getTemplates())));
+                    readJson(p.getTestCases()), readJson(p.getTemplates()), p.getTopics()));
         }
         return out;
     }
@@ -243,6 +250,8 @@ public class CodingProblemController {
         p.setTitle(in.title().trim());
         p.setDifficulty(in.difficulty() == null || in.difficulty().isBlank() ? "Basic" : in.difficulty().trim());
         p.setStatement(in.statement().trim());
+        String topics = TopicTagger.normalize(in.topics());
+        p.setTopics(topics != null ? topics : TopicTagger.infer(in.title(), in.statement()));
         p.setTestCases(resolveTests(in));
         p.setStarterCode(in.starterCode() == null || in.starterCode().isBlank() ? null : in.starterCode().stripTrailing());
         p.setDriver(in.driver() == null || in.driver().isBlank() ? null : in.driver().stripTrailing());

@@ -4,7 +4,7 @@ import Markdown from './Markdown.jsx'
 
 const TEMPLATE_LANGS = [['cpp', 'C++'], ['c', 'C'], ['python', 'Python'], ['ruby', 'Ruby'], ['rust', 'Rust'], ['csharp', 'C#'], ['php', 'PHP'], ['swift', 'Swift'], ['java', 'Java'], ['go', 'Go'], ['javascript', 'JavaScript']]
 const BLANK_TEMPLATE = { language: 'cpp', starter: '', driver: '' }
-const EMPTY = { title: '', difficulty: 'Basic', statement: '', templates: [BLANK_TEMPLATE], tests: [{ input: '', expected: '', hidden: false }] }
+const EMPTY = { title: '', difficulty: 'Basic', topics: '', statement: '', templates: [BLANK_TEMPLATE], tests: [{ input: '', expected: '', hidden: false }] }
 
 // Old problems stored one C++ starter and driver; new ones store one entry per language.
 function templatesOf(p) {
@@ -37,6 +37,7 @@ const SAMPLE_IMPORT = JSON.stringify([
   {
     title: 'Two Sum',
     difficulty: 'Basic',
+    topics: 'Array, Hash Table',
     statement: 'Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target.',
     testCases: [{ input: '4\n2 7 11 15\n9', expected: '0 1' }, { input: '3\n3 2 4\n6', expected: '1 2', hidden: true }],
     templates: {
@@ -178,6 +179,7 @@ export default function CodingProblemsAdmin({ onExport }) {
     setForm({
       title: p.title || '',
       difficulty: p.difficulty || 'Basic',
+      topics: p.topics || '',
       statement: p.statement || '',
       templates: templatesOf(p),
       tests: tests.length ? tests.map(t => ({ input: String(t.input ?? ''), expected: String(t.expected ?? ''), hidden: !!t.hidden })) : EMPTY.tests,
@@ -198,7 +200,7 @@ export default function CodingProblemsAdmin({ onExport }) {
       const byLanguage = {}
       // prelude is not editable here, but tree and list problems need it (it declares TreeNode/ListNode), so carry it through.
       form.templates.forEach(t => { if (t.starter.trim() || t.driver.trim()) byLanguage[t.language] = { starter: t.starter, driver: t.driver, ...(t.prelude ? { prelude: t.prelude } : {}) } })
-      await saveCodingProblem(editingId, { title: form.title, difficulty: form.difficulty, statement: form.statement, templates: Object.keys(byLanguage).length ? JSON.stringify(byLanguage) : '', testCases: JSON.stringify(tests) })
+      await saveCodingProblem(editingId, { title: form.title, difficulty: form.difficulty, topics: form.topics, statement: form.statement, templates: Object.keys(byLanguage).length ? JSON.stringify(byLanguage) : '', testCases: JSON.stringify(tests) })
       setMsg({ ok: true, text: editingId ? 'Problem updated.' : 'Problem added.' })
       reset()
       load()
@@ -231,6 +233,7 @@ export default function CodingProblemsAdmin({ onExport }) {
         <select value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })} className={inputCls}>
           {['Basic', 'Intermediate', 'Advanced'].map(d => <option key={d}>{d}</option>)}
         </select>
+        <input value={form.topics} onChange={e => setForm({ ...form, topics: e.target.value })} placeholder="Topics, comma separated, e.g. Array, Hash Table (leave empty to auto-detect)" className={inputCls} />
         <label className="block text-sm font-medium text-slate-600 dark:text-slate-300">Problem statement (Markdown)</label>
         <textarea value={form.statement} onChange={e => setForm({ ...form, statement: e.target.value })} rows={8} required
           placeholder={'Describe the task, the input and output format, and the examples.'} className={`${inputCls} font-mono text-sm`} />

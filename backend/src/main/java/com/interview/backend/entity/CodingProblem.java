@@ -44,6 +44,10 @@ public class CodingProblem {
     @Column(name = "test_cases", columnDefinition = "TEXT", nullable = false)
     private String testCases;
 
+    /** Comma separated topics, e.g. "Array,Hash Table". A problem can have several. */
+    @Column(name = "topics", length = 300)
+    private String topics;
+
     @Column(name = "created_at", updatable = false)
     private Instant createdAt = Instant.now();
 }

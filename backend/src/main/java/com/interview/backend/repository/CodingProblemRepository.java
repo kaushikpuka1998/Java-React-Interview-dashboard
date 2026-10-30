@@ -8,11 +8,14 @@ import java.util.List;
 public interface CodingProblemRepository extends JpaRepository<CodingProblem, Long> {
     List<CodingProblem> findAllByOrderByIdAsc();
 
+    List<CodingProblem> findByTopicsIsNull();
+
     /** Listing row: only these columns are read, so statements, test cases and templates stay in the database. */
     interface Summary {
         Long getId();
         String getTitle();
         String getDifficulty();
+        String getTopics();
         java.time.Instant getCreatedAt();
     }
 

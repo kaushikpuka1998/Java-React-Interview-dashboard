@@ -20,6 +20,7 @@ export default function ProblemsPage() {
   const [query, setQuery] = useState('')
   const [difficulty, setDifficulty] = useState('All')
   const [status, setStatus] = useState('all')
+  const [topic, setTopic] = useState('')   // '' = all topics
   // Rows are drawn 50 at a time; a sentinel below the list loads the next batch as it nears the screen.
   const CHUNK = 50
   const [shownCount, setShownCount] = useState(CHUNK)
@@ -37,19 +38,27 @@ export default function ProblemsPage() {
   // Rows are numbered by their position in the list (1, 2, 3...), not by database id.
   const numberOf = useMemo(() => new Map((problems || []).map((p, i) => [p.id, i + 1])), [problems])
 
+  // Topics with how many problems each has, biggest first. A problem counts under every topic it has.
+  const topicCounts = useMemo(() => {
+    const m = new Map()
+    for (const p of problems || []) for (const t of p.topics || []) m.set(t, (m.get(t) || 0) + 1)
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }, [problems])
+
   const rows = useMemo(() => {
     if (!problems) return []
     const q = query.trim().toLowerCase().replace(/^#/, '')
     return problems.filter(p => {
       if (difficulty !== 'All' && p.difficulty !== difficulty) return false
+      if (topic && !(p.topics || []).includes(topic)) return false
       if (status === 'solved' && !solved.has(p.id)) return false
       if (status === 'todo' && solved.has(p.id)) return false
       if (!q) return true
       return p.title.toLowerCase().includes(q) || String(numberOf.get(p.id)) === q
     })
-  }, [problems, query, difficulty, status, solved, numberOf])
+  }, [problems, query, difficulty, status, topic, solved, numberOf])
 
-  useEffect(() => { setShownCount(CHUNK) }, [query, difficulty, status])
+  useEffect(() => { setShownCount(CHUNK) }, [query, difficulty, status, topic])
   useEffect(() => {
     const el = sentinel.current
     if (!el) return
@@ -102,6 +111,19 @@ export default function ProblemsPage() {
             aria-label="Search problems"
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
+          {topicCounts.length > 0 && (
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Topics">
+              {topicCounts.map(([t, n]) => (
+                <button
+                  key={t} type="button" aria-pressed={topic === t}
+                  onClick={() => setTopic(topic === t ? '' : t)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${topic === t ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 text-slate-600 hover:border-blue-400 hover:text-blue-700 dark:border-slate-700 dark:text-slate-300 dark:hover:text-blue-300'}`}
+                >
+                  {t} <span className={topic === t ? 'text-blue-100' : 'text-slate-400'}>{n}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             {segment(DIFFICULTIES.map(d => [d, d]), difficulty, setDifficulty, 'Difficulty')}
             {signedIn && segment(STATUSES, status, setStatus, 'Status')}
@@ -120,6 +142,9 @@ export default function ProblemsPage() {
                   <span className="min-w-0 flex-1 truncate font-medium text-slate-900 dark:text-slate-100">{p.title}</span>
                   {signedIn && solved.has(p.id) && <span aria-label="Solved" className="text-emerald-600 dark:text-emerald-400">✓</span>}
                   {signedIn && !solved.has(p.id) && attempted.has(p.id) && <span aria-label="Attempted" className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />}
+                  <span className="hidden shrink-0 gap-1 md:flex">
+                    {(p.topics || []).slice(0, 3).map(t => <span key={t} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">{t}</span>)}
+                  </span>
                   {p.difficulty && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${difficultyBadge(p.difficulty)}`}>{p.difficulty}</span>}
                 </a>
               </li>
