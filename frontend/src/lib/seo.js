@@ -3,7 +3,7 @@
 // them up, but see docs/SEO.md for the prerender step that makes indexing faster.
 
 const SITE_NAME = 'Interview Reader'
-const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://interviewreader.up.railway.app').replace(/\/+$/, '')
+const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://interviewreader.cloud').replace(/\/+$/, '')
 
 const TECH_NAMES = {
   java: 'Java', react: 'React', node: 'Node.js', sql: 'SQL', hld: 'System Design',

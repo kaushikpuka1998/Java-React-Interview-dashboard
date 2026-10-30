@@ -6,6 +6,7 @@
     "dev": "cd frontend && vite --host 127.0.0.1 --port 5173",
     "build": "cd frontend && vite build",
     "preview": "cd frontend && vite preview",
+    "sitemap": "node scripts/gen-sitemap.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "npx chromatic --project-token=chpt_96ed52469f7bed2"

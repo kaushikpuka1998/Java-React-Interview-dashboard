@@ -1,4 +1,4 @@
-# https://interviewreader.up.railway.app
+# https://interviewreader.cloud
 User-agent: *
 Allow: /
 
@@ -7,4 +7,4 @@ Disallow: /admin
 Disallow: /profile
 Disallow: /u/
 
-Sitemap: https://interviewreader.up.railway.app/sitemap.xml
+Sitemap: https://interviewreader.cloud/sitemap.xml

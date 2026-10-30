@@ -9,19 +9,19 @@
  *   API_BASE=https://api.example.com/api SITE_URL=https://example.com \
  *     node scripts/gen-sitemap.mjs
  */
-import { writeFile, mkdir } from 'node:fs/promises'
+import { writeFile, readFile, mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 
-const API_BASE = process.env.API_BASE || 'http://localhost:8082/api'
+const API_BASE = process.env.API_BASE || 'https://interviewreader.cloud/api'
 // Gated topics are hidden from anonymous API calls, so without a token the sitemap
 // would only list the free sample. Pass an admin token to enumerate everything —
 // gated pages still belong in the sitemap, paired with the paywall structured data.
 const AUTH_TOKEN = process.env.AUTH_TOKEN || ''
-const SITE_URL = (process.env.SITE_URL || 'https://interviewreader.up.railway.app').replace(/\/+$/, '')
+const SITE_URL = (process.env.SITE_URL || 'https://interviewreader.cloud').replace(/\/+$/, '')
 const PAGE_SIZE = 500
 
 // Must match frontend/src/lib/slug.js exactly, or the sitemap points at 404s.
@@ -33,14 +33,29 @@ const xmlEscape = (s) =>
 
 async function fetchAll() {
   const out = []
-  for (let page = 0; ; page++) {
-    const res = await fetch(`${API_BASE}/questions?page=${page}&size=${PAGE_SIZE}`, {
-      headers: AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {},
-    })
-    if (!res.ok) throw new Error(`API returned ${res.status} — is the backend running?`)
-    const data = await res.json()
-    out.push(...(data.content || []))
-    if (!data.totalPages || page + 1 >= data.totalPages) break
+  try {
+    for (let page = 0; ; page++) {
+      const res = await fetch(`${API_BASE}/questions?page=${page}&size=${PAGE_SIZE}`, {
+        headers: AUTH_TOKEN ? { Authorization: `Bearer ${AUTH_TOKEN}` } : {},
+      })
+      if (!res.ok) throw new Error(`API returned ${res.status}`)
+      const data = await res.json()
+      out.push(...(data.content || []))
+      if (!data.totalPages || page + 1 >= data.totalPages) break
+    }
+  } catch (err) {
+    console.warn(`Could not reach ${API_BASE} (${err.message}) — falling back to existing sitemap entries`)
+    try {
+      const existing = await readFile(join(ROOT, 'frontend', 'public', 'sitemap.xml'), 'utf8')
+      const matches = [...existing.matchAll(/<loc>https?:\/\/[^/]+\/([^<]+)<\/loc>/g)]
+      const reserved = new Set(['', 'problems', 'practice', 'leaderboard', 'resume'])
+      const fallbackSlugs = matches.map(m => m[1]).filter(s => !reserved.has(s))
+      if (fallbackSlugs.length > 0) {
+        console.log(`Using ${fallbackSlugs.length} cached questions from existing sitemap.xml`)
+        return fallbackSlugs.map(slug => ({ question: slug, _isSlug: true }))
+      }
+    } catch {}
+    throw err
   }
   return out
 }
@@ -53,7 +68,7 @@ function sitemapXml(questions) {
     ...[['/problems', 'daily', '0.9'], ['/practice', 'weekly', '0.7'], ['/leaderboard', 'daily', '0.5'], ['/resume', 'monthly', '0.6']].map(([path, freq, prio]) =>
       `  <url>\n    <loc>${SITE_URL}${path}</loc>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`),
     ...questions.map(q => {
-      const slug = slugify(q.question || q.title)
+      const slug = q._isSlug ? q.question : slugify(q.question || q.title)
       if (!slug) return null
       return `  <url>
     <loc>${xmlEscape(`${SITE_URL}/${slug}`)}</loc>
