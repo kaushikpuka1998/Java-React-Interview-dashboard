@@ -109,7 +109,7 @@ export default function ActivityHeatmap({ times: given, compact = false }) {
             {columns.flatMap((c, i) => (c.spacer ? Array.from({ length: 7 }, (_, d) => <div key={`${i}-${d}`} />) : c.col.map((cell, d) => cell === null ? (
               <div key={`${i}-${d}`} />
             ) : cell.future ? (
-              <div key={`${i}-${d}`} aria-hidden="true" className="rounded-[2px] border border-dashed border-slate-200/60 dark:border-slate-700/60" />
+              <div key={`${i}-${d}`} aria-hidden="true" className="rounded-[2px] border border-dashed border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800/40" />
             ) : (
               <div
                 key={`${i}-${d}`}

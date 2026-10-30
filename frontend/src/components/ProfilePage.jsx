@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { isLoggedIn, getUser, logout, fetchDashboard, fetchProfileQuestions, updateLocation } from '../lib/auth.js'
 import { fetchQuestions } from '../lib/api.js'
+import { fetchSolvedIds } from '../lib/code.js'
+import { fetchCodingProblems } from '../lib/codingProblems.js'
 import { slugify } from '../lib/slug.js'
 import { techBadge, difficultyBadge, techLabel } from '../lib/badges.js'
 import AuthModal from './AuthModal.jsx'
@@ -295,6 +297,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(() => cache?.me ?? null)
   const [solved, setSolved] = useState(() => cache?.solved ?? [])
   const [visited, setVisited] = useState(() => cache?.visited ?? [])
+  const [coding, setCoding] = useState(null)   // { solved, total } for the coding problems
   const [visitedLoaded, setVisitedLoaded] = useState(false)   // the visited list loads when its tab is opened
   const [listFilter, setListFilter] = useState('solved')   // which tab of the bottom panel is open
   useEffect(() => {
@@ -310,6 +313,13 @@ export default function ProfilePage() {
   const [copied, setCopied] = useState(false)
   const [handle, setHandle] = useState('')
   useEffect(() => { if (profile?.username) setHandle(profile.username) }, [profile])
+
+  useEffect(() => {
+    if (!isLoggedIn()) return
+    Promise.all([fetchSolvedIds(), fetchCodingProblems()])
+      .then(([ids, all]) => setCoding({ solved: ids.length, total: all.length }))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!isLoggedIn()) { setLoading(false); return }
@@ -394,13 +404,14 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
         {[
           ['Solved', solvedCount, `${solvedPct}% of ${totalQuestions}`, 'text-green-600 dark:text-green-400'],
           ['Visited', visitedCount, `of ${totalQuestions}`, 'text-blue-600 dark:text-blue-400'],
           ['Flagged', flagged.length, '', 'text-amber-600 dark:text-amber-400'],
           ['Important', important.length, '', 'text-rose-600 dark:text-rose-400'],
           ['Remaining', Math.max(totalQuestions - solvedCount, 0), '', ''],
+          ['Coding solved', coding ? coding.solved : '—', coding ? `of ${coding.total}` : '', 'text-emerald-600 dark:text-emerald-400'],
           ['Topics', topics.length, `of ${byTech.length}`, 'text-violet-600 dark:text-violet-400'],
         ].map(([label, value, sub, accent]) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-950">

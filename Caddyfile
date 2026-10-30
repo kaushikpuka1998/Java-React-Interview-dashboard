@@ -19,9 +19,34 @@
 
 	respond /health 200
 
-	# Permanent (301) redirect from the Railway-provided domain to the custom domain
-	@railwayDomain host interviewreader.up.railway.app
+	# Permanent (301) redirect from the Railway-provided domain to the custom domain.
+	# The service worker script is the one exception: browsers refuse a redirected worker script, so
+	# a visitor who installed the app on the Railway address would keep running the old cached copy
+	# (which never reaches this redirect). Instead that address gets a worker that removes itself,
+	# wipes the caches and sends every open tab to the custom domain.
+	@railwayDomain {
+		host interviewreader.up.railway.app
+		not path /sw.js
+	}
 	redir @railwayDomain https://interviewreader.cloud{uri} permanent
+
+	@railwayWorker {
+		host interviewreader.up.railway.app
+		path /sw.js
+	}
+	header @railwayWorker Content-Type "application/javascript; charset=utf-8"
+	header @railwayWorker Cache-Control "no-store"
+	respond @railwayWorker <<JS
+		self.addEventListener('install', () => self.skipWaiting());
+		self.addEventListener('activate', event => event.waitUntil((async () => {
+		  for (const key of await caches.keys()) await caches.delete(key);
+		  await self.registration.unregister();
+		  for (const client of await self.clients.matchAll({ type: 'window' })) {
+		    const url = new URL(client.url);
+		    client.navigate('https://interviewreader.cloud' + url.pathname + url.search + url.hash);
+		  }
+		})()));
+		JS 200
 
 	header {
 		X-XSS-Protection "1; mode=block"

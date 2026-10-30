@@ -1,3 +1,4 @@
+import NotFound from './NotFound.jsx'
 import { useState, useEffect } from 'react'
 import TopBar from './TopBar.jsx'
 import { techLabel, techBadge, difficultyBadge } from '../lib/badges.js'
@@ -56,7 +57,12 @@ export default function PublicProfilePage({ username }) {
       <TopBar />
     <div className="min-h-[calc(100vh-5.4rem)] bg-slate-100 p-5 dark:bg-slate-900 lg:h-[calc(100vh-5.4rem)] lg:overflow-hidden">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:h-full">
-        {error && <p className="text-slate-500">{error}</p>}
+        {error === 'This profile does not exist.' ? (
+          <div className="rounded-2xl bg-white dark:bg-slate-950">
+            <NotFound title="Profile not found" message={`There is no member with the username "${username}". Check the link, or head back and keep practising.`} />
+            <p className="pb-6 text-center"><a href="/" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Back to home</a></p>
+          </div>
+        ) : error && <p className="text-slate-500">{error}</p>}
         {!error && !profile && <p className="text-slate-500">Loading…</p>}
 
         {profile && (
