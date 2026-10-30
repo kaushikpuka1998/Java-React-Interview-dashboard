@@ -133,7 +133,7 @@ function Preview({ subject, body }) {
     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
       <p className="text-xs text-slate-400">Preview (sample name)</p>
       <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{fill(subject) || '(no subject)'}</p>
-      <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-700 dark:text-slate-300">{fill(body) || '(no message)'}</pre>
+      <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-700 dark:text-slate-300 selection:bg-blue-500/30 selection:text-slate-900 dark:selection:text-slate-100">{fill(body) || '(no message)'}</pre>
       <p className="mt-3 text-xs text-slate-400">An unsubscribe link is added to the bottom of every email.</p>
     </div>
   )

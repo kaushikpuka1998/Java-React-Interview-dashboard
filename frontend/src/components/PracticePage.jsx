@@ -108,17 +108,44 @@ export default function PracticePage() {
   }
   const toggleList = () => setListOpen(open => !open)
 
+  const resolveSelectionFromUrl = list => {
+    const params = new URLSearchParams(window.location.search)
+    const idParam = params.get('id')
+    const mode = params.get('mode')
+    if (idParam === 'custom' || idParam === 'playground' || mode === 'playground') return CUSTOM
+    if (idParam) {
+      const wanted = Number(idParam)
+      if (!Number.isNaN(wanted) && list.some(p => p.id === wanted)) return wanted
+    }
+    return CUSTOM
+  }
+
   useEffect(() => {
     fetchCodingProblems()
       .then(list => {
-        // A link like /practice?id=12 opens that problem; otherwise the first one.
-        const wanted = Number(new URLSearchParams(window.location.search).get('id'))
         setProblems(list)
-        setSelected(list.some(p => p.id === wanted) ? wanted : (list[0]?.id ?? CUSTOM))
+        setSelected(resolveSelectionFromUrl(list))
         markPracticeSeen()
       })
       .catch(e => { setError(e.message); setProblems([]); setSelected(CUSTOM) })
   }, [])
+
+  useEffect(() => {
+    if (!problems) return
+    const onPop = () => setSelected(resolveSelectionFromUrl(problems))
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [problems])
+
+  // Sync selected state to URL query parameter so the address reflects whether you are in Playground or on a specific problem.
+  useEffect(() => {
+    if (selected == null) return
+    const next = selected === CUSTOM ? '/practice' : `/practice?id=${selected}`
+    const current = window.location.pathname + window.location.search
+    if (next !== current) {
+      window.history.pushState({}, '', next)
+    }
+  }, [selected])
 
   // Centre the selected problem in the list. Only the list scrolls: scrollIntoView would also scroll
   // the page to reach it, which made the whole layout jump on Next/Previous.
@@ -265,7 +292,7 @@ export default function PracticePage() {
                   <button type="button" onClick={toggleList} aria-label={listOpen ? 'Collapse problem list' : 'Expand problem list'} data-tip={listOpen ? 'Collapse problem list' : 'Expand problem list'} className={NAV_BTN}>
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h16" /></svg>
                   </button>
-                  <span className="min-w-0 truncate px-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Problems</span>
+                  <span className="min-w-0 truncate px-2 text-sm font-semibold text-slate-800 dark:text-slate-100">{selected === CUSTOM ? 'Playground' : 'Problems'}</span>
                   <button type="button" onClick={() => goToProblem(-1)} disabled={!canPrev} aria-label="Previous problem" data-tip="Previous problem" className={NAV_BTN}>
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
                   </button>

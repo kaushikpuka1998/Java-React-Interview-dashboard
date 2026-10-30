@@ -90,7 +90,7 @@ export default function Mermaid({ code }) {
         <div title={error} className="px-3 sm:px-4 py-1 text-[11px] font-mono uppercase tracking-wide text-amber-400 bg-slate-800 border border-b-0 border-slate-700/50 rounded-t-lg">
           diagram source (unrenderable)
         </div>
-        <pre className="bg-slate-900 rounded-b-lg p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full border border-slate-700/50">
+        <pre className="bg-slate-900 selection:bg-blue-500/40 selection:text-slate-100 rounded-b-lg p-3 sm:p-4 text-[12px] sm:text-sm overflow-x-auto max-w-full border border-slate-700/50">
           <code className="text-slate-100 leading-relaxed font-mono whitespace-pre">{code}</code>
         </pre>
       </div>

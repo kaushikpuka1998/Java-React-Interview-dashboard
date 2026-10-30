@@ -17,8 +17,20 @@ const NAV = [
 function NavLink({ label, href, flag, badge, path, features }) {
   if (flag && features[flag] === false) return null
   const active = path === href
+  const handleClick = (e) => {
+    if (href === '/practice' && typeof window !== 'undefined' && window.location.pathname === '/practice' && window.location.search) {
+      e.preventDefault()
+      window.history.pushState({}, '', '/practice')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }
+  }
   return (
-    <a href={href} aria-current={active ? 'page' : undefined} className={`whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${active ? 'bg-blue-600/10 font-semibold text-blue-700 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'}`}>
+    <a
+      href={href}
+      onClick={handleClick}
+      aria-current={active ? 'page' : undefined}
+      className={`whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${active ? 'bg-blue-600/10 font-semibold text-blue-700 dark:text-blue-300' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'}`}
+    >
       {label}
       {badge && features[badge] === true && <span className="ml-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-950">New</span>}
     </a>

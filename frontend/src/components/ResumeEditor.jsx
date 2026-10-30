@@ -522,7 +522,7 @@ function LivePdf({ title, pdfKey, run }) {
         </div>
       )}
       {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
-      {log && <pre className="mb-2 max-h-40 overflow-auto rounded-lg bg-white p-2 text-[11px] text-red-800">{log}</pre>}
+      {log && <pre className="mb-2 max-h-40 overflow-auto rounded-lg bg-white selection:bg-blue-500/30 selection:text-slate-900 p-2 text-[11px] text-red-800">{log}</pre>}
       {url && <iframe title="Live PDF preview" src={url} className={`block w-full max-w-full rounded-lg bg-white ${expanded ? 'min-h-0 flex-1' : 'h-[85vh]'}`} />}
     </div>
   )

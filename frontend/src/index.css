@@ -24,6 +24,23 @@
     @apply bg-blue-500/30 text-slate-900 dark:text-slate-100;
   }
 
+  /* Code blocks, code editors, and dark containers always use dark backgrounds in both light and dark modes.
+     Ensure selected text in these areas remains light (slate-100) and easily readable in light mode. */
+  pre::selection,
+  pre *::selection,
+  .prose pre::selection,
+  .prose pre *::selection,
+  textarea.text-transparent::selection,
+  .bg-slate-950 textarea::selection,
+  .bg-slate-900 textarea::selection {
+    @apply bg-blue-500/40 text-slate-100;
+  }
+
+  /* Inline code in prose has a light background in light mode, so keep dark text on selection in light mode */
+  :not(pre) > code::selection {
+    @apply text-slate-900 dark:text-slate-100;
+  }
+
   :focus-visible {
     @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900;
   }
@@ -75,14 +92,6 @@
 
   .prose pre {
     @apply bg-slate-900 dark:bg-slate-950 rounded-lg p-3 sm:p-4 overflow-x-auto max-w-full border border-slate-700 dark:border-slate-700;
-  }
-
-  .prose pre code {
-    @apply text-slate-100 dark:text-slate-100 bg-transparent p-0 border-0;
-  }
-
-  .prose pre code {
-    @apply text-slate-100 dark:text-slate-100 bg-transparent p-0 border-0;
   }
 
   .prose ul, .prose ol {

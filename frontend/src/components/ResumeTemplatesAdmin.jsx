@@ -166,7 +166,7 @@ export default function ResumeTemplatesAdmin() {
         </label>
 
         {msg && <p className={`text-sm ${msg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{msg.text}</p>}
-        {log && <pre className="max-h-40 overflow-auto rounded-lg bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-300">{log}</pre>}
+        {log && <pre className="max-h-40 overflow-auto rounded-lg bg-red-50 selection:bg-blue-500/30 selection:text-slate-900 dark:selection:text-slate-100 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-300">{log}</pre>}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button onClick={remove} disabled={busy || !form.id} className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 disabled:opacity-40 dark:text-red-400">Delete</button>
