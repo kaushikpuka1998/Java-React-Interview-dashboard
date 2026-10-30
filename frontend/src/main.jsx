@@ -10,6 +10,7 @@ import ResumePage from './components/ResumePage.jsx'
 import ResumeEditor from './components/ResumeEditor.jsx'
 import HomePage from './components/HomePage.jsx'
 import Footer from './components/Footer.jsx'
+import SheetPage from './components/SheetPage.jsx'
 import TermsPage from './components/TermsPage.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import { trackView } from './lib/analytics.js'
@@ -75,6 +76,8 @@ function Routes() {
 
   if (path === '/') return <HomePage />
 
+  if (path.startsWith('/sheets/')) return <Gate flag="code_practice" what="The DSA sheets"><SheetPage slug={path.split('/')[2]} /></Gate>
+
   if (path === '/terms') return <TermsPage />
 
   if (path === '/leaderboard') return <LeaderboardPage />
@@ -100,7 +103,7 @@ function Routes() {
 }
 
 // Pages that do not lay out their own footer (home, terms and the reader do) get one underneath.
-const NEEDS_FOOTER = ['/admin', '/profile', '/leaderboard', '/practice', '/problems', '/resume', '/u/', '/reset-password']
+const NEEDS_FOOTER = ['/admin', '/profile', '/leaderboard', '/practice', '/problems', '/resume', '/u/', '/reset-password', '/sheets']
 
 function Router() {
   const path = typeof window !== 'undefined' ? window.location.pathname : '/'

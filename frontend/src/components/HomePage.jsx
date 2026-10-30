@@ -6,6 +6,15 @@ import { fetchCompanies } from '../lib/codingProblems.js'
 import { techBadge, techLabel } from '../lib/badges.js'
 import { setDefaultSeo } from '../lib/seo.js'
 import { useFeatures } from '../lib/features.js'
+import FeedbackForm, { focusFeedback } from './FeedbackForm.jsx'
+
+// DSA sheets that open on this site, using our own coding problems.
+// Hidden until the sheet problems are in the database: set to true to show the section on the home page.
+const SHOW_DSA_SHEETS = false
+const SHEETS = [
+  { name: "Striver's A2Z DSA Sheet", by: 'Striver (TakeUForward)', count: 433, text: 'A full roadmap from basics to advanced topics.', href: '/sheets/striver-a2z', internal: true },
+  { name: 'Love Babbar DSA Sheet', by: 'Love Babbar', count: 430, text: 'Placement-focused list covering every major concept.', href: '/sheets/love-babbar', internal: true },
+]
 
 const LINKS = [
   { href: '/questions', title: 'Interview questions', text: 'Read answers with code examples and diagrams, and track what you have covered.' },
@@ -20,6 +29,9 @@ export default function HomePage() {
   const [companies, setCompanies] = useState([])
   useEffect(() => { fetchStats().then(setStats).catch(() => {}); fetchCompanies().then(setCompanies).catch(() => {}) }, [])
   useEffect(() => { setDefaultSeo(stats?.total) }, [stats?.total])
+
+  // Arriving from the footer link on another page (/#feedback): the section only exists after the first render.
+  useEffect(() => { if (window.location.hash === '#feedback') { setTimeout(focusFeedback, 150); setTimeout(focusFeedback, 900) } }, [])
 
   const topics = Object.entries(stats?.byTech || {}).sort((a, b) => b[1] - a[1])
 
@@ -52,6 +64,23 @@ export default function HomePage() {
           </section>
         )}
 
+        {SHOW_DSA_SHEETS && (
+        <section className="mt-12" aria-labelledby="sheets">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 id="sheets" className="text-xl font-bold text-slate-900 dark:text-slate-100">DSA sheets</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {SHEETS.map(s => (
+              <a key={s.name} href={s.href} className="rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md dark:bg-slate-950">
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name} →</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{s.by} · {s.count} problems</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{s.text}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+        )}
+
         {companies.length > 0 && features.code_practice !== false && (
           <section className="mt-12" aria-labelledby="companies">
             <div className="mb-4 flex items-baseline justify-between">
@@ -75,6 +104,11 @@ export default function HomePage() {
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{l.text}</p>
             </a>
           ))}
+        </section>
+        <section id="feedback" className="mt-12 scroll-mt-20" aria-labelledby="fb">
+          <h2 id="fb" className="mb-1 text-center text-xl font-bold text-slate-900 dark:text-slate-100">Feedback</h2>
+          <p className="mb-4 text-center text-sm text-slate-600 dark:text-slate-400">Tell us what to improve. We read every message.</p>
+          <FeedbackForm />
         </section>
       </main>
       <Footer />
