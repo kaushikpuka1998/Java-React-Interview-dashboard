@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import Loader from './Loader.jsx'
 import { fetchEmailRecipients, fetchEmailLog, fetchDigestStatus, sendAnnouncement } from '../lib/emailAdmin.js'
 
 const STATUS_STYLE = {
@@ -307,7 +308,7 @@ export default function EmailCenter() {
   useEffect(() => { load() }, [load])
 
   if (error) return <p className="text-sm text-red-500">{error}</p>
-  if (!recipients) return <p className="text-sm text-slate-500">Loading email activity…</p>
+  if (!recipients) return <Loader compact label="Loading email activity…" />
 
   return (
     <div className="space-y-5">

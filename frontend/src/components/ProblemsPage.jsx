@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Loader from './Loader.jsx'
 import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import { fetchCodingProblems } from '../lib/codingProblems.js'
@@ -149,6 +150,7 @@ export default function ProblemsPage() {
         </div>
 
         {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {!problems && !error && <Loader label="Loading problems…" />}
         {problems && rows.length === 0 && <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 dark:bg-slate-950 dark:text-slate-400">No problems match these filters.</p>}
 
         {rows.length > 0 && (

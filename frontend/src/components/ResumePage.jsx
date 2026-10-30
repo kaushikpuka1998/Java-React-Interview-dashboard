@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Loader from './Loader.jsx'
 import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import { isLoggedIn } from '../lib/auth.js'
@@ -74,7 +75,7 @@ export default function ResumePage() {
         </form>
       )}
 
-      {!resumes ? <p className="text-sm text-slate-500">Loading…</p> : resumes.length === 0 ? (
+      {!resumes ? <Loader compact label="Loading your resumes…" /> : resumes.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400 dark:border-slate-700">
           No resumes yet. Create one from a template and edit the details, or download it as LaTeX.
         </p>

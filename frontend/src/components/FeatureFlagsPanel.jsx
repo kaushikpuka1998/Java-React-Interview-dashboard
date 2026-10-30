@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Loader from './Loader.jsx'
 import { fetchFeatures, setFeature } from '../lib/features.js'
 
 // Each entry is a flag the server knows about (see FeatureFlagController).
@@ -27,7 +28,7 @@ export default function FeatureFlagsPanel() {
     }
   }
 
-  if (!flags) return <p className="text-sm text-slate-500">Loading feature flags…</p>
+  if (!flags) return <Loader compact label="Loading feature flags…" />
 
   return (
     <div className="space-y-3">

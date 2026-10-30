@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Loader from './Loader.jsx'
 import { sampleResumeData } from '../lib/resumeSample.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
@@ -116,7 +117,7 @@ export default function ResumeTemplatesAdmin() {
           <h3 className="font-semibold text-slate-900 dark:text-slate-100">Templates</h3>
           <button onClick={() => { setForm({ ...BLANK, preamble: STARTER }); setPdfUrl(null); setMsg(null) }} className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ New</button>
         </div>
-        {!list ? <p className="text-sm text-slate-400">Loading…</p> : (
+        {!list ? <Loader compact /> : (
           <ul className="space-y-1">
             {list.map(t => (
               <li key={t.id}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Loader from './Loader.jsx'
 import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import LeagueBadge from './LeagueBadge.jsx'
@@ -30,7 +31,7 @@ export default function LeaderboardPage() {
         </div>
 
         {error && <p className="text-slate-500">{error}</p>}
-        {!error && !data && <p className="text-slate-500">Loading…</p>}
+        {!error && !data && <Loader label="Loading the leaderboard…" />}
 
         {data && (
           <>

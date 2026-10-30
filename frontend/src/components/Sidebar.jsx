@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import Loader from './Loader.jsx'
 import QuestionLink from './QuestionLink.jsx'
 import { SearchInput, TechFilter, CategorySelect, CompanySelect, StatusSelect, DifficultySelect, QuestionCount } from './SidebarFilters.jsx'
 import Notifications from './Notifications.jsx'
@@ -251,9 +252,7 @@ export default function Sidebar({  questions, filtered, selectedId, query, setQu
 
       <nav ref={listRef} className="question-list flex-1 min-h-[16rem] overflow-y-auto p-2 space-y-1.5" aria-label="Question list">
         {loading && filtered.length === 0 ? (
-          <div className="text-center py-8 text-sm text-slate-500 dark:text-slate-400">
-            Loading questions…
-          </div>
+          <Loader compact label="Loading questions…" />
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-slate-500 dark:text-slate-400">
             <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">

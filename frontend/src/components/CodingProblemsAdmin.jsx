@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Loader from './Loader.jsx'
 import { fetchAdminCodingProblems, fetchAdminCodingProblem, saveCodingProblem, deleteCodingProblem, importCodingProblems } from '../lib/codingProblems.js'
 import Markdown from './Markdown.jsx'
 
@@ -295,7 +296,7 @@ export default function CodingProblemsAdmin({ onExport }) {
             aria-label="Search problems"
             className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
           />
-          {!problems && <p className="text-sm text-slate-500">Loading…</p>}
+          {!problems && <Loader compact />}
           {problems?.length === 0 && <p className="text-sm text-slate-500">No coding problems yet. Practice coding stays hidden until you add one.</p>}
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {shown.slice(page * PAGE, (page + 1) * PAGE).map(p => (

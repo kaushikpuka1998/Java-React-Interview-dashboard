@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Loader from './Loader.jsx'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -55,7 +56,7 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-          <p className="mt-4 text-slate-600 dark:text-slate-400">Loading...</p>
+          <Loader compact label="Checking your link…" />
         </div>
       </div>
     )

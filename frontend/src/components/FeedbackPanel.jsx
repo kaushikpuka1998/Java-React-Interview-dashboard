@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Loader from './Loader.jsx'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082/api'
 const headers = () => { const t = localStorage.getItem('ir_token'); return t ? { Authorization: `Bearer ${t}` } : {} }
@@ -20,7 +21,7 @@ export default function FeedbackPanel() {
   }
 
   if (error) return <p className="text-sm text-red-600">{error}</p>
-  if (!items) return <p className="text-sm text-slate-500">Loading feedback…</p>
+  if (!items) return <Loader compact label="Loading feedback…" />
   if (!items.length) return <p className="text-sm text-slate-500">No feedback yet.</p>
 
   return (

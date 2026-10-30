@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import Loader from './Loader.jsx'
 import { fetchAnalytics, fetchSignups, fetchOnline } from '../lib/analytics.js'
 
 // When the admin last acknowledged the signup list — used to badge new joiners.
@@ -372,7 +373,7 @@ export default function AnalyticsPanel() {
     setSignups(s => ({ ...s, newSince: 0 }))
   }
 
-  if (loading && !data) return <p className="text-sm text-slate-500">Loading analytics…</p>
+  if (loading && !data) return <Loader compact label="Loading analytics…" />
   if (error) return <p className="text-sm text-red-500">{error}</p>
   if (!data) return null
 

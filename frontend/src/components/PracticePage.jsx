@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Loader from './Loader.jsx'
 import { setPageSeo } from '../lib/seo.js'
 import TopBar from './TopBar.jsx'
 import { fetchCodingProblems, fetchCodingProblem, markPracticeSeen } from '../lib/codingProblems.js'
@@ -179,7 +180,7 @@ export default function PracticePage() {
           </p>
         )}
         {error && <p className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
-        {!problems && !error && <p className="text-sm text-slate-500">Loading…</p>}
+        {!problems && !error && <Loader label="Loading problems…" />}
 
         {problems && (
           <div className={`grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:min-h-0 xl:flex-1 xl:grid-rows-[minmax(0,1fr)] xl:items-stretch ${listOpen ? 'lg:grid-cols-[260px_minmax(0,1fr)]' : 'lg:grid-cols-1'}`}>

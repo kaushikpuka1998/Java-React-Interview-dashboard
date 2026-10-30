@@ -1,4 +1,5 @@
 import NotFound from './NotFound.jsx'
+import Loader from './Loader.jsx'
 import { useState, useEffect } from 'react'
 import TopBar from './TopBar.jsx'
 import { techLabel, techBadge, difficultyBadge } from '../lib/badges.js'
@@ -63,7 +64,7 @@ export default function PublicProfilePage({ username }) {
             <p className="pb-6 text-center"><a href="/" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Back to home</a></p>
           </div>
         ) : error && <p className="text-slate-500">{error}</p>}
-        {!error && !profile && <p className="text-slate-500">Loading…</p>}
+        {!error && !profile && <Loader label="Loading profile…" />}
 
         {profile && (
           <>

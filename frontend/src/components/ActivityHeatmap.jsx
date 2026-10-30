@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import Loader from './Loader.jsx'
 import { fetchActivity } from '../lib/code.js'
 
 // LeetCode-style calendar: one square per day for the last year, shaded by how many submissions that day.
@@ -68,7 +69,7 @@ export default function ActivityHeatmap({ times: given, compact = false }) {
     return { cols, months, total, activeDays }
   }, [times, year])
 
-  if (times === null) return <p className="text-sm text-slate-500">Loading activity…</p>
+  if (times === null) return <Loader compact label="Loading activity…" />
 
   // GitHub-style calendar: square cells, one column per week, with a blank column between months so the grid spreads out and reads by month.
   const CELL = 13

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react'
+import Loader from './Loader.jsx'
 import { fieldsToLatex, readFields, writeFields, fromLatexValue, applyFields } from '../lib/latexSync.js'
 import { fetchResume, fetchTemplates, saveResume, downloadLatex, fetchLatexText, saveLatexText, resetLatexText, previewPdfRequest, previewLatexRequest } from '../lib/resume.js'
 import { sampleResumeData } from '../lib/resumeSample.js'
@@ -205,7 +206,7 @@ export default function ResumeEditor({ id }) {
   }
 
   if (!isLoggedIn()) return <Shell><p className="text-slate-500">Log in to edit your resume.</p></Shell>
-  if (!data) return <Shell>{notice ? <p className="text-sm text-red-600">{notice.text}</p> : <p className="text-slate-500">Loading…</p>}</Shell>
+  if (!data) return <Shell>{notice ? <p className="text-sm text-red-600">{notice.text}</p> : <Loader label="Opening your resume…" />}</Shell>
 
   const h = data.header || {}
   const links = h.links || []
