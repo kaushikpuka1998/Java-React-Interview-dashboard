@@ -199,9 +199,9 @@ export default function ReaderPane({ question, questions, onNavigate, visited, r
                   {question.difficulty}
                 </span>
                 </div>
-                <h2 className="question-title text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                <h1 className="question-title text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
                   Q{question.displayNumber}. {question.question}
-                </h2>
+                </h1>
 
                 {isLoggedIn() && (
                     <div className={`mt-3 pt-3 sm:mt-5 sm:pt-4 flex flex-wrap transition-all duration-300 ease-out ${barHidden ? 'max-lg:max-h-0 max-lg:opacity-0 max-lg:-translate-y-2 max-lg:pointer-events-none max-lg:overflow-hidden max-lg:border-transparent max-lg:!mt-0 max-lg:!pt-0' : 'max-h-96 opacity-100 translate-y-0'} items-center justify-between gap-1.5 sm:gap-2 border-t border-slate-200 dark:border-slate-800`}>

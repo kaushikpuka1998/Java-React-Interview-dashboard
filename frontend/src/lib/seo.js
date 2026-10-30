@@ -48,6 +48,18 @@ function plainText(md, max = 160) {
   return text.slice(0, max).replace(/\s+\S*$/, '') + '…'
 }
 
+const ROBOTS_INDEX = 'index, follow, max-image-preview:large, max-snippet:-1'
+function setRobots(noindex) {
+  upsertMeta('meta[name="robots"]', { name: 'robots', content: noindex ? 'noindex, follow' : ROBOTS_INDEX })
+}
+
+/** Fit a title into 60 chars: shorten the head on a word boundary, keep the suffix. */
+function fitTitle(head, suffix, max = 60) {
+  if (head.length + suffix.length <= max) return head + suffix
+  const room = max - suffix.length - 1
+  return head.slice(0, room).replace(/\s+\S*$/, '') + '…' + suffix
+}
+
 function setJsonLd(id, data) {
   let el = document.getElementById(id)
   if (!data) { el?.remove(); return }
@@ -75,7 +87,8 @@ export function setQuestionSeo(question, { gated = false } = {}) {
   const title = `${question.question || question.title} | ${techName} Interview Question`
   const description = plainText(question.answer)
 
-  document.title = title.length > 60 ? `${question.title} | ${techName} Interview Q&A` : title
+  document.title = fitTitle(question.question || question.title, ` | ${techName} Interview Question`)
+  setRobots(false)
 
   upsertMeta('meta[name="description"]', { name: 'description', content: description })
   upsertMeta('meta[name="keywords"]', {
@@ -141,6 +154,7 @@ export function setDefaultSeo(total) {
   const title = `${total ? total.toLocaleString() + '+ ' : ''}Interview Questions with Answers | ${SITE_NAME}`
   const description = 'Free interview questions and detailed answers for Java, React, Node.js, Go, SQL, System Design, Kafka and Microservices. Track your progress as you prepare.'
   document.title = title
+  setRobots(false)
   upsertMeta('meta[name="description"]', { name: 'description', content: description })
   upsertLink('canonical', SITE_URL + '/')
   upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title })
@@ -164,9 +178,10 @@ export function setDefaultSeo(total) {
  * Title, description, canonical and social tags for the app's other public pages
  * (problem list, practice, leaderboard, resume builder). `jsonLd` adds structured data for that page.
  */
-export function setPageSeo({ title, description, path, jsonLd }) {
+export function setPageSeo({ title, description, path, jsonLd, noindex = false }) {
   const url = `${SITE_URL}${path}`
   document.title = title
+  setRobots(noindex) // thin utility pages (resume builder, leaderboard) are kept out of the index
   upsertMeta('meta[name="description"]', { name: 'description', content: description })
   upsertLink('canonical', url)
   upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title })

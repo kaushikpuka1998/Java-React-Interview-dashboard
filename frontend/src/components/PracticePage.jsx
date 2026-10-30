@@ -15,7 +15,7 @@ const NAV_BTN = 'tip relative flex h-8 w-8 shrink-0 items-center justify-center 
 
 // Practice coding: LeetCode-style problems on the left, plus a free code box for writing your own program.
 export default function PracticePage() {
-  useEffect(() => { setPageSeo({ title: 'Practice Coding Online: Run Java, Python, C++ and Go | Interview Reader', description: 'Solve coding interview problems in an online editor, run them against test cases, and see your submissions. Supports Java, Python, C++, Go, JavaScript, Rust, C#, PHP, Ruby, Swift and C.', path: '/practice', jsonLd: undefined }) }, [])
+  useEffect(() => { setPageSeo({ title: 'Practice Coding Online in 11 Languages | Interview Reader', description: 'Solve coding interview problems in an online editor and run them against test cases in Java, Python, C++, Go, JavaScript and 6 more languages.', path: '/practice', jsonLd: undefined }) }, [])
   const [problems, setProblems] = useState(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const CHUNK = 50
@@ -342,7 +342,7 @@ export default function PracticePage() {
               {selected === CUSTOM && (
                 <>
                   <div className="min-w-0 rounded-2xl bg-white p-5 dark:bg-slate-950 xl:w-[var(--split)] xl:shrink-0">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Playground</h2>
+                    <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Playground</h1>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Write any program, choose a language, and run it. No tests are checked here.</p>
                   </div>
                   <div
@@ -378,10 +378,10 @@ export default function PracticePage() {
                     </div>
                     {tab === 'description' ? (
                       <>
-                        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <h1 className="mb-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
                           {numberOf.has(detail.id) && <><span className="font-normal tabular-nums text-slate-400 dark:text-slate-500">#{numberOf.get(detail.id)}</span>{' '}</>}
                           {detail.title}
-                        </h2>
+                        </h1>
                         <div className="text-sm text-slate-700 dark:text-slate-300">
                           <Markdown text={detail.statement} />
                         </div>

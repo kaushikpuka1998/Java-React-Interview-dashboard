@@ -16,16 +16,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://interviewreader.cloud/leaderboard</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://interviewreader.cloud/resume</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://interviewreader.cloud/what-is-the-difference-between-synchronous-and-asynchronous-communication-in-mic</loc>
     <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>

@@ -65,7 +65,7 @@ function sitemapXml(questions) {
   const urls = [
     `  <url>\n    <loc>${SITE_URL}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>`,
     // The app's other public pages.
-    ...[['/problems', 'daily', '0.9'], ['/practice', 'weekly', '0.7'], ['/leaderboard', 'daily', '0.5'], ['/resume', 'monthly', '0.6']].map(([path, freq, prio]) =>
+    ...[['/problems', 'daily', '0.9'], ['/practice', 'weekly', '0.7']].map(([path, freq, prio]) =>
       `  <url>\n    <loc>${SITE_URL}${path}</loc>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`),
     ...questions.map(q => {
       const slug = q._isSlug ? q.question : slugify(q.question || q.title)

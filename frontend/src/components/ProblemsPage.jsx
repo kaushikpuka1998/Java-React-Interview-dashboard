@@ -12,7 +12,7 @@ const STATUSES = [['all', 'All'], ['solved', 'Solved'], ['todo', 'Not solved']]
 
 // Every coding problem on one page, with search and filters. Each row opens the problem in the practice page.
 export default function ProblemsPage() {
-  useEffect(() => { setPageSeo({ title: 'Coding Problems with Test Cases in 11 Languages | Interview Reader', description: 'Practice 1,500+ coding interview problems — arrays, strings, linked lists, trees, graphs and dynamic programming. Write and run your solution online in Java, Python, C++, Go, JavaScript and more.', path: '/problems', jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Coding Problems with Test Cases in 11 Languages | Interview Reader', description: 'Practice 1,500+ coding interview problems — arrays, strings, linked lists, trees, graphs and dynamic programming. Write and run your solution online in Java, Python, C++, Go, JavaScript and more.', url: '/problems' } }) }, [])
+  useEffect(() => { setPageSeo({ title: 'Coding Problems in 11 Languages | Interview Reader', description: 'Practice 1,500+ coding interview problems on arrays, strings, trees, graphs and DP. Write and run solutions online in Java, Python, C++, Go and more.', path: '/problems', jsonLd: { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Coding Problems in 11 Languages | Interview Reader', description: 'Practice 1,500+ coding interview problems on arrays, strings, trees, graphs and DP. Write and run solutions online in Java, Python, C++, Go and more.', url: '/problems' } }) }, [])
   const [problems, setProblems] = useState(null)
   const [solved, setSolved] = useState(() => new Set())
   const [attempted, setAttempted] = useState(() => new Set())
