@@ -170,7 +170,7 @@ export default function PracticePage() {
   return (
     <>
       <TopBar />
-    <div className="min-h-[calc(100vh-3.6rem)] bg-slate-100 p-3 sm:p-4 xl:flex xl:h-[calc(100vh-3.6rem)] xl:flex-col xl:overflow-hidden xl:pb-8 dark:bg-slate-900">
+    <div className="min-h-[calc(100vh-5.4rem)] bg-slate-100 p-3 sm:p-4 xl:flex xl:h-[calc(100vh-5.4rem)] xl:flex-col xl:overflow-hidden xl:pb-8 dark:bg-slate-900">
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={() => window.location.reload()} />}
       <div className="mx-auto w-full max-w-[1800px] xl:flex xl:min-h-0 xl:flex-1 xl:flex-col">
         {!isLoggedIn() && (

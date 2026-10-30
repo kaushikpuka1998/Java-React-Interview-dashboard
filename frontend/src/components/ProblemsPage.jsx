@@ -83,7 +83,7 @@ export default function ProblemsPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900 sm:text-2xl dark:text-slate-100">Problems</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {problems ? `${rows.length} of ${problems.length} problems` : 'Loading…'}
+              {problems ? (rows.length === problems.length ? `${problems.length.toLocaleString()} coding problems` : `Showing ${rows.length.toLocaleString()} of ${problems.length.toLocaleString()} problems`) : 'Loading…'}
             </p>
           </div>
           <div className="flex items-center gap-4 text-sm">

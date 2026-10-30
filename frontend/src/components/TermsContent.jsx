@@ -1,4 +1,4 @@
-// Terms of use and privacy notice shown at sign-up. Items in [brackets] must be confirmed before launch.
+// Terms of use and privacy notice shown at sign-up. Items in [brackets] must be confirmed before launch (deletion and complaint timings).
 const SECTIONS = [
   {
     title: 'What we collect',
@@ -28,19 +28,80 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'How long we keep it',
+    title: 'Consent',
+    items: [
+      'We process your personal data only with your consent, which you give by creating an account and accepting these terms.',
+      'Email digests and announcements are separate, optional consents. You can withdraw any consent at any time; withdrawing it does not affect past processing.',
+    ],
+  },
+  {
+    title: 'Cookies and local storage',
+    items: [
+      'We use cookies and browser storage that are needed to keep you signed in, remember your theme, and save your reading progress and code drafts on your device.',
+      'We also record page views and clicks for analytics (see "What we collect"). We do not use advertising or third-party tracking cookies.',
+      'You can clear cookies and site data in your browser settings at any time; you may need to sign in again.',
+    ],
+  },
+  {
+    title: 'Terms of use',
+    items: [
+      'Questions, answers and coding problems are provided for learning and interview preparation. We do not guarantee they are error-free or that they will get you a job.',
+      'Do not scrape or copy the content in bulk, share your account, attack or overload the service, or upload anything unlawful.',
+      'Content you write (notes, resumes) stays yours. We may suspend accounts that break these terms.',
+      'We may change the service or these terms; continued use after a change means you accept it.',
+    ],
+  },
+  {
+    title: 'Returns and refunds',
+    items: [
+      'The service is currently free and has no paid plans, so there is nothing to refund.',
+      'If paid features are introduced, their refund and cancellation terms will be shown before you pay and added here. [Update this section before launching paid plans.]',
+    ],
+  },
+  {
+    title: "Children's data",
+    items: [
+      'The service is intended for users aged 18 and over. If you are under 18, use it only with a parent or guardian\'s verifiable consent.',
+      'We do not knowingly collect data from children, and we do not track or target children with advertising. If we learn we have, we will delete it.',
+    ],
+  },
+  {
+    title: 'Data security',
+    items: [
+      'Passwords are stored only as salted hashes, and data is sent over HTTPS.',
+      'Access to personal data is limited to administrators who need it to run the service.',
+      'No system is completely secure. If a breach affects your personal data, we will notify you and the relevant authority as the law requires.',
+    ],
+  },
+  {
+    title: 'How long we keep it (record retention)',
     items: [
       'Your account and content are kept while your account is active.',
-      'Usage logs are kept for [12] months, then deleted or aggregated.',
+      'Usage logs are kept for 48 months, then deleted or aggregated.',
+      'We may keep limited records longer where the law requires, or to resolve disputes and prevent abuse.',
+    ],
+  },
+  {
+    title: 'Deleting your data',
+    items: [
+      'You can ask us to delete your account and personal data, including notes and resumes, at any time using the contact below.',
+      'We delete it within [30] days of a verified request, except records we must keep by law. [Confirm the timing.]',
+      'Backups are overwritten on their normal cycle.',
     ],
   },
   {
     title: 'Your choices',
     items: [
       'Access, correct or download your data from your profile.',
-      'Delete your account, which removes your personal data and resumes. [Confirm the deletion process and timing.]',
       'Opt out of emails at any time using the unsubscribe link in an email.',
-      'Questions or requests: [contact email].',
+      'Questions or requests: kaushikghosh199832@gmail.com.',
+    ],
+  },
+  {
+    title: 'Grievance officer',
+    items: [
+      'For complaints about how your data is handled, contact our Grievance Officer: Kaushik Ghosh, kaushikghosh199832@gmail.com, Pandapara Kalibari, Jalpaiguri.',
+      'We acknowledge complaints within [72 hours] and aim to resolve them within [15 days].',
     ],
   },
 ]

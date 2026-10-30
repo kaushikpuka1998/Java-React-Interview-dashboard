@@ -72,6 +72,25 @@ public class AuthController {
         if (!Boolean.TRUE.equals(req.termsAccepted())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Please accept the Terms and Privacy notice to create an account."));
         }
+        java.time.LocalDate dob;
+        try {
+            dob = java.time.LocalDate.parse(req.dateOfBirth());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Please enter your date of birth."));
+        }
+        int age = java.time.Period.between(dob, java.time.LocalDate.now()).getYears();
+        if (dob.isAfter(java.time.LocalDate.now()) || age > 120) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Please enter a valid date of birth."));
+        }
+        boolean minor = age < 18;
+        if (minor && (req.guardianName() == null || req.guardianName().isBlank()
+                || req.guardianEmail() == null || !req.guardianEmail().contains("@")
+                || !Boolean.TRUE.equals(req.guardianConsent()))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Users under 18 need a parent or guardian's name, email and consent."));
+        }
+        if (minor && req.email() != null && req.guardianEmail().trim().equalsIgnoreCase(req.email().trim())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "The parent or guardian's email must be different from yours."));
+        }
         if (req.email() == null || req.password() == null || req.email().isBlank() || req.password().length() < 6) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email and a password of at least 6 characters are required"));
         }
@@ -101,6 +120,12 @@ public class AuthController {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setName(req.name());
+        user.setDateOfBirth(dob);
+        if (minor) {
+            user.setGuardianName(trimTo(req.guardianName().trim(), 100));
+            user.setGuardianEmail(trimTo(req.guardianEmail().trim().toLowerCase(), 150));
+            user.setGuardianConsentAt(Instant.now());
+        }
         user.setLastLoginAt(Instant.now());
         GeoService.applyUserLocation(user, loc.country(), loc.city());
         user.setUtmSource(trimTo(req.utmSource(), 100));

@@ -54,7 +54,7 @@ export default function PublicProfilePage({ username }) {
   return (
     <>
       <TopBar />
-    <div className="min-h-[calc(100vh-3.6rem)] bg-slate-100 p-5 dark:bg-slate-900 lg:h-[calc(100vh-3.6rem)] lg:overflow-hidden">
+    <div className="min-h-[calc(100vh-5.4rem)] bg-slate-100 p-5 dark:bg-slate-900 lg:h-[calc(100vh-5.4rem)] lg:overflow-hidden">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:h-full">
         {error && <p className="text-slate-500">{error}</p>}
         {!error && !profile && <p className="text-slate-500">Loading…</p>}

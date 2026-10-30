@@ -2,12 +2,13 @@ import { isLoggedIn, getUser, logout } from '../lib/auth.js'
 import { useState } from 'react'
 import { useFeatures } from '../lib/features.js'
 import Notifications from './Notifications.jsx'
+import AuthModal from './AuthModal.jsx'
 
 // Shared top bar (LeetCode style): brand and page links on the left, theme toggle, notifications, avatar and log out on the right.
 // Used on every full page. The home reader passes its own user and handlers (props below); other pages use the stored session.
 // [label, href, feature flag that must be on, flag that turns on the "New" badge]
 const NAV = [
-  ['Questions', '/'],
+  ['Questions', '/questions'],
   ['Problems (Coding)', '/problems', 'code_practice', 'new_badge_code_practice'],
   ['Practice', '/practice', 'code_practice', 'new_badge_code_practice'],
   ['Leaderboard', '/leaderboard'],
@@ -16,7 +17,7 @@ const NAV = [
 
 function NavLink({ label, href, flag, badge, path, features }) {
   if (flag && features[flag] === false) return null
-  const active = path === href
+  const active = href === '/questions' ? !['/', '/problems', '/practice', '/leaderboard', '/resume', '/terms'].some(p => path === p || path.startsWith(p + '/')) && !['/admin', '/profile', '/u'].some(p => path.startsWith(p)) : path === href
   const handleClick = (e) => {
     if (href === '/practice' && typeof window !== 'undefined' && window.location.pathname === '/practice' && window.location.search) {
       e.preventDefault()
@@ -41,6 +42,7 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
   // The theme switch is on every page. The home reader passes its own state; elsewhere the bar flips the same
   // `dark` class and saved 'theme' value that the reader uses, so the choice carries between pages.
   const features = useFeatures()
+  const [ownAuthOpen, setOwnAuthOpen] = useState(false) // pages that pass no onLogin get their own sign-in modal
   const [ownDark, setOwnDark] = useState(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
   const isDark = onToggleProp ? isDarkProp : ownDark
   const onToggleDark = onToggleProp || (() => {
@@ -57,6 +59,7 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
   const goAdmin = onAdmin || (() => { window.location.href = '/admin' })
   const doLogout = onLogout || (() => logout({ redirect: '/' }))
   return (
+    <>
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
       <div className="flex h-14 items-center gap-4 px-4">
         <a href="/" className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100" aria-label="Interview Reader home">
@@ -85,11 +88,13 @@ export default function TopBar({ user: userProp, isDark: isDarkProp, onToggleDar
               <a href="/profile" aria-label="Your profile" title="Your profile" className={`flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white dark:bg-blue-500 ${onProfile ? 'ring-2 ring-blue-300/60' : ''}`}>{initial}</a>
               <button onClick={doLogout} className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-700 dark:hover:bg-red-500">Log out</button>
             </>
-          ) : onLogin ? (
-            <button onClick={onLogin} className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-95">Log in / Sign up</button>
-          ) : null}
+          ) : (
+            <button onClick={onLogin || (() => setOwnAuthOpen(true))} className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-95">Log in / Sign up</button>
+          )}
         </div>
       </div>
     </header>
+    {ownAuthOpen && <AuthModal onClose={() => setOwnAuthOpen(false)} onSuccess={() => window.location.reload()} />}
+    </>
   )
 }

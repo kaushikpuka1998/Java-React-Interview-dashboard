@@ -143,7 +143,7 @@ export function setQuestionSeo(question, { gated = false } = {}) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: `${techName} Interview Questions`, item: `${SITE_URL}/?tech=${question.tech}` },
+      { '@type': 'ListItem', position: 2, name: `${techName} Interview Questions`, item: `${SITE_URL}/questions?tech=${question.tech}` },
       { '@type': 'ListItem', position: 3, name: question.title, item: url },
     ],
   })

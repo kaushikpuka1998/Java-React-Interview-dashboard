@@ -17,10 +17,23 @@ export default function AuthModal({ onClose, onSuccess }) {
   const [busy, setBusy] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [agreed, setAgreed] = useState(false)     // sign-up: Terms and Privacy accepted
+  const [dob, setDob] = useState('')
+  const [guardianName, setGuardianName] = useState('')
+  const [guardianEmail, setGuardianEmail] = useState('')
+  const [guardianConsent, setGuardianConsent] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
 
   const isSignup = mode === 'signup'
   const isForgot = mode === 'forgot'
+  const today = new Date().toISOString().slice(0, 10)
+  const age = (() => {
+    if (!dob) return null
+    const d = new Date(dob), n = new Date()
+    let a = n.getFullYear() - d.getFullYear()
+    if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--
+    return a
+  })()
+  const minor = isSignup && age !== null && age < 18
 
   async function submit(e) {
     e.preventDefault()
@@ -28,6 +41,10 @@ export default function AuthModal({ onClose, onSuccess }) {
     setSuccess('')
     if (isSignup && !agreed) {
       setError('Please accept the Terms and Privacy notice to create an account.')
+      return
+    }
+    if (minor && !guardianConsent) {
+      setError("A parent or guardian's consent is needed if you are under 18.")
       return
     }
     setBusy(true)
@@ -43,7 +60,7 @@ export default function AuthModal({ onClose, onSuccess }) {
         setSuccess(data.message)
       } else {
         const user = isSignup
-          ? await register({ email, password, name, country, city, username, termsAccepted: agreed })
+          ? await register({ email, password, name, country, city, username, termsAccepted: agreed, dateOfBirth: dob, ...(minor && { guardianName, guardianEmail, guardianConsent }) })
           : await login({ email, password })
         onSuccess(user)
       }
@@ -56,13 +73,13 @@ export default function AuthModal({ onClose, onSuccess }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex overflow-y-auto bg-black/50 backdrop-blur-sm p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 p-6"
+        className="m-auto w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
@@ -145,6 +162,40 @@ export default function AuthModal({ onClose, onSuccess }) {
           )}
 
           {isSignup && (
+            <label className="block text-sm text-slate-600 dark:text-slate-400">
+              Date of birth
+              <input
+                type="date" required value={dob} max={today} autoComplete="bday"
+                onChange={(e) => setDob(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+          )}
+          {minor && (
+            <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700/60 dark:bg-amber-900/20">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Parent or guardian consent needed</p>
+              <p className="text-xs text-amber-800 dark:text-amber-300">You are under 18, so a parent or guardian must agree to how your data is used.</p>
+              <input
+                type="text" required placeholder="Parent or guardian's name" value={guardianName}
+                onChange={(e) => setGuardianName(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="email" required placeholder="Parent or guardian's email" value={guardianEmail}
+                onChange={(e) => setGuardianEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox" checked={guardianConsent} onChange={(e) => { setGuardianConsent(e.target.checked); setError('') }}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>I am this person's parent or legal guardian and I consent to them using Interview Reader and to the Terms and data use.</span>
+              </label>
+            </div>
+          )}
+
+          {isSignup && (
             <div className="space-y-2">
               <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
@@ -159,7 +210,7 @@ export default function AuthModal({ onClose, onSuccess }) {
                 </span>
               </label>
               {showTerms && (
-                <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="mt-2 max-h-56 overflow-y-auto overscroll-contain rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
                   <TermsContent />
                 </div>
               )}
@@ -170,7 +221,7 @@ export default function AuthModal({ onClose, onSuccess }) {
           {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
 
           <button
-            type="submit" disabled={busy || (isSignup && !agreed)}
+            type="submit" disabled={busy || (isSignup && (!agreed || (minor && !guardianConsent)))}
             className="w-full py-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold shadow-lg hover:opacity-95 disabled:opacity-60 transition"
           >
             {busy ? 'Please wait…' : isForgot ? 'Send reset link' : isSignup ? 'Sign up' : 'Log in'}

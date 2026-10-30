@@ -8,6 +8,9 @@ import ProblemsPage from './components/ProblemsPage.jsx'
 import LeaderboardPage from './components/LeaderboardPage.jsx'
 import ResumePage from './components/ResumePage.jsx'
 import ResumeEditor from './components/ResumeEditor.jsx'
+import HomePage from './components/HomePage.jsx'
+import Footer from './components/Footer.jsx'
+import TermsPage from './components/TermsPage.jsx'
 import ResetPasswordPage from './components/ResetPasswordPage.jsx'
 import { trackView } from './lib/analytics.js'
 import PracticePage from './components/PracticePage.jsx'
@@ -49,7 +52,7 @@ window.fetch = function() {
 // ponytail: raw pathname check at the entry point — avoids adding react-router just for a wildcard
 const TRACKED_PAGES = ['/admin', '/profile', '/leaderboard', '/resume', '/u/', '/reset-password', '/practice']
 
-function Router() {
+function Routes() {
   const [path, setPath] = useState(() => typeof window !== 'undefined' ? window.location.pathname : '/')
 
   useEffect(() => {
@@ -70,6 +73,10 @@ function Router() {
   // User profile / progress dashboard.
   if (path === '/profile' || path.startsWith('/profile/')) return <ProfilePage />
 
+  if (path === '/') return <HomePage />
+
+  if (path === '/terms') return <TermsPage />
+
   if (path === '/leaderboard') return <LeaderboardPage />
 
   // Practice coding: questions with a code box that runs on the server.
@@ -89,7 +96,21 @@ function Router() {
   if (path === '/reset-password' || path.startsWith('/reset-password')) return <ResetPasswordPage />
 
   // Pass the live pathname; App resolves it to a question slug (or shows the in-reader 404).
-  return <App path={path} onPathChange={setPath} />
+  return <App path={path === '/questions' ? '/' : path} onPathChange={setPath} />
+}
+
+// Pages that do not lay out their own footer (home, terms and the reader do) get one underneath.
+const NEEDS_FOOTER = ['/admin', '/profile', '/leaderboard', '/practice', '/problems', '/resume', '/u/', '/reset-password']
+
+function Router() {
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/'
+  const page = <Routes />
+  return NEEDS_FOOTER.some(p => path === p || path.startsWith(p === '/u/' ? p : p + '/')) ? (
+    <div className="flex min-h-screen flex-col">
+      <div className="flex flex-1 flex-col [&>div]:flex-1 [&>div]:!min-h-0">{page}</div>
+      <Footer />
+    </div>
+  ) : page
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

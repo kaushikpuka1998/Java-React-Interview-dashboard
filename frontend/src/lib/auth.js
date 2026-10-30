@@ -80,11 +80,11 @@ export async function updateUsername(username) {
   return res.json()
 }
 
-export async function register({ email, password, name, country, city, username, termsAccepted }) {
+export async function register({ email, password, name, country, city, username, termsAccepted, dateOfBirth, guardianName, guardianEmail, guardianConsent }) {
   const { utmSource, utmCampaign } = getUtm()
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name, country, city, utmSource, utmCampaign, username, termsAccepted }),
+    body: JSON.stringify({ email, password, name, country, city, utmSource, utmCampaign, username, termsAccepted, dateOfBirth, guardianName, guardianEmail, guardianConsent }),
     credentials: 'include'
   })
   if (!res.ok) throw new Error(await parseError(res) || 'Registration failed')

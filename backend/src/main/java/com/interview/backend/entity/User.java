@@ -67,4 +67,10 @@ public class User {
     /** "user" when they entered it — IP lookups never overwrite that — or "ip". */
     @Column(length = 8)
     private String locationSource;
+
+    /** Age check at sign-up. Under 18 needs a parent or guardian's name, email and consent. */
+    private java.time.LocalDate dateOfBirth;
+    private String guardianName;
+    private String guardianEmail;
+    private Instant guardianConsentAt;
 }

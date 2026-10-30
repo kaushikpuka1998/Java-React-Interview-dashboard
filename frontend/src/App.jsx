@@ -4,6 +4,7 @@ import { PAGE, fetchQuestions, fetchQuestion, fetchCategories, fetchStats } from
 import { saveAllQuestions, getLastSyncedAt, clearQuestionCache } from './lib/offlineStore.js'
 import { initOfflineSync, sendOrQueue } from './lib/offlineSync.js'
 import { slugify } from './lib/slug.js'
+import Footer from './components/Footer.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import ReaderPane from './components/ReaderPane.jsx'
 import { MobileMenuButton, MobileSidebar } from './components/MobileSidebar.jsx'
@@ -23,7 +24,7 @@ function App({ path = '/', onPathChange = () => {} }) {
   const [page, setPage] = useState(0)
   const [selectedId, setSelectedId] = useState(null)
   const [query, setQuery] = useState('')
-  const [tech, setTech] = useState('all')
+  const [tech, setTech] = useState(() => new URLSearchParams(window.location.search).get('tech') || 'all')
   const [category, setCategory] = useState('all')
   const [difficulty, setDifficulty] = useState('all')
   const [status, setStatus] = useState('all')
@@ -567,6 +568,7 @@ function App({ path = '/', onPathChange = () => {} }) {
       />
       )}
       </div>
+      <Footer />
 
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onSuccess={handleAuthSuccess} />}
       {promoOpen && <ResumePromo onClose={() => { setPromoOpen(false); if (practiceAllowed) setPracticePromoOpen(true) }} />}
